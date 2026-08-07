@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f6f9;
+  --foreground: #0d1f2d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jakarta);
+  --font-body: var(--font-inter);
+
+  /* HealthPro Clinic design tokens (from Figma) */
+  --color-brand: #2196f3;
+  --color-brand-dark: #1a7fd1;
+  --color-ink: #0d1f2d;
+  --color-muted: #6b7c8d;
+  --color-muted-2: #8a97a8;
+  --color-line: #e8edf2;
+  --color-line-strong: #d0d8e4;
+  --color-teal: #17b8c8;
+  --color-orange: #e65c00;
+  --color-placeholder: #b0bac5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+}
