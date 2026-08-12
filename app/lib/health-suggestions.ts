@@ -64,6 +64,8 @@ export const ALLERGY_SUGGESTIONS = [
   "Contrast Dye",
 ];
 
+export const ALLERGY_SEVERITIES = ["Mild", "Moderate", "Severe"];
+
 export const MEDICATION_UNITS = ["mg", "mcg", "mL", "IU", "%", "tablet(s)"];
 
 export const MEDICATION_FREQUENCIES = [

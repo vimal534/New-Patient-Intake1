@@ -18,15 +18,13 @@ export function StepBar({
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[1.2px] text-muted-2"
+        className="flex items-center gap-3 text-sm font-semibold text-ink"
       >
         <span aria-hidden>←</span>
         {sectionLabel ?? "Back"}
       </button>
       <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-[1.2px] text-muted-2 whitespace-nowrap">
-          {stepLabel}
-        </span>
+        <span className="whitespace-nowrap text-sm text-muted-2">{stepLabel}</span>
         <div className="h-1 w-[92px] overflow-hidden rounded-full bg-line-strong">
           <div
             className="h-full rounded-full bg-brand transition-all"

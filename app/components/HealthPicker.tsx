@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { MedicationEntry } from "@/app/lib/checkin-types";
+import type { AllergyEntry, MedicationEntry } from "@/app/lib/checkin-types";
 import {
+  ALLERGY_SEVERITIES,
+  ALLERGY_SUGGESTIONS as ALLERGY_SUGGESTIONS_POOL,
   MEDICATION_FREQUENCIES,
   MEDICATION_SUGGESTIONS as MEDICATION_SUGGESTIONS_POOL,
   MEDICATION_UNITS,
@@ -157,6 +159,150 @@ export function SimpleTagPicker({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------- Allergies — typeahead, then severity ----------
+
+export function AllergyPicker({
+  entries,
+  onChange,
+}: {
+  entries: AllergyEntry[];
+  onChange: (entries: AllergyEntry[]) => void;
+}) {
+  const [mode, setMode] = useState<"collapsed" | "search" | "detail">("collapsed");
+  const [query, setQuery] = useState("");
+  const [pendingName, setPendingName] = useState("");
+  const [severity, setSeverity] = useState("");
+
+  const existingNames = entries.map((e) => e.name);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const pool = ALLERGY_SUGGESTIONS_POOL.filter((s) => !existingNames.includes(s));
+    if (!q) return pool.slice(0, 6);
+    return pool.filter((s) => s.toLowerCase().includes(q)).slice(0, 6);
+  }, [query, existingNames]);
+
+  function startDetail(name: string) {
+    setPendingName(name);
+    setSeverity("");
+    setMode("detail");
+  }
+
+  function cancel() {
+    setMode("collapsed");
+    setQuery("");
+  }
+
+  function confirmAdd() {
+    onChange([...entries, { name: pendingName, severity: severity || "Moderate" }]);
+    setMode("collapsed");
+    setQuery("");
+  }
+
+  function remove(name: string) {
+    onChange(entries.filter((e) => e.name !== name));
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        {entries.map((e) => (
+          <span
+            key={e.name}
+            className="inline-flex items-center gap-1.5 rounded-full border border-orange px-3 py-1.5 text-sm font-medium text-orange"
+          >
+            {e.name} · {e.severity}
+            <button
+              type="button"
+              onClick={() => remove(e.name)}
+              aria-label={`Remove ${e.name}`}
+              className="opacity-70 hover:opacity-100"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        {mode === "collapsed" && (
+          <button
+            type="button"
+            onClick={() => setMode("search")}
+            className="rounded-full border border-dashed border-line-strong px-3 py-1.5 text-sm font-medium text-muted"
+          >
+            + Add an allergy
+          </button>
+        )}
+      </div>
+
+      <div className={mode === "collapsed" ? "" : "mt-2"}>
+        {mode === "search" && (
+          <div className="rounded-2xl border-2 border-orange bg-white">
+            <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && query.trim()) startDetail(query.trim());
+                  if (e.key === "Escape") cancel();
+                }}
+                placeholder="Search by name"
+                className="flex-1 text-sm text-ink outline-none"
+              />
+              <button type="button" onClick={cancel} aria-label="Close" className="text-muted-2">
+                ×
+              </button>
+            </div>
+            <SuggestionList items={filtered} onPick={startDetail} />
+          </div>
+        )}
+
+        {mode === "detail" && (
+          <div className="rounded-2xl border-2 border-orange bg-white p-4">
+            <div className="mb-3 flex items-start justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-orange">
+                  Adding
+                </p>
+                <p className="text-base font-bold text-ink">{pendingName}</p>
+              </div>
+              <button type="button" onClick={cancel} aria-label="Cancel" className="text-muted-2">
+                ×
+              </button>
+            </div>
+
+            <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-2">
+              Severity
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {ALLERGY_SEVERITIES.map((s) => (
+                <Chip key={s} label={s} selected={severity === s} onClick={() => setSeverity(s)} />
+              ))}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={cancel}
+                className="flex-1 rounded-full border border-line-strong py-2.5 text-sm font-semibold text-ink"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!severity}
+                onClick={confirmAdd}
+                className="flex-1 rounded-full bg-orange py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
