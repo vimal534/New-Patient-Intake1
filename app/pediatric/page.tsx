@@ -1,19 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  BTN, BTN_OFF, CARD, CARD_ON, CARD_ON_SUG, DOT, DOT_ON, BOX, BOX_ON,
-  CHIP, CHIP_ON, CHIP_SUG, CHIP_ON_SUG, TAG_OFF, TAG_ON, TAG_ON_SEL,
+  BTN, BTN_OFF, CARD, CARD_ON, DOT, DOT_ON, BOX, BOX_ON,
+  CHIP, CHIP_ON, CHIP_SUG,
   FIGURES, ZONES, SPOTS, DEFAULT_SPOTS, QUALITY, DEFAULT_QUALITY, SEVERITY,
   REGION_META, AGGRAVATING, DEFAULT_AGGRAVATING, CONNECTED_RULES, SCALE,
-  FOLLOWS, REL_OPTS, CONSENT_DOCS, PARSE, PEDIATRIC_CONFIG,
+  FOLLOWS, ONSET_OPTIONS, TRIGGER_OPTIONS, SYMPTOM_CHECKS, HISTORY_PROMPTS,
+  REL_OPTS, CONSENT_DOCS, PARSE, PEDIATRIC_CONFIG,
 } from "./data";
 import { initialPedState } from "./types";
 import type { AreaState, CardDraft, PedState, Screen } from "./types";
 import { StatusBar } from "../components/StatusBar";
 
 const P = PEDIATRIC_CONFIG;
-type DraftKey = "spots" | "quality" | "aggravating" | "connected";
+
+// ---------- The conversational canvas: one combined step queue ----------
+// Each step is exactly one question. "tier" controls how it renders:
+// 1 = stated outright (collapsed by default, "Change" reveals options)
+// 2 = a reasonable guess (shown as an active question with the guessed
+//     option pre-highlighted "Suggested" — still requires a tap to confirm)
+// 3 = genuinely unknown (asked fresh, never pre-filled — severity always
+//     falls here per the existing hard rule)
+type CanvasStep = {
+  id: string; // unique within the whole queue
+  region: string | null; // null for generic, cross-region steps
+  tier: 1 | 2 | 3;
+  eyebrow: string;
+  statement?: string; // a known fact stated plainly before the question (history-aware)
+  question: string;
+  options: string[];
+  multi: boolean;
+  suggested?: string[]; // tier-2 pre-highlighted values
+};
 
 export default function PediatricIntakePage() {
   const [state, setState] = useState<PedState>(initialPedState);
@@ -21,6 +40,14 @@ export default function PediatricIntakePage() {
   function patch(update: Partial<PedState> | ((s: PedState) => Partial<PedState>)) {
     setState((prev) => ({ ...prev, ...(typeof update === "function" ? update(prev) : update) }));
   }
+
+  // Auto-scroll: the newest question settles into view on its own — the
+  // patient never has to scroll down to find what appeared next. Suspended
+  // the moment they scroll away manually, so it never fights a patient
+  // reading back through what's collapsed above.
+  const canvasQuestionRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastAutoScrollTop = useRef(0);
 
   const s = state;
   const isB = s.flow === "B";
@@ -34,7 +61,7 @@ export default function PediatricIntakePage() {
       f.push("handoff");
       if (s.handedOff) f.push("private");
     }
-    f.push("followUp");
+    f.push("canvas");
     if (isTeen) f.push("scale");
     return f;
   }
@@ -67,15 +94,20 @@ export default function PediatricIntakePage() {
     return Math.max(0, flow().indexOf(s.screen));
   }
   function go(screen: Screen) {
-    patch({ screen });
+    // Sheets and expandables are screen-local overlays, not persistent
+    // state — leaving one open while navigating elsewhere would otherwise
+    // have it re-appear, uninvited, on top of an unrelated screen.
+    patch({ screen, sheet: null, canvasReviewOpen: false });
   }
   function next() {
     const f = flow();
     go(f[Math.min(f.length - 1, idx() + 1)]);
   }
   function back() {
-    if (s.screen === "followUp" && s.followIdx > 0) {
-      patch((prev) => ({ followIdx: prev.followIdx - 1 }));
+    if (s.screen === "canvas" && s.canvasHistory.length > 0) {
+      const last = s.canvasHistory[s.canvasHistory.length - 1];
+      clearStepField(last);
+      patch((prev) => ({ canvasHistory: prev.canvasHistory.slice(0, -1), canvasChangeOpen: null, canvasJustSelected: null }));
       return;
     }
     const f = flow();
@@ -88,8 +120,14 @@ export default function PediatricIntakePage() {
       parsed: false,
       areas: {},
       order: [],
-      follows: {},
-      followIdx: 0,
+      symptomOnset: "",
+      symptomTrigger: "",
+      canvasHistory: [],
+      canvasChangeOpen: null,
+      canvasJustSelected: null,
+      canvasReviewOpen: false,
+      canvasScrolledAway: false,
+      genericAnswers: {},
       scale: null,
       handedOff: false,
       privateAnswer: null,
@@ -241,105 +279,282 @@ export default function PediatricIntakePage() {
   }
 
   // ---------- Body-map symptom picker ----------
-  function activeFollows() {
-    const hasEar = s.order.includes("Ear");
-    return FOLLOWS.filter((f) => {
-      if (f.id === "fever") return hasEar || s.order.includes("Throat");
-      if (f.id === "similar") return hasEar && s.flow === "B";
-      if (f.id === "worse") return true;
-      if (f.id === "eating") return hasEar || s.order.includes("Tummy") || s.order.includes("Throat");
-      return true;
+  function emptyArea(): AreaState {
+    return { spots: [], quality: [], aggravating: [], severity: null, connected: [], suggested: false, confirmed: false, extra: {} };
+  }
+
+  function toggleRegion(id: string) {
+    patch((prev) => {
+      if (prev.areas[id]) {
+        const areas = { ...prev.areas };
+        delete areas[id];
+        return { areas, order: prev.order.filter((x) => x !== id) };
+      }
+      return { areas: { ...prev.areas, [id]: emptyArea() }, order: [...prev.order, id] };
     });
+  }
+
+  // Severity is stored as the full tapped option ("1 · Barely") so the
+  // selected-state comparison in the canvas (which matches against the same
+  // option strings) keeps working — this pulls the bare number back out
+  // wherever something needs to compare or look up by it.
+  function severityNum(v: string | null): string | null {
+    return v ? v.split(" · ")[0] : null;
   }
 
   function parseText() {
-    const areas: Record<string, AreaState> = {};
-    const order: string[] = [];
-    PARSE.areas.forEach((a) => {
-      // Severity is never AI-preselected — it is subjective and must be the patient's own choice.
-      areas[a.id] = { spots: [...a.spots], quality: ["Aching"], aggravating: ["Lying down"], severity: null, connected: [], suggested: true, confirmed: false };
-      order.push(a.id);
-    });
-    patch({ areas, order, parsed: true, view: "front", follows: { ...PARSE.follows }, screen: "bodyMap" });
-  }
-
-  function openRegion(id: string) {
-    const a = s.areas[id];
+    // Tier-1 (stated outright) vs tier-2 (a reasonable guess) split, per the
+    // conversational-canvas spec: onset/trigger are things the description
+    // actually said, so they render collapsed in the recap. The specific
+    // spot and quality are inferred, not stated — tier-2, shown as an active
+    // question with the guess pre-highlighted rather than assumed outright.
+    const areas: Record<string, AreaState> = {
+      [PARSE.region]: { spots: [...PARSE.spots], quality: [...PARSE.quality], aggravating: [], severity: null, connected: [], suggested: true, confirmed: false, extra: {} },
+    };
     patch({
-      sheet: "region",
-      sheetArea: id,
-      draft: a
-        ? { spots: [...a.spots], quality: [...(a.quality || [])], aggravating: [...(a.aggravating || [])], severity: a.severity, connected: [...(a.connected || [])], suggested: a.suggested, confirmed: a.confirmed }
-        : { spots: [], quality: [], aggravating: [], severity: null, connected: [], suggested: false, confirmed: false },
+      areas, order: [PARSE.region], parsed: true, view: "front", screen: "bodyMap",
+      symptomOnset: PARSE.onset, symptomTrigger: PARSE.trigger,
     });
   }
 
-  // Rules engine: evaluates confirmed answers, returns at most one connected follow-up.
-  function connectedRule(area: string | null, draft: AreaState) {
-    if (!draft.severity || !draft.spots.length) return null;
-    return CONNECTED_RULES.find((r) => r.region === area && Number(draft.severity) >= r.minSeverity) || null;
+  // ---------- The conversational canvas ----------
+  // Values that mean "none of the above" — picking one clears any other
+  // selection in the same multi-select step; picking anything else clears it.
+  const EXCLUSIVE_VALUES = ["Not sure", "None of these", "Nothing in particular", "Nothing yet"];
+
+  function fieldOf(step: CanvasStep) {
+    return step.region ? step.id.slice(step.region.length + 1) : step.id.replace("generic:", "");
   }
 
-  function toggleDraft(key: DraftKey, value: string, single: boolean) {
+  function singleValue(step: CanvasStep): string | undefined {
+    if (!step.region) {
+      const v = s.genericAnswers[fieldOf(step)];
+      return typeof v === "string" ? v : undefined;
+    }
+    const area = s.areas[step.region] || emptyArea();
+    const field = fieldOf(step);
+    if (field === "spots") return area.spots[0];
+    if (field === "severity") return area.severity || undefined;
+    const v = area.extra[field];
+    return typeof v === "string" ? v : undefined;
+  }
+
+  // Reads a past answer for the review list, where all we have is the
+  // {id, region} the history recorded — not a full CanvasStep, and not
+  // knowing up front whether it was single- or multi-select.
+  function historyValue(rec: { id: string; region: string | null }): string | string[] | undefined {
+    if (!rec.region) return s.genericAnswers[rec.id.replace("generic:", "")];
+    const area = s.areas[rec.region] || emptyArea();
+    const field = rec.id.slice(rec.region.length + 1);
+    if (field === "spots") return area.spots[0];
+    if (field === "severity") return area.severity || undefined;
+    if (field === "quality") return area.quality;
+    if (field === "aggravating") return area.aggravating;
+    if (field === "connected") return area.connected;
+    return area.extra[field];
+  }
+
+  function multiValue(step: CanvasStep): string[] {
+    if (!step.region) {
+      const v = s.genericAnswers[fieldOf(step)];
+      return Array.isArray(v) ? v : [];
+    }
+    const area = s.areas[step.region] || emptyArea();
+    const field = fieldOf(step);
+    if (field === "quality") return area.quality;
+    if (field === "aggravating") return area.aggravating;
+    if (field === "connected") return area.connected;
+    const v = area.extra[field];
+    return Array.isArray(v) ? v : [];
+  }
+
+  function commitAnswer(step: CanvasStep, value: string | string[]) {
+    if (!step.region) {
+      patch((prev) => ({ genericAnswers: { ...prev.genericAnswers, [fieldOf(step)]: value } }));
+      return;
+    }
+    const region = step.region;
+    const field = fieldOf(step);
     patch((prev) => {
-      const d: AreaState = prev.draft ? { ...prev.draft } : { spots: [], quality: [], aggravating: [], connected: [], severity: null, suggested: false, confirmed: false };
-      if (single) {
-        return { draft: d };
+      const area = { ...(prev.areas[region] || emptyArea()) };
+      if (field === "spots") area.spots = Array.isArray(value) ? value : [value];
+      else if (field === "severity") area.severity = value as string;
+      else if (field === "quality") area.quality = value as string[];
+      else if (field === "aggravating") { area.aggravating = value as string[]; area.confirmed = true; }
+      else if (field === "connected") { area.connected = value as string[]; area.confirmed = true; }
+      else area.extra = { ...area.extra, [field]: value };
+      return { areas: { ...prev.areas, [region]: area } };
+    });
+  }
+
+  // The inverse of commitAnswer — resets a step's field back to unanswered.
+  // Used by both the canvas back button and "Edit" from the review list,
+  // which truncates history and clears every field from that point forward
+  // so buildCanvasQueue naturally re-asks them in order.
+  function clearStepField(rec: { id: string; region: string | null }) {
+    if (!rec.region) {
+      const field = rec.id.replace("generic:", "");
+      patch((prev) => {
+        const g = { ...prev.genericAnswers };
+        delete g[field];
+        return { genericAnswers: g };
+      });
+      return;
+    }
+    const region = rec.region;
+    const field = rec.id.slice(region.length + 1);
+    patch((prev) => {
+      const area = { ...(prev.areas[region] || emptyArea()) };
+      if (field === "spots") area.spots = [];
+      else if (field === "severity") area.severity = null;
+      else if (field === "quality") area.quality = [];
+      else if (field === "aggravating") { area.aggravating = []; area.confirmed = false; }
+      else if (field === "connected") { area.connected = []; area.confirmed = false; }
+      else { const extra = { ...area.extra }; delete extra[field]; area.extra = extra; }
+      return { areas: { ...prev.areas, [region]: area } };
+    });
+  }
+
+  function editFromHistory(index: number) {
+    s.canvasHistory.slice(index).forEach(clearStepField);
+    patch((prev) => ({ canvasHistory: prev.canvasHistory.slice(0, index), canvasReviewOpen: false }));
+  }
+
+  // Single-select: brief visual confirmation, then collapse and move on.
+  function selectSingle(step: CanvasStep, value: string) {
+    if (s.canvasJustSelected) return;
+    patch({ canvasJustSelected: { id: step.id, value } });
+    setTimeout(() => {
+      commitAnswer(step, value);
+      patch((prev) => ({
+        canvasJustSelected: null,
+        canvasScrolledAway: false,
+        canvasHistory: [...prev.canvasHistory, { id: step.id, region: step.region, eyebrow: step.eyebrow }],
+      }));
+    }, 180);
+  }
+
+  // Multi-select: each tap toggles immediately (its own visual confirms via
+  // the selected/unselected style) — advancing needs an explicit tap on
+  // Next/Continue since more than one answer is expected.
+  function toggleMulti(step: CanvasStep, value: string) {
+    const cur = multiValue(step);
+    let next: string[];
+    if (EXCLUSIVE_VALUES.includes(value)) {
+      next = cur.includes(value) ? [] : [value];
+    } else {
+      const withoutExclusive = cur.filter((x) => !EXCLUSIVE_VALUES.includes(x));
+      next = withoutExclusive.includes(value) ? withoutExclusive.filter((x) => x !== value) : [...withoutExclusive, value];
+    }
+    commitAnswer(step, next);
+    patch({ canvasScrolledAway: false });
+  }
+  function finishMulti(step: CanvasStep) {
+    patch((prev) => ({
+      canvasScrolledAway: false,
+      canvasHistory: [...prev.canvasHistory, { id: step.id, region: step.region, eyebrow: step.eyebrow }],
+    }));
+  }
+
+  function activeGenericFollows() {
+    const hasEar = s.order.includes("Ear");
+    const hasTummy = s.order.includes("Tummy");
+    const hasThroat = s.order.includes("Throat");
+    return FOLLOWS.filter((f) => {
+      if (f.id === "worse") return !s.symptomTrigger; // already captured tier-1 from the description — don't ask again
+      if (f.id === "eating") return hasEar || hasTummy || hasThroat;
+      return true; // tried
+    });
+  }
+
+  // Builds the queue exactly one unanswered step at a time — each section
+  // only contributes its NEXT question once everything before it (in this
+  // region, then across regions, then the generic cross-region questions)
+  // is resolved. That's what makes the branching invisible instead of
+  // promising a count: the list simply stops growing at whatever's still
+  // actually unknown.
+  function buildCanvasQueue(): CanvasStep[] {
+    const steps: CanvasStep[] = [];
+    let blocked = false;
+    for (const region of s.order) {
+      if (blocked) break;
+      const area = s.areas[region];
+      if (!area) continue;
+      const meta = REGION_META[region] || { heading: region + " discomfort", locQ: "Where exactly?" };
+
+      if (area.spots.length === 0) {
+        steps.push({ id: `${region}:spots`, region, tier: 3, eyebrow: "Location", question: meta.locQ, options: SPOTS[region] || DEFAULT_SPOTS, multi: false });
+        blocked = true;
+        break;
       }
-      const cur = d[key];
-      d[key] = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
-      return { draft: d };
-    });
-  }
-  function toggleSeverity(value: string) {
-    patch((prev) => {
-      const d: AreaState = prev.draft ? { ...prev.draft } : { spots: [], quality: [], aggravating: [], connected: [], severity: null, suggested: false, confirmed: false };
-      d.severity = d.severity === value ? null : value;
-      return { draft: d };
-    });
-  }
-  function toggleAggravating(value: string) {
-    patch((prev) => {
-      const d: AreaState = prev.draft ? { ...prev.draft } : { spots: [], quality: [], aggravating: [], connected: [], severity: null, suggested: false, confirmed: false };
-      const on = d.aggravating.includes(value);
-      if (value === "Not sure") {
-        d.aggravating = on ? [] : ["Not sure"];
-        return { draft: d };
+      if (area.severity === null) {
+        steps.push({ id: `${region}:severity`, region, tier: 3, eyebrow: "Severity", question: "How bad is it right now?", options: SEVERITY.map(([n, l]) => n + " · " + l), multi: false });
+        blocked = true;
+        break;
       }
-      const cur = d.aggravating.filter((x) => x !== "Not sure");
-      d.aggravating = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
-      return { draft: d };
-    });
-  }
-  function toggleConnected(value: string) {
-    patch((prev) => {
-      const d: AreaState = prev.draft ? { ...prev.draft } : { spots: [], quality: [], aggravating: [], connected: [], severity: null, suggested: false, confirmed: false };
-      if (value === "None of these") {
-        d.connected = d.connected.includes(value) ? [] : [value];
-        return { draft: d };
+
+      for (const check of SYMPTOM_CHECKS.filter((c) => c.region === region)) {
+        const answer = area.extra[check.id] as string | undefined;
+        if (answer === undefined) {
+          steps.push({ id: `${region}:${check.id}`, region, tier: 3, eyebrow: check.eyebrow, question: check.question.split("{name}").join(name), options: check.options, multi: false });
+          blocked = true;
+          break;
+        }
+        if (answer !== check.noValue) {
+          const durAnswer = area.extra[check.id + "Onset"] as string | undefined;
+          if (durAnswer === undefined) {
+            steps.push({ id: `${region}:${check.id}Onset`, region, tier: 3, eyebrow: check.durationEyebrow, question: check.durationQuestion, options: check.durationOptions, multi: false });
+            blocked = true;
+            break;
+          }
+        }
       }
-      const cur = d.connected.filter((x) => x !== "None of these");
-      d.connected = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
-      return { draft: d };
-    });
-  }
-  function saveRegion(draft: AreaState, draftOk: boolean) {
-    if (!draftOk || !s.sheetArea) return;
-    patch((prev) => {
-      const areas = { ...prev.areas };
-      const area = prev.sheetArea!;
-      areas[area] = { spots: [...draft.spots], quality: [...draft.quality], aggravating: [...draft.aggravating], connected: [...(draft.connected || [])], severity: draft.severity, suggested: draft.suggested || false, confirmed: true };
-      const order = prev.order.includes(area) ? prev.order : [...prev.order, area];
-      return { areas, order, sheet: null, sheetArea: null, draft: null };
-    });
-  }
-  function removeArea() {
-    patch((prev) => {
-      if (!prev.sheetArea) return {};
-      const areas = { ...prev.areas };
-      delete areas[prev.sheetArea];
-      return { areas, order: prev.order.filter((x) => x !== prev.sheetArea), sheet: null, sheetArea: null, draft: null };
-    });
+      if (blocked) break;
+
+      for (const hp of HISTORY_PROMPTS.filter((h) => h.region === region && (!h.requiresReturning || isB))) {
+        if (area.extra[hp.id] === undefined) {
+          steps.push({ id: `${region}:${hp.id}`, region, tier: 3, eyebrow: "History", statement: fill(hp.statement), question: fill(hp.question), options: hp.options, multi: false });
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) break;
+
+      // A tier-2 guess (pre-filled from the description) still needs an
+      // explicit tap before it counts as answered — checking array length
+      // alone would treat "already has a guessed value" as "already asked",
+      // which skips the confirmation tier-2 exists for. canvasHistory is
+      // the record of what's actually been shown and answered.
+      const qualityAsked = s.canvasHistory.some((h) => h.id === region + ":quality");
+      if (area.quality.length === 0 || (area.suggested && !area.confirmed && !qualityAsked)) {
+        steps.push({ id: `${region}:quality`, region, tier: area.suggested && !area.confirmed ? 2 : 3, eyebrow: "Sensation", question: "What does it feel like?", options: QUALITY[region] || DEFAULT_QUALITY, multi: true, suggested: area.suggested ? PARSE.quality : undefined });
+        blocked = true;
+        break;
+      }
+      if (area.aggravating.length === 0) {
+        steps.push({ id: `${region}:aggravating`, region, tier: 3, eyebrow: "Aggravating factor", question: "When is it worse?", options: AGGRAVATING[region] || DEFAULT_AGGRAVATING, multi: true });
+        blocked = true;
+        break;
+      }
+      const rule = CONNECTED_RULES.find((r) => r.region === region);
+      if (rule && area.severity && Number(severityNum(area.severity)) >= rule.minSeverity && area.connected.length === 0) {
+        steps.push({ id: `${region}:connected`, region, tier: 3, eyebrow: "Also noticed", question: rule.lead, options: rule.opts, multi: true });
+        blocked = true;
+        break;
+      }
+    }
+
+    if (!blocked) {
+      for (const f of activeGenericFollows()) {
+        const cur = s.genericAnswers[f.id];
+        const answered = f.multi ? Array.isArray(cur) && cur.length > 0 : cur !== undefined;
+        if (!answered) {
+          steps.push({ id: `generic:${f.id}`, region: null, tier: 3, eyebrow: f.eyebrow, question: f.q.split("{name}").join(name), options: f.opts, multi: f.multi });
+          break;
+        }
+      }
+    }
+    return steps;
   }
 
   // ---------- Derived values used across many screens ----------
@@ -373,26 +588,61 @@ export default function PediatricIntakePage() {
   const eligGating = P.eligibilityGate;
   const readDone = s.ocrStep >= 4;
   const chatReady = s.chatText.trim().length > 4;
-  const follows = activeFollows();
-  const fq = follows[Math.min(s.followIdx, follows.length - 1)];
-  const fqVal = fq ? s.follows[fq.id] : undefined;
-  const fqAnswered = fq ? (fq.multi ? ((fqVal as string[]) || []).length > 0 : !!fqVal) : false;
   const norm = (a?: AreaState): AreaState => ({
     spots: a?.spots || [], quality: a?.quality || [], aggravating: a?.aggravating || [],
     connected: a?.connected || [], severity: a?.severity || null, suggested: !!a?.suggested, confirmed: !!a?.confirmed,
+    extra: a?.extra || {},
   });
-  const draft = norm(s.draft || undefined);
-  const areaSuggested = !!(s.sheetArea && s.areas[s.sheetArea] && s.areas[s.sheetArea].suggested && !s.areas[s.sheetArea].confirmed);
-  const meta = (s.sheetArea && REGION_META[s.sheetArea]) || { heading: (s.sheetArea || "") + " discomfort", locQ: "Where exactly?" };
   const order = s.order.filter((id) => !!s.areas[id]);
-  const rule = connectedRule(s.sheetArea, draft);
-  const draftOk = draft.spots.length > 0 && !!draft.severity && draft.quality.length > 0 && draft.aggravating.length > 0 && (!rule || (draft.connected || []).length > 0);
-  const sug = areaSuggested ? norm(s.areas[s.sheetArea!]) : { spots: [] as string[], quality: [] as string[], aggravating: [] as string[] };
-  const sugList = (k: "spots" | "quality" | "aggravating") => sug[k] || [];
+  // buildCanvasQueue only ever returns the single next unanswered step (or
+  // none, once everything's resolved) — see its own comment for why a
+  // growing array would break the one-question-at-a-time model.
+  const canvasCurrent = sc === "canvas" ? buildCanvasQueue()[0] ?? null : null;
+  const canvasDetailCount = s.canvasHistory.length;
+
+  // Sequence per the motion spec: the answer already got its own brief
+  // confirmed-state beat (canvasJustSelected) before commit, so by the time
+  // this fires the DOM already reflects the *next* question — settle it
+  // into the upper-middle of the viewport with an eased scroll, unless the
+  // patient has manually scrolled away to read something above.
+  useEffect(() => {
+    if (sc !== "canvas" || s.canvasScrolledAway) return;
+    const el = canvasQuestionRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const container = scrollContainerRef.current;
+    if (container) lastAutoScrollTop.current = container.scrollTop;
+  }, [sc, canvasCurrent?.id, s.canvasScrolledAway]);
+
+  // Keyboard-aware scroll for free-text steps: give the virtual keyboard
+  // time to animate in, then make sure the field (and whatever's below it)
+  // stays visible above it rather than getting covered.
+  function scrollIntoViewOnFocus(e: React.FocusEvent<HTMLElement>) {
+    const el = e.currentTarget;
+    setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+  }
+
+  function handleCanvasScroll() {
+    if (sc !== "canvas" || s.canvasScrolledAway) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    if (Math.abs(container.scrollTop - lastAutoScrollTop.current) > 40) patch({ canvasScrolledAway: true });
+  }
+
+  // Once nothing's left to ask, pause briefly on the completed state before
+  // moving on — long enough to register as "done", not long enough to feel
+  // like a delay.
+  useEffect(() => {
+    if (sc !== "canvas" || canvasCurrent) return;
+    const t = setTimeout(() => next(), 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sc, canvasCurrent]);
+
   const plainChip = (on: boolean) => (on ? CHIP_ON : CHIP);
   const stepNames = isB ? ["Health", "Identity", "Coverage", "Consents", "Review"] : ["Account", "Details", "Identity", "Health", "Coverage", "Consents", "Review"];
-  const stepNumB: Record<string, number> = { home: 1, chat: 1, bodyMap: 1, handoff: 1, private: 1, followUp: 1, scale: 1, idConfirm: 2, idCapture: 2, idReview: 2, coverageConfirm: 3, coverageForm: 3, copay: 3, consentsConfirm: 4, consents: 4, signature: 4, review: 5 };
-  const stepNumA: Record<string, number> = { signup: 1, details: 2, idCapture: 3, idReview: 3, chat: 4, bodyMap: 4, handoff: 4, private: 4, followUp: 4, scale: 4, coverageForm: 5, copay: 5, consents: 6, signature: 6, preferences: 6, review: 7 };
+  const stepNumB: Record<string, number> = { home: 1, chat: 1, bodyMap: 1, handoff: 1, private: 1, canvas: 1, scale: 1, idConfirm: 2, idCapture: 2, idReview: 2, coverageConfirm: 3, coverageForm: 3, copay: 3, consentsConfirm: 4, consents: 4, signature: 4, review: 5 };
+  const stepNumA: Record<string, number> = { signup: 1, details: 2, idCapture: 3, idReview: 3, chat: 4, bodyMap: 4, handoff: 4, private: 4, canvas: 4, scale: 4, coverageForm: 5, copay: 5, consents: 6, signature: 6, preferences: 6, review: 7 };
   const stepNum = (isB ? stepNumB[sc] : stepNumA[sc]) || 1;
   const allAcked = docs.length > 0 && docs.every((d) => s.consentAcks.includes(d.id));
   const newCopay = P.visitType === "Well visit" ? "$0" : "$30";
@@ -415,6 +665,12 @@ export default function PediatricIntakePage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px", background: "#eef1f6", fontFamily: "'Outfit',system-ui,sans-serif" }}>
+      <style>{`
+        @keyframes pedQStepIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .qstep-enter { animation: pedQStepIn 260ms ease-out; }
+        .tap-target { transition: transform 100ms ease-out, filter 100ms ease-out; }
+        .tap-target:active { transform: scale(0.97); filter: brightness(0.97); }
+      `}</style>
       <div style={{ position: "relative", width: 390, height: 844, background: "#f4f7fa", borderRadius: 44, boxShadow: "0 30px 70px rgba(16,32,50,0.18),0 2px 6px rgba(16,32,50,0.08)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <StatusBar />
 
@@ -491,7 +747,7 @@ export default function PediatricIntakePage() {
           </div>
         )}
 
-        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div ref={scrollContainerRef} onScroll={handleCanvasScroll} style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
           {sc === "picker" && (
             <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "24px 20px 26px", background: "#f4f7fa" }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Two check-in flows.</div>
@@ -559,82 +815,97 @@ export default function PediatricIntakePage() {
             </div>
           )}
 
-          {sc === "idCapture" && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "20px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ fontSize: 26, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>{s.idSide === "front" ? "Let's check it's you." : "Now the back."}</div>
-              <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 8, lineHeight: 1.45 }}>
-                {s.idSide === "front" ? "A driver's licence or any government photo ID for you — the adult bringing " + name + " in." : "Flip the card over. Same frame, same steady hands."}
-              </div>
-              <div style={{ position: "relative", background: "#0d1421", borderRadius: 22, marginTop: 16, padding: "26px 18px", overflow: "hidden" }}>
-                <div style={{ position: "relative", borderRadius: 14, aspectRatio: 1.58, background: "#1c2836", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ position: "absolute", top: 10, left: 10, width: 26, height: 26, borderTop: "3px solid #14b3ac", borderLeft: "3px solid #14b3ac", borderRadius: "8px 0 0 0" }} />
-                  <div style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderTop: "3px solid #14b3ac", borderRight: "3px solid #14b3ac", borderRadius: "0 8px 0 0" }} />
-                  <div style={{ position: "absolute", bottom: 10, left: 10, width: 26, height: 26, borderBottom: "3px solid #14b3ac", borderLeft: "3px solid #14b3ac", borderRadius: "0 0 0 8px" }} />
-                  <div style={{ position: "absolute", bottom: 10, right: 10, width: 26, height: 26, borderBottom: "3px solid #14b3ac", borderRight: "3px solid #14b3ac", borderRadius: "0 0 8px 0" }} />
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "#7c8fa3", textAlign: "center", lineHeight: 1.4, padding: "0 24px" }}>{s.idSide === "front" ? "Place the front of the card in the frame" : "Place the back of the card in the frame"}</div>
+          {sc === "idCapture" && (() => {
+            // One continuous journey, not two independent screens: capturing
+            // the front transitions straight into the back — no separate
+            // "reviewed the front" tap required.
+            const justCaptured = s.canvasJustSelected?.id === "idCapture" ? (s.canvasJustSelected.value as string) : null;
+            function capture() {
+              if (s.canvasJustSelected) return;
+              const side = s.idSide;
+              patch({ canvasJustSelected: { id: "idCapture", value: side } });
+              setTimeout(() => {
+                if (side === "front") patch({ idSide: "back", idShots: 1, canvasJustSelected: null });
+                else patch({ idShots: 2, canvasJustSelected: null, screen: "idReview" });
+              }, 650);
+            }
+            return (
+              <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "20px 20px 24px", background: "#f4f7fa" }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.08em", color: "#14b3ac", textTransform: "uppercase" }}>{s.idSide === "front" ? "1 of 2 · Front" : "2 of 2 · Back"}</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: 6 }}>{s.idSide === "front" ? "Scan your new ID" : "Now flip your ID"}</div>
+                <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 8, lineHeight: 1.45 }}>
+                  {s.idSide === "front" ? "We'll guide you through both sides — a driver's licence or any government photo ID for you, the adult bringing " + name + " in." : "Same frame, same steady hands."}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 16, justifyContent: "center" }}>
-                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#14b3ac" }} />
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "#a9b7c5", whiteSpace: "nowrap" }}>{s.idSide === "front" ? "Front · 1 of 2" : "Back · 2 of 2"}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 16 }}>
-                {["Flat on a dark surface reads best", "Avoid glare from overhead lights", "All four corners inside the frame"].map((t) => (
-                  <div key={t} style={{ display: "flex", alignItems: "center", gap: 11, background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: "13px 15px" }}>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>✓</div>
-                    <div style={{ flex: 1, fontSize: 14.5, color: "#3d4d5f", lineHeight: 1.35 }}>{t}</div>
+                <div style={{ position: "relative", background: "#0d1421", borderRadius: 22, marginTop: 16, padding: "26px 18px", overflow: "hidden" }}>
+                  <div style={{ position: "relative", borderRadius: 14, aspectRatio: 1.58, background: "#1c2836", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {justCaptured ? (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 700 }}>✓</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "#ffffff" }}>{justCaptured === "front" ? "Front captured" : "Back captured"}</div>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ position: "absolute", top: 10, left: 10, width: 26, height: 26, borderTop: "3px solid #14b3ac", borderLeft: "3px solid #14b3ac", borderRadius: "8px 0 0 0" }} />
+                        <div style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderTop: "3px solid #14b3ac", borderRight: "3px solid #14b3ac", borderRadius: "0 8px 0 0" }} />
+                        <div style={{ position: "absolute", bottom: 10, left: 10, width: 26, height: 26, borderBottom: "3px solid #14b3ac", borderLeft: "3px solid #14b3ac", borderRadius: "0 0 0 8px" }} />
+                        <div style={{ position: "absolute", bottom: 10, right: 10, width: 26, height: 26, borderBottom: "3px solid #14b3ac", borderRight: "3px solid #14b3ac", borderRadius: "0 0 8px 0" }} />
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "#7c8fa3", textAlign: "center", lineHeight: 1.4, padding: "0 24px" }}>{s.idSide === "front" ? "Place the front of the card in the frame" : "Place the back of the card in the frame"}</div>
+                      </>
+                    )}
                   </div>
-                ))}
-              </div>
-              <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div
-                  onClick={() => {
-                    if (s.idSide === "front") patch({ idSide: "back", idShots: 1 });
-                    else patch({ idSide: "front", idShots: 2, screen: "idReview" });
-                  }}
-                  style={{ cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 18, padding: 20, textAlign: "center", fontSize: 17, fontWeight: 600, boxShadow: "0 6px 16px rgba(43,157,217,0.28)" }}
-                >
-                  {s.idSide === "front" ? "Capture the front" : "Capture the back"}
                 </div>
-                <div
-                  onClick={() => {
-                    if (s.idSide === "front") patch({ idSide: "back", idShots: 1 });
-                    else patch({ idSide: "front", idShots: 2, screen: "idReview" });
-                  }}
-                  style={{ cursor: "pointer", textAlign: "center", fontSize: 15, fontWeight: 600, color: "#1f9ed4", padding: 11 }}
-                >
-                  Choose an existing photo instead
+                <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 16 }}>
+                  {["Flat on a dark surface reads best", "Avoid glare from overhead lights", "All four corners inside the frame"].map((t) => (
+                    <div key={t} style={{ display: "flex", alignItems: "center", gap: 11, background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: "13px 15px" }}>
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>✓</div>
+                      <div style={{ flex: 1, fontSize: 14.5, color: "#3d4d5f", lineHeight: 1.35 }}>{t}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div className="tap-target" onClick={capture} style={{ cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 18, padding: 20, textAlign: "center", fontSize: 17, fontWeight: 600, boxShadow: "0 6px 16px rgba(43,157,217,0.28)" }}>
+                    {s.idSide === "front" ? "Capture the front" : "Capture the back"}
+                  </div>
+                  <div className="tap-target" onClick={capture} style={{ cursor: "pointer", textAlign: "center", fontSize: 15, fontWeight: 600, color: "#1f9ed4", padding: 11 }}>
+                    Choose an existing photo instead
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {sc === "idReview" && (
             <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>How's it look?</div>
-              <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>Check the details are sharp and clear. We only keep it to confirm who you are.</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 18 }}>
-                {[
-                  { label: "Front of your ID", side: "front" as const },
-                  { label: "Back of your ID", side: "back" as const },
-                ].map((shot) => (
-                  <div key={shot.label} style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 18, padding: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>✓</div>
-                      <div style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#0d1421" }}>{shot.label}</div>
-                      <div onClick={() => patch({ idSide: shot.side, screen: "idCapture" })} style={{ cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#1f9ed4", padding: "4px 0" }}>Retake</div>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#e8f8ee", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 700 }}>✓</div>
+              <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: 18 }}>ID captured.</div>
+              <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>Front ✓ Back ✓ — we can read everything we need.</div>
+
+              {!s.reviewPhotosOpen ? (
+                <div className="tap-target" onClick={() => patch({ reviewPhotosOpen: true })} style={{ cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#8b9aab", marginTop: 16 }}>Review photos</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 16 }}>
+                  {[
+                    { label: "Front of your ID", side: "front" as const },
+                    { label: "Back of your ID", side: "back" as const },
+                  ].map((shot) => (
+                    <div key={shot.label} style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 18, padding: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>✓</div>
+                        <div style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#0d1421" }}>{shot.label}</div>
+                        <div className="tap-target" onClick={() => patch({ idSide: shot.side, screen: "idCapture" })} style={{ cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#1f9ed4", padding: "4px 0" }}>Retake</div>
+                      </div>
+                      <div style={{ borderRadius: 12, aspectRatio: 1.58, background: "#e7edf3", marginTop: 12, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: 14, gap: 6 }}>
+                        <div style={{ width: "46%", height: 8, borderRadius: 4, background: "#c8d5e0" }} />
+                        <div style={{ width: "66%", height: 8, borderRadius: 4, background: "#c8d5e0" }} />
+                        <div style={{ width: "34%", height: 8, borderRadius: 4, background: "#d6e0e9" }} />
+                      </div>
                     </div>
-                    <div style={{ borderRadius: 12, aspectRatio: 1.58, background: "#e7edf3", marginTop: 12, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: 14, gap: 6 }}>
-                      <div style={{ width: "46%", height: 8, borderRadius: 4, background: "#c8d5e0" }} />
-                      <div style={{ width: "66%", height: 8, borderRadius: 4, background: "#c8d5e0" }} />
-                      <div style={{ width: "34%", height: 8, borderRadius: 4, background: "#d6e0e9" }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+
               <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div onClick={next} style={{ cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 18, padding: 20, textAlign: "center", fontSize: 17, fontWeight: 600, boxShadow: "0 6px 16px rgba(43,157,217,0.28)" }}>Looks great</div>
-                <div onClick={() => patch({ idSide: "front", idShots: 0, screen: "idCapture" })} style={{ cursor: "pointer", background: "#ffffff", border: "1.5px solid #cfdae5", color: "#1f6d96", borderRadius: 18, padding: 19, textAlign: "center", fontSize: 16.5, fontWeight: 600 }}>Retake both</div>
+                <div className="tap-target" onClick={() => { patch({ reviewPhotosOpen: false }); next(); }} style={{ cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 18, padding: 20, textAlign: "center", fontSize: 17, fontWeight: 600, boxShadow: "0 6px 16px rgba(43,157,217,0.28)" }}>Continue</div>
               </div>
             </div>
           )}
@@ -673,6 +944,28 @@ export default function PediatricIntakePage() {
                 : [["No, nothing has changed", "", false], ["Yes — I need to read them again", "Opens the full summaries", true]];
             const changed = s[key];
             const touched = s[touchedKey];
+            // Ask → Tap → Confirm visually → Auto-advance — no separate
+            // Continue button once a clear yes/no is tapped. The "changed"
+            // branch and the "unchanged" branch each go straight to their
+            // own next screen; which screens flow() inserts for Flow B never
+            // depends on anything else, so these are safe to name directly
+            // rather than re-deriving flow() against a same-tick state
+            // update that hasn't committed yet.
+            const nextScreens: Record<string, [Screen, Screen]> = {
+              idConfirm: ["coverageConfirm", "idCapture"],
+              coverageConfirm: ["consentsConfirm", "cardScan"],
+              consentsConfirm: ["review", "consents"],
+            };
+            const justPickedId = "confirm:" + sc;
+            const justPicked = s.canvasJustSelected?.id === justPickedId;
+            function pick(onVal: boolean) {
+              if (s.canvasJustSelected) return;
+              patch({ canvasJustSelected: { id: justPickedId, value: String(onVal) } });
+              setTimeout(() => {
+                patch({ [key]: onVal, [touchedKey]: true, canvasJustSelected: null } as Partial<PedState>);
+                go(nextScreens[sc][onVal ? 1 : 0]);
+              }, 180);
+            }
             return (
               <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
                 <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>{confirmTitle}</div>
@@ -681,9 +974,9 @@ export default function PediatricIntakePage() {
                 <div style={{ background: "#ffffff", border: "1px solid #e2f2f1", borderRadius: 20, padding: 18, marginTop: 18 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase" }}>{confirmCardLabel}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "6px 11px", flexShrink: 0, background: changed ? "#f0f4f8" : "#e8f8ee" }}>
-                      {!changed && <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700 }}>✓</div>}
-                      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap", color: changed ? "#7b8a9a" : "#15803d" }}>{changed ? "Currently on file" : "Confirmed"}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "6px 11px", flexShrink: 0, background: "#e8f8ee" }}>
+                      <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700 }}>✓</div>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap", color: "#15803d" }}>On file</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 14 }}>
@@ -706,11 +999,10 @@ export default function PediatricIntakePage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
                   {opts.map((o, oi) => {
                     const onVal = o[2] as boolean;
-                    const on = changed === onVal;
-                    const picked = !!touched && on;
+                    const picked = justPicked ? s.canvasJustSelected!.value === String(onVal) : touched && changed === onVal;
                     return (
-                      <div key={oi} onClick={() => patch({ [key]: onVal, [touchedKey]: true } as Partial<PedState>)} style={picked ? CARD_ON : CARD}>
-                        <div style={picked ? DOT_ON : DOT} />
+                      <div key={oi} className="tap-target" onClick={() => pick(onVal)} style={picked ? CARD_ON : CARD}>
+                        <div style={picked ? DOT_ON : DOT}>{picked ? "✓" : ""}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 16.5, fontWeight: 500, color: "#0d1421" }}>{o[0] as string}</div>
                           {o[1] ? <div style={{ fontSize: 13.5, color: "#8b9aab", marginTop: 2 }}>{o[1] as string}</div> : null}
@@ -720,11 +1012,8 @@ export default function PediatricIntakePage() {
                   })}
                 </div>
 
-                <div style={{ marginTop: "auto", paddingTop: 22, display: "flex", flexDirection: "column", gap: 9 }}>
-                  <div onClick={() => { if (touched) next(); }} style={touched ? BTN : BTN_OFF}>
-                    {sc === "coverageConfirm" && changed ? "Scan new insurance card →" : sc === "idConfirm" && changed ? "Scan new ID →" : sc === "consentsConfirm" && changed ? "Review the documents →" : "Continue"}
-                  </div>
-                  <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>{touched ? "Only the steps you flag get expanded." : "Pick one to continue — we don't assume."}</div>
+                <div style={{ marginTop: "auto", paddingTop: 22 }}>
+                  <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>Tap an answer to continue — we don&apos;t assume.</div>
                 </div>
               </div>
             );
@@ -732,7 +1021,7 @@ export default function PediatricIntakePage() {
 
           {sc === "cardScan" && (
             <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Let's update {name}&apos;s insurance</div>
+              <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Let&apos;s update {name}&apos;s insurance</div>
               <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>Take a photo of the side showing the plan name and member ID. We&apos;ll fill in the details for you.</div>
               <div style={{ background: "#ffffff", border: "1.5px dashed #cfdae5", borderRadius: 20, padding: "32px 22px", marginTop: 20, textAlign: "center" }}>
                 <div style={{ width: 60, height: 60, borderRadius: 18, background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
@@ -869,6 +1158,7 @@ export default function PediatricIntakePage() {
                       <input
                         value={ov(lowField)}
                         onChange={(e) => patch((prev) => ({ ocr: { ...prev.ocr, [lowField.id]: e.target.value } }))}
+                        onFocus={scrollIntoViewOnFocus}
                         placeholder={lowField.placeholder || lowField.label}
                         style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 19, fontWeight: 600, color: "#0d1421", marginTop: 10, padding: "4px 0" }}
                       />
@@ -1062,7 +1352,7 @@ export default function PediatricIntakePage() {
                 <div style={{ flex: 1, fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>{s.lang === "en" ? "Four things to agree to." : "Cuatro documentos."}</div>
                 <div style={{ display: "flex", background: "#ffffff", border: "1.5px solid #e3eaf1", borderRadius: 999, padding: 3, flexShrink: 0 }}>
                   {(["en", "es"] as const).map((l) => (
-                    <div key={l} onClick={() => patch({ lang: l })} style={s.lang === l ? { cursor: "pointer", background: "#14b3ac", color: "#ffffff", borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 700 } : { cursor: "pointer", color: "#8b9aab", borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 700 }}>{l.toUpperCase()}</div>
+                    <div key={l} className="tap-target" onClick={() => patch({ lang: l })} style={s.lang === l ? { cursor: "pointer", background: "#14b3ac", color: "#ffffff", borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 700 } : { cursor: "pointer", color: "#8b9aab", borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 700 }}>{l.toUpperCase()}</div>
                   ))}
                 </div>
               </div>
@@ -1083,7 +1373,7 @@ export default function PediatricIntakePage() {
                   const badge = d.id === "teen" ? "Because " + name + " is " + P.patientAge : d.id === "vaccine" ? "Because it's a well visit" : "";
                   return (
                     <div key={d.id} style={ack ? { background: "#f0fdf4", border: "1.5px solid #bbe9cb", borderRadius: 18, padding: 17 } : { background: "#ffffff", border: "1.5px solid #eef2f6", borderRadius: 18, padding: 17 }}>
-                      <div onClick={() => patch((prev) => ({ consentAcks: prev.consentAcks.includes(d.id) ? prev.consentAcks.filter((x) => x !== d.id) : [...prev.consentAcks, d.id] }))} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 13 }}>
+                      <div className="tap-target" onClick={() => patch((prev) => ({ consentAcks: prev.consentAcks.includes(d.id) ? prev.consentAcks.filter((x) => x !== d.id) : [...prev.consentAcks, d.id] }))} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 13 }}>
                         <div style={ack ? BOX_ON : BOX}>{ack ? "✓" : ""}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1128,6 +1418,7 @@ export default function PediatricIntakePage() {
                 <input
                   value={typedName}
                   onChange={(e) => patch({ signName: e.target.value, signNameTouched: true, signed: false })}
+                  onFocus={scrollIntoViewOnFocus}
                   placeholder="Type your full name"
                   style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 16.5, fontWeight: 500, color: "#0d1421", marginTop: 5, padding: "3px 0" }}
                 />
@@ -1284,6 +1575,7 @@ export default function PediatricIntakePage() {
                 <textarea
                   value={s.chatText}
                   onChange={(e) => patch({ chatText: e.target.value })}
+                  onFocus={scrollIntoViewOnFocus}
                   placeholder="She's been tugging her right ear for a few days and it's worse at bedtime…"
                   rows={4}
                   style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, lineHeight: 1.45, color: "#0d1421", background: "transparent" }}
@@ -1363,8 +1655,8 @@ export default function PediatricIntakePage() {
                 ))}
               </div>
               <div style={{ marginTop: "auto", paddingTop: 22, display: "flex", flexDirection: "column", gap: 8 }}>
-                <div onClick={() => go("followUp")} style={{ cursor: "pointer", background: "#4a5bb8", color: "#ffffff", borderRadius: 18, padding: 19, textAlign: "center", fontSize: 17, fontWeight: 600 }}>Done — give the phone back</div>
-                <div onClick={() => go("followUp")} style={{ cursor: "pointer", textAlign: "center", fontSize: 14.5, fontWeight: 600, color: "#7b86bd", padding: 11 }}>Skip this</div>
+                <div onClick={() => go("canvas")} style={{ cursor: "pointer", background: "#4a5bb8", color: "#ffffff", borderRadius: 18, padding: 19, textAlign: "center", fontSize: 17, fontWeight: 600 }}>Done — give the phone back</div>
+                <div onClick={() => go("canvas")} style={{ cursor: "pointer", textAlign: "center", fontSize: 14.5, fontWeight: 600, color: "#7b86bd", padding: 11 }}>Skip this</div>
               </div>
             </div>
           )}
@@ -1397,7 +1689,7 @@ export default function PediatricIntakePage() {
                   </g>
                   <g fill="transparent" stroke="none">
                     {ZONES[s.view].map((z) => (
-                      <circle key={z.id} cx={z.cx} cy={z.cy} r={13} onClick={() => openRegion(z.id)} style={{ cursor: "pointer" }} />
+                      <circle key={z.id} cx={z.cx} cy={z.cy} r={13} onClick={() => toggleRegion(z.id)} style={{ cursor: "pointer" }} />
                     ))}
                   </g>
                 </svg>
@@ -1408,9 +1700,9 @@ export default function PediatricIntakePage() {
                   {order.map((id) => {
                     const a = norm(s.areas[id]);
                     const sugArea = a.suggested && !a.confirmed;
-                    const badge = sugArea ? "✦ Suggested" : a.severity ? (SEVERITY.find((x) => x[0] === a.severity) || ["", ""])[1] : "Tap to finish";
+                    const badge = sugArea ? "From what you told us" : a.confirmed ? "Details captured" : "Tap Continue to add details";
                     return (
-                      <div key={id} onClick={() => openRegion(id)} style={sugArea ? { cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: "#f0fbfa", border: "1.5px dashed #6fc8c4", borderRadius: 999, padding: "11px 15px", color: "#137e7a" } : { cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: "#e6f7f6", border: "1.5px solid #e6f7f6", borderRadius: 999, padding: "11px 15px", color: "#137e7a" }}>
+                      <div key={id} onClick={() => toggleRegion(id)} style={sugArea ? { cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: "#f0fbfa", border: "1.5px dashed #6fc8c4", borderRadius: 999, padding: "11px 15px", color: "#137e7a" } : { cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: "#e6f7f6", border: "1.5px solid #e6f7f6", borderRadius: 999, padding: "11px 15px", color: "#137e7a" }}>
                         <div style={{ fontSize: 14, fontWeight: 600 }}>{id}</div>
                         <div style={{ fontSize: 12, color: sugArea ? "#0f6f6b" : "#5aa9a5", fontWeight: 600 }}>{badge}</div>
                       </div>
@@ -1423,88 +1715,175 @@ export default function PediatricIntakePage() {
                 <div onClick={() => { if (order.length) next(); }} style={order.length ? BTN : BTN_OFF}>Continue</div>
                 <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.35 }}>
                   {order.length
-                    ? order.filter((id) => norm(s.areas[id]).suggested && !norm(s.areas[id]).confirmed).length
-                      ? "Tap the outlined spots to confirm what we suggested."
-                      : order.length + (order.length === 1 ? " area marked" : " areas marked")
+                    ? "A few quick questions next."
                     : "Tap at least one spot on the body to continue."}
                 </div>
               </div>
             </div>
           )}
 
-          {sc === "followUp" && fq && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {follows.map((_, n) => (
-                  <div key={n} style={{ flex: 1, height: 5, borderRadius: 3, background: n < s.followIdx ? "#14b3ac" : n === s.followIdx ? "#8fdad6" : "#e3eaf1" }} />
-                ))}
-              </div>
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.08em", color: "#14b3ac", textTransform: "uppercase", marginTop: 14 }}>{fq.eyebrow}</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: "#0d1421", lineHeight: 1.25, letterSpacing: "-0.01em", marginTop: 8 }}>{fq.q.split("{name}").join(name)}</div>
-              {fq.why && (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: "13px 15px", marginTop: 14 }}>
-                  <div style={{ width: 19, height: 19, borderRadius: "50%", background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>?</div>
-                  <div style={{ flex: 1, fontSize: 13.5, color: "#5b6b7d", lineHeight: 1.4 }}>{fq.why.split("{name}").join(name)}</div>
-                </div>
-              )}
-              <div style={fq.layout === "chips" ? { display: "flex", flexWrap: "wrap", gap: 9, marginTop: 20 } : { display: "flex", flexDirection: "column", gap: 10, marginTop: 20 }}>
-                {fq.opts.map((v) => {
-                  const on = fq.multi ? ((fqVal as string[]) || []).includes(v) : fqVal === v;
-                  const parseVal = PARSE.follows[fq.id];
-                  const sug = !!parseVal && (fq.multi ? ((parseVal as string[]) || []).includes(v) : parseVal === v);
-                  const chips = fq.layout === "chips";
-                  const confirmedTouch = !!s.follows["__c" + fq.id];
-                  const style = chips
-                    ? sug && s.parsed && !confirmedTouch ? (on ? CHIP_ON_SUG : CHIP_SUG) : on ? CHIP_ON : CHIP
-                    : sug && s.parsed && !confirmedTouch && on ? CARD_ON_SUG : on ? CARD_ON : CARD;
-                  const tagStyle = sug && s.parsed && !confirmedTouch ? (on ? TAG_ON_SEL : TAG_ON) : TAG_OFF;
-                  return (
-                    <div
-                      key={v}
-                      onClick={() => {
-                        patch((prev) => {
-                          const cur = prev.follows[fq.id];
-                          const nv = fq.multi
-                            ? ((cur as string[]) || []).includes(v) ? ((cur as string[]) || []).filter((x) => x !== v) : [...((cur as string[]) || []), v]
-                            : cur === v ? undefined : v;
-                          return { follows: { ...prev.follows, [fq.id]: nv, ["__c" + fq.id]: true } };
-                        });
-                        if (!fq.multi && P.autoAdvance) {
-                          setTimeout(() => {
-                            patch((prev) => {
-                              const fl = activeFollows();
-                              return prev.followIdx < fl.length - 1 ? { followIdx: prev.followIdx + 1 } : {};
-                            });
-                            if (s.followIdx >= follows.length - 1) next();
-                          }, 170);
-                        }
-                      }}
-                      style={style}
-                    >
-                      {!chips && <div style={on ? DOT_ON : DOT}>{on ? "✓" : ""}</div>}
-                      <div style={chips ? { fontSize: 15, fontWeight: 600 } : { flex: 1, fontSize: 16.5, fontWeight: 500, color: "#0d1421" }}>{v}</div>
-                      <div style={tagStyle}>Suggested</div>
+          {sc === "canvas" && (() => {
+            const primaryRegion = s.order[0];
+            const primaryArea = primaryRegion ? s.areas[primaryRegion] : undefined;
+            const recapItems: { id: string; label: string }[] = [];
+            if (primaryArea && primaryArea.suggested && primaryArea.spots.length > 0) {
+              const regionWord = (REGION_META[primaryRegion]?.heading || primaryRegion + " pain").split(" ")[0].toLowerCase();
+              recapItems.push({ id: "spot", label: primaryArea.spots[0] + " " + regionWord + " pain" });
+            } else if (primaryRegion) {
+              recapItems.push({ id: "region", label: REGION_META[primaryRegion]?.heading || primaryRegion + " pain" });
+            }
+            if (s.symptomOnset) recapItems.push({ id: "onset", label: "Started " + s.symptomOnset.toLowerCase() });
+            if (s.symptomTrigger) recapItems.push({ id: "trigger", label: "Worse when " + s.symptomTrigger.toLowerCase() });
+            const changeOpen = s.canvasChangeOpen === "recap";
+            const cur = canvasCurrent;
+
+            return (
+              <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
+                {recapItems.length > 0 && (
+                  <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.4 }}>
+                        Got it. I picked up:{" "}
+                        {recapItems.map((r, i) => (
+                          <span key={r.id}>
+                            {i > 0 ? " · " : ""}
+                            <span style={{ color: "#14b3ac" }}>✓</span> {r.label}
+                          </span>
+                        ))}
+                      </div>
+                      <div
+                        onClick={() => patch((prev) => ({ canvasChangeOpen: prev.canvasChangeOpen === "recap" ? null : "recap" }))}
+                        className="tap-target"
+                        style={{ cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#1f9ed4", flexShrink: 0 }}
+                      >
+                        Change anything
+                      </div>
                     </div>
-                  );
-                })}
+                    {changeOpen && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
+                        {primaryRegion && primaryArea?.suggested && primaryArea.spots.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Location</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                              {(SPOTS[primaryRegion] || DEFAULT_SPOTS).map((v) => (
+                                <div
+                                  key={v} className="tap-target"
+                                  onClick={() => patch((prev) => ({ areas: { ...prev.areas, [primaryRegion]: { ...prev.areas[primaryRegion], spots: [v] } }, canvasChangeOpen: null }))}
+                                  style={plainChip(primaryArea.spots[0] === v)}
+                                >
+                                  {v}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {s.symptomOnset && (
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>When it started</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                              {ONSET_OPTIONS.map((v) => (
+                                <div key={v} className="tap-target" onClick={() => patch({ symptomOnset: v, canvasChangeOpen: null })} style={plainChip(s.symptomOnset === v)}>{v}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {s.symptomTrigger && (
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>What makes it worse</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                              {TRIGGER_OPTIONS.map((v) => (
+                                <div key={v} className="tap-target" onClick={() => patch({ symptomTrigger: v, canvasChangeOpen: null })} style={plainChip(s.symptomTrigger === v)}>{v}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {canvasDetailCount > 0 && (
+                  <div
+                    onClick={() => patch((prev) => ({ canvasReviewOpen: !prev.canvasReviewOpen }))}
+                    className="tap-target"
+                    style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}
+                  >
+                    <span style={{ color: "#14b3ac", fontSize: 13 }}>✓</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: "#137e7a" }}>{canvasDetailCount} {canvasDetailCount === 1 ? "detail" : "details"} captured</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: "#1f9ed4" }}>— {s.canvasReviewOpen ? "Hide" : "Review"}</span>
+                  </div>
+                )}
+                {s.canvasReviewOpen && (
+                  <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: 14, marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {s.canvasHistory.map((rec, i) => {
+                      const val = historyValue(rec);
+                      const label = Array.isArray(val) ? val.join(", ") : val;
+                      return (
+                        <div key={rec.id} style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                          <div style={{ flex: 1, fontSize: 13.5, color: "#5b6b7d" }}>{rec.eyebrow}</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0d1421" }}>{label || "—"}</div>
+                          <div onClick={() => editFromHistory(i)} className="tap-target" style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "#1f9ed4" }}>Edit</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {cur ? (
+                  <div key={cur.id} ref={canvasQuestionRef} className="qstep-enter">
+                    <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.08em", color: "#14b3ac", textTransform: "uppercase" }}>{cur.eyebrow}</div>
+                    {cur.statement && <div style={{ fontSize: 14.5, color: "#5b6b7d", marginTop: 6, lineHeight: 1.4 }}>{cur.statement}</div>}
+                    <div style={{ fontSize: 24, fontWeight: 700, color: "#0d1421", lineHeight: 1.25, letterSpacing: "-0.01em", marginTop: 6 }}>{cur.question}</div>
+                    <div style={cur.multi ? { display: "flex", flexWrap: "wrap", gap: 9, marginTop: 18 } : { display: "flex", flexDirection: "column", gap: 10, marginTop: 18 }}>
+                      {cur.options.map((opt) => {
+                        if (cur.multi) {
+                          const on = multiValue(cur).includes(opt);
+                          const suggested = !on && !!cur.suggested?.includes(opt);
+                          return (
+                            <div key={opt} className="tap-target" onClick={() => { toggleMulti(cur, opt); patch({ canvasScrolledAway: false }); }} style={suggested ? CHIP_SUG : on ? CHIP_ON : CHIP}>
+                              {opt}
+                            </div>
+                          );
+                        }
+                        const justSelectedHere = s.canvasJustSelected?.id === cur.id;
+                        const on = justSelectedHere ? s.canvasJustSelected!.value === opt : singleValue(cur) === opt;
+                        return (
+                          <div
+                            key={opt} className="tap-target"
+                            onClick={() => { if (!s.canvasJustSelected) selectSingle(cur, opt); }}
+                            style={on ? CARD_ON : CARD}
+                          >
+                            <div style={on ? DOT_ON : DOT}>{on ? "✓" : ""}</div>
+                            <div style={{ flex: 1, fontSize: 16.5, fontWeight: 500, color: "#0d1421" }}>{opt}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {cur.multi && (
+                      <div style={{ marginTop: 20 }}>
+                        <div onClick={() => { if (multiValue(cur).length) finishMulti(cur); }} className="tap-target" style={multiValue(cur).length ? BTN : BTN_OFF}>Continue</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 40, textAlign: "center" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e8f8ee", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, margin: "0 auto" }}>✓</div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "#0d1421", marginTop: 12 }}>That&apos;s everything for now.</div>
+                  </div>
+                )}
+
+                {s.canvasScrolledAway && cur && (
+                  <div
+                    onClick={() => patch({ canvasScrolledAway: false })}
+                    className="tap-target"
+                    style={{ position: "sticky", bottom: 12, alignSelf: "center", cursor: "pointer", background: "#0d1421", color: "#ffffff", borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, marginTop: 16, boxShadow: "0 4px 12px rgba(13,20,33,0.25)" }}
+                  >
+                    ↓ Back to current question
+                  </div>
+                )}
               </div>
-              <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 9 }}>
-                <div
-                  onClick={() => {
-                    if (!fqAnswered) return;
-                    if (s.followIdx < follows.length - 1) patch((prev) => ({ followIdx: prev.followIdx + 1 }));
-                    else next();
-                  }}
-                  style={fqAnswered ? BTN : BTN_OFF}
-                >
-                  {s.followIdx < follows.length - 1 ? "Next" : "Continue"}
-                </div>
-                <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab" }}>
-                  {fqAnswered ? "Question " + (s.followIdx + 1) + " of " + follows.length + " — we only ask what fits" : "Pick an answer to continue."}
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {sc === "scale" && (
             <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
@@ -1562,10 +1941,10 @@ export default function PediatricIntakePage() {
             ];
             const reviewCards = order.map((id, n) => {
               const a = norm(s.areas[id]);
-              const sev = (SEVERITY.find((x) => x[0] === a.severity) || ["", "Not set"])[1];
+              const sev = (SEVERITY.find((x) => x[0] === severityNum(a.severity)) || ["", "Not set"])[1];
               const rows = [
                 { label: "Where", value: a.spots.length ? a.spots.join(", ") : "Not set" },
-                { label: "How bad", value: a.severity ? a.severity + " of 4 · " + sev : "Not set" },
+                { label: "How bad", value: a.severity ? severityNum(a.severity) + " of 4 · " + sev : "Not set" },
                 { label: "Feels like", value: a.quality.length ? a.quality.join(", ") : "Not described" },
                 { label: "Worse when", value: (a.aggravating || []).length ? a.aggravating.join(", ") : "Not described" },
               ]
@@ -1573,10 +1952,10 @@ export default function PediatricIntakePage() {
                 .concat([{ label: "Source", value: a.suggested ? (a.confirmed ? "Suggested, you confirmed it" : "Suggested — not confirmed yet") : "You chose this" }]);
               return { rank: String(n + 1), area: id, rows };
             });
-            const contextRows = follows
+            const contextRows = FOLLOWS.filter((f) => s.genericAnswers[f.id] !== undefined)
               .map((f) => {
-                const v = s.follows[f.id];
-                return { label: f.eyebrow, value: v ? (Array.isArray(v) ? v.join(", ") : v) : "Not answered" };
+                const v = s.genericAnswers[f.id];
+                return { label: f.eyebrow, value: Array.isArray(v) ? v.join(", ") : (v as string) };
               })
               .concat(isTeen && s.scale ? [{ label: "Pain scale", value: s.scale + " · " + (SCALE.find((x) => x[0] === s.scale) || ["", ""])[1] }] : []);
             return (
@@ -1621,7 +2000,16 @@ export default function PediatricIntakePage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                         <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{card.rank}</div>
                         <div style={{ flex: 1, minWidth: 0, fontSize: 18, fontWeight: 700, color: "#0d1421", lineHeight: 1.2 }}>{card.area}</div>
-                        <div onClick={() => patch({ screen: "bodyMap", sheet: "region", sheetArea: card.area, draft: { ...norm(s.areas[card.area]) } })} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 14.5, fontWeight: 600, color: "#1f9ed4", padding: "6px 0 6px 8px", flexShrink: 0 }}>
+                        <div
+                          onClick={() => {
+                            patch((prev) => ({
+                              areas: { ...prev.areas, [card.area]: { ...(prev.areas[card.area] || emptyArea()), severity: null, quality: [], aggravating: [], connected: [], extra: {}, confirmed: false } },
+                              canvasHistory: prev.canvasHistory.filter((h) => h.region !== card.area),
+                              screen: "canvas",
+                            }));
+                          }}
+                          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 14.5, fontWeight: 600, color: "#1f9ed4", padding: "6px 0 6px 8px", flexShrink: 0 }}
+                        >
                           Edit<span style={{ fontSize: 16, lineHeight: 1, color: "#b7cbdb" }}>›</span>
                         </div>
                       </div>
@@ -1640,7 +2028,10 @@ export default function PediatricIntakePage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                       <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#f4f7fa", color: "#8b9aab", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }}>·</div>
                       <div style={{ flex: 1, fontSize: 18, fontWeight: 700, color: "#0d1421" }}>Everything else</div>
-                      <div onClick={() => patch({ screen: "followUp", followIdx: 0 })} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 14.5, fontWeight: 600, color: "#1f9ed4", padding: "6px 0 6px 8px", flexShrink: 0 }}>
+                      <div
+                        onClick={() => patch((prev) => ({ genericAnswers: {}, canvasHistory: prev.canvasHistory.filter((h) => h.region !== null), screen: "canvas" }))}
+                        style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 14.5, fontWeight: 600, color: "#1f9ed4", padding: "6px 0 6px 8px", flexShrink: 0 }}
+                      >
                         Edit<span style={{ fontSize: 16, lineHeight: 1, color: "#b7cbdb" }}>›</span>
                       </div>
                     </div>
@@ -1669,7 +2060,7 @@ export default function PediatricIntakePage() {
               { label: "Arrive five minutes early", detail: "No paperwork at the desk." },
             ];
             const passportVerb = isB ? "Updated in " + name + "'s passport" : name + "'s passport is now created";
-            const passportAddition = order.length ? order.join(" and ") + " · reported " + (((s.follows.onset as string) || "today").toLowerCase()) : "This episode";
+            const passportAddition = order.length ? order.join(" and ") + " · reported " + (s.symptomOnset || "today").toLowerCase() : "This episode";
             return (
               <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa", alignItems: "center", textAlign: "center" }}>
                 <div style={{ marginTop: 32, width: 88, height: 88, borderRadius: "50%", background: "#e8f8ee", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, fontWeight: 700 }}>✓</div>
@@ -1753,106 +2144,6 @@ export default function PediatricIntakePage() {
         </div>
 
         {!!s.sheet && <div onClick={() => patch({ sheet: null, assistantAnswer: null })} style={{ position: "absolute", inset: 0, background: "rgba(13,20,33,0.44)" }} />}
-
-        {s.sheet === "region" && (
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 64, background: "#ffffff", borderRadius: "28px 28px 0 0", boxShadow: "0 -12px 40px rgba(13,20,33,0.18)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ flexShrink: 0, padding: "14px 20px 14px", borderBottom: "1px solid #f1f5f9" }}>
-              <div style={{ width: 40, height: 4, background: "#e3eaf1", borderRadius: 2, margin: "0 auto 14px" }} />
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#0d1421", lineHeight: 1.2 }}>{meta.heading}</div>
-                  <div style={{ fontSize: 14, color: "#6b7a8d", marginTop: 5, lineHeight: 1.4 }}>{areaSuggested ? "Based on what you told us, we picked a few details to confirm." : "Four quick details so Dr. Reyes knows what to look at."}</div>
-                </div>
-                <div onClick={removeArea} style={{ cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#c0392b", padding: "4px 0", flexShrink: 0 }}>Remove</div>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px 22px" }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Location</div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: "#0d1421", marginTop: 5, lineHeight: 1.3 }}>{meta.locQ}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 11 }}>
-                {(SPOTS[s.sheetArea || ""] || DEFAULT_SPOTS).map((v) => (
-                  <div key={v} onClick={() => toggleDraft("spots", v, false)} style={plainChip(draft.spots.includes(v))}>{v}</div>
-                ))}
-              </div>
-              {sugList("spots").length > 0 && <div style={{ fontSize: 12.5, fontWeight: 500, color: "#137e7a", marginTop: 9, paddingLeft: 2 }}>✦ {sugList("spots").join(", ")} suggested from your description.</div>}
-
-              <div style={{ height: 1, background: "#f1f5f9", margin: "22px 0 0" }} />
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase", marginTop: 20 }}>Severity</div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: "#0d1421", marginTop: 5, lineHeight: 1.3 }}>How bad is it right now?</div>
-              <div style={{ display: "flex", gap: 7, marginTop: 11 }}>
-                {SEVERITY.map(([num, label]) => {
-                  const on = draft.severity === num;
-                  const base: React.CSSProperties = { cursor: "pointer", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 16, padding: "14px 6px", minHeight: 74 };
-                  return (
-                    <div key={num} onClick={() => toggleSeverity(num)} style={on ? { ...base, background: "#14b3ac", color: "#ffffff", border: "1.5px solid #14b3ac" } : { ...base, background: "#ffffff", color: "#3d4d5f", border: "1.5px solid #e3eaf1" }}>
-                      <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1 }}>{num}</div>
-                      <div style={{ fontSize: 11.5, fontWeight: 600, marginTop: 4, lineHeight: 1.15, textAlign: "center" }}>{label}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              {!draft.severity && <div style={{ fontSize: 12.5, fontWeight: 500, color: "#137e7a", marginTop: 9, paddingLeft: 2 }}>Your own call — we never guess this one.</div>}
-
-              <div style={{ height: 1, background: "#f1f5f9", margin: "22px 0 0" }} />
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase", marginTop: 20 }}>Sensation</div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: "#0d1421", marginTop: 5, lineHeight: 1.3 }}>What does it feel like?</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 11 }}>
-                {(QUALITY[s.sheetArea || ""] || DEFAULT_QUALITY).map((v) => (
-                  <div key={v} onClick={() => toggleDraft("quality", v, false)} style={plainChip(draft.quality.includes(v))}>{v}</div>
-                ))}
-              </div>
-              {sugList("quality").length > 0 && <div style={{ fontSize: 12.5, fontWeight: 500, color: "#137e7a", marginTop: 9, paddingLeft: 2 }}>✦ {sugList("quality").join(", ")} suggested from your description.</div>}
-
-              <div style={{ height: 1, background: "#f1f5f9", margin: "22px 0 0" }} />
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase", marginTop: 20 }}>Aggravating factor</div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: "#0d1421", marginTop: 5, lineHeight: 1.3 }}>When is it worse?</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 11 }}>
-                {(AGGRAVATING[s.sheetArea || ""] || DEFAULT_AGGRAVATING).map((v) => (
-                  <div key={v} onClick={() => toggleAggravating(v)} style={plainChip(draft.aggravating.includes(v))}>{v}</div>
-                ))}
-              </div>
-              {sugList("aggravating").length > 0 && <div style={{ fontSize: 12.5, fontWeight: 500, color: "#137e7a", marginTop: 9, paddingLeft: 2 }}>✦ {sugList("aggravating").join(", ")} suggested from your description.</div>}
-
-              {rule && (
-                <div style={{ background: "#f7fafc", border: "1px solid #e8eef4", borderRadius: 18, padding: 17, marginTop: 22 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>✓</div>
-                    <div style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.4 }}>
-                      Got it — {[draft.spots.join(" and ").toLowerCase(), (SEVERITY.find((x) => x[0] === draft.severity) || ["", ""])[1].toLowerCase(), draft.quality.join(" and ").toLowerCase() + " pain", draft.aggravating.length ? "worse " + draft.aggravating.join(" and ").toLowerCase() : ""].filter(Boolean).join(", ")}.
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 12, lineHeight: 1.45 }}>{rule.lead}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                    {rule.opts.map((v) => (
-                      <div key={v} onClick={() => toggleConnected(v)} style={plainChip((draft.connected || []).includes(v))}>{v}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ flexShrink: 0, borderTop: "1px solid #f1f5f9", background: "#ffffff", padding: "14px 20px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div
-                onClick={() => saveRegion(draft, draftOk)}
-                style={draftOk
-                  ? { cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 18, padding: 19, textAlign: "center", fontSize: 17, fontWeight: 600, boxShadow: "0 6px 16px rgba(43,157,217,0.26)" }
-                  : { background: "#dbe6ee", color: "#93a6b6", borderRadius: 18, padding: 19, textAlign: "center", fontSize: 17, fontWeight: 600, cursor: "default" }}
-              >
-                {draftOk
-                  ? "Confirm & continue →"
-                  : !draft.spots.length ? "Pick a location to continue"
-                  : !draft.severity ? "Pick how bad it is"
-                  : !draft.quality.length ? "Pick what it feels like"
-                  : !draft.aggravating.length ? "Pick when it's worse"
-                  : "Answer the last question"}
-              </div>
-              <div onClick={() => patch({ draft: { spots: [], quality: [], aggravating: [], severity: null, connected: [], suggested: false, confirmed: false } })} style={{ cursor: "pointer", textAlign: "center", fontSize: 14.5, fontWeight: 600, color: "#8b9aab", padding: 11 }}>
-                I need to change something
-              </div>
-            </div>
-          </div>
-        )}
 
         {s.sheet === "assistant" && (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#ffffff", borderRadius: "28px 28px 0 0", padding: "20px 20px 24px", boxShadow: "0 -12px 40px rgba(13,20,33,0.18)" }}>

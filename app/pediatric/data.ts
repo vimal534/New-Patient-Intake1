@@ -156,7 +156,7 @@ export const ZONES: Record<"front" | "back", Zone[]> = {
 };
 
 export const SPOTS: Record<string, string[]> = {
-  Ear: ["Right ear", "Left ear", "Both ears", "Behind the ear"],
+  Ear: ["Left", "Right", "Both", "Not sure"],
   Head: ["Forehead", "Temples", "All over", "Back of head"],
   Tummy: ["Around the belly button", "Upper tummy", "Lower right", "Lower left", "All over"],
   Throat: ["When swallowing", "All the time", "One side"],
@@ -215,12 +215,80 @@ export const DEFAULT_AGGRAVATING = ["Movement", "Touching it", "At night", "Weig
 export type ConnectedRule = { id: string; region: string; minSeverity: number; lead: string; opts: string[] };
 
 // Rules engine — not the model — decides whether a connected follow-up is warranted.
+// Ear has the fully worked-out branching (see SYMPTOM_CHECKS below) per spec; the
+// other regions keep this single multi-select red-flag check as one step in the
+// conversational canvas rather than exploding into a per-item duration chain —
+// that level of detail was only specified for Ear.
 export const CONNECTED_RULES: ConnectedRule[] = [
-  { id: "earRedFlags", region: "Ear", minSeverity: 3, lead: "One more thing that may help Dr. Reyes prepare: have you noticed any of these?", opts: ["Fever", "Fluid or drainage", "Trouble hearing", "Dizziness", "None of these"] },
   { id: "throatRedFlags", region: "Throat", minSeverity: 3, lead: "One more thing that may help Dr. Reyes prepare: have you noticed any of these?", opts: ["Fever", "Swollen glands", "Drooling or can't swallow", "Rash", "None of these"] },
   { id: "tummyRedFlags", region: "Tummy", minSeverity: 3, lead: "One more thing that may help Dr. Reyes prepare: have you noticed any of these?", opts: ["Vomiting", "Fever", "Blood in the stool", "Pain moving to the lower right", "None of these"] },
   { id: "chestRedFlags", region: "Chest", minSeverity: 2, lead: "One more thing Dr. Reyes will want to know: have you noticed any of these?", opts: ["Fast breathing", "Wheezing", "Blue lips", "Fever", "None of these"] },
   { id: "headRedFlags", region: "Head", minSeverity: 3, lead: "One more thing that may help Dr. Reyes prepare: have you noticed any of these?", opts: ["Fever", "Stiff neck", "Vomiting", "Light hurts the eyes", "None of these"] },
+];
+
+// The exact branching shape from the spec's worked example — each check is a
+// yes/no(-ish) question; anything other than the "no" value opens a follow-up
+// asking when it started. This is what makes the adaptive skip visible: no
+// fever skips fever-onset, no drainage skips drainage-onset.
+export type SymptomCheck = {
+  id: string;
+  region: string;
+  minSeverity: number;
+  eyebrow: string;
+  question: string; // "{name}" is substituted at render time
+  options: string[];
+  noValue: string; // selecting this skips the duration follow-up entirely
+  durationEyebrow: string;
+  durationQuestion: string;
+  durationOptions: string[];
+};
+
+export const SYMPTOM_CHECKS: SymptomCheck[] = [
+  {
+    id: "fever", region: "Ear", minSeverity: 0,
+    eyebrow: "Fever", question: "Has {name} had a fever?",
+    options: ["No fever", "Felt warm, didn't measure", "Under 38°C / 100.4°F", "38°C / 100.4°F or higher"],
+    noValue: "No fever",
+    durationEyebrow: "Fever, since when", durationQuestion: "When did you first notice the fever or warmth?",
+    durationOptions: ["Today", "Yesterday", "2-3 days ago"],
+  },
+  {
+    id: "drainage", region: "Ear", minSeverity: 0,
+    eyebrow: "Drainage", question: "Any fluid coming from the ear?",
+    options: ["No", "Yes — clear", "Yes — cloudy or bloody"],
+    noValue: "No",
+    durationEyebrow: "Drainage, since when", durationQuestion: "When did the drainage start?",
+    durationOptions: ["Today", "Yesterday", "2-3 days ago"],
+  },
+];
+
+// History-aware prompts — a known fact from the patient's record, stated
+// plainly, then a question that only makes sense because that fact is known.
+// This is distinct from narrating AI's reasoning: the fact is stated, the
+// reasoning behind asking it never is.
+export type HistoryPrompt = {
+  id: string;
+  region: string;
+  statement: string;
+  question: string;
+  options: string[];
+  requiresReturning?: boolean; // only makes sense when a prior-visit record actually exists (Flow B)
+};
+
+export const HISTORY_PROMPTS: HistoryPrompt[] = [
+  {
+    id: "tubes", region: "Ear",
+    statement: "{name} had ear tubes placed in 2024.",
+    question: "Has {name} had this kind of ear pain since then?",
+    options: ["No, first time", "Yes, once", "Yes, more than once", "Not sure"],
+  },
+  {
+    id: "similar", region: "Ear",
+    statement: "{name} also had right-ear pain in March.",
+    question: "Does this feel similar?",
+    options: ["Very similar", "Similar, but worse", "Different this time", "Not sure"],
+    requiresReturning: true,
+  },
 ];
 
 export const SCALE: [string, string][] = [
@@ -234,14 +302,21 @@ export const SCALE: [string, string][] = [
 
 export type FollowUp = { id: string; eyebrow: string; q: string; multi: boolean; layout: "list" | "chips"; opts: string[]; why: string };
 
+// Onset and "what makes it worse" are now captured tier-1 from the initial
+// description (shown collapsed in the canvas recap, with a "Change" editor
+// that reuses these same option lists) rather than asked as their own
+// screens — see ONSET_OPTIONS / TRIGGER_OPTIONS below. Fever and "similar to
+// a prior visit" moved to SYMPTOM_CHECKS / HISTORY_PROMPTS, which give them
+// the exact branching shape the spec calls for. What's left here are the
+// genuinely generic, cross-region questions.
 export const FOLLOWS: FollowUp[] = [
-  { id: "onset", eyebrow: "When it started", q: "When did this start?", multi: false, layout: "list", opts: ["Today", "Yesterday", "2–3 days ago", "About a week ago", "Longer than a week"], why: "" },
-  { id: "fever", eyebrow: "Fever", q: "Has {name} had a fever?", multi: false, layout: "list", opts: ["No fever", "Felt warm, didn't measure", "Under 38°C / 100.4°F", "38°C / 100.4°F or higher"], why: "Ear pain with a fever changes how soon {name} should be seen." },
   { id: "worse", eyebrow: "What makes it worse", q: "Anything that makes it worse?", multi: true, layout: "chips", opts: ["Lying down", "Chewing", "Loud sounds", "Touching it", "Nothing in particular"], why: "" },
   { id: "eating", eyebrow: "Eating and drinking", q: "Is {name} eating and drinking normally?", multi: false, layout: "list", opts: ["Yes, normally", "Less than usual", "Barely anything", "Nothing since yesterday"], why: "" },
-  { id: "similar", eyebrow: "Continuity", q: "Does this feel like the ear pain from March?", multi: false, layout: "list", opts: ["Yes, very similar", "Similar but worse", "Different this time", "I'm not sure"], why: "{name} was seen for right ear pain on 14 March. Dr. Reyes will compare." },
   { id: "tried", eyebrow: "What you've tried", q: "Given anything for it?", multi: true, layout: "chips", opts: ["Paracetamol", "Ibuprofen", "Warm compress", "Nothing yet"], why: "" },
 ];
+
+export const ONSET_OPTIONS = ["Today", "Yesterday", "2-3 days ago", "About a week ago", "Longer than a week"];
+export const TRIGGER_OPTIONS = ["Lying down", "Chewing", "Loud sounds", "Touching it", "Nothing in particular"];
 
 export const REL_OPTS = ["Parent", "Legal Guardian", "Other authorized adult"];
 
@@ -303,9 +378,19 @@ export const CONSENT_DOCS: ConsentDoc[] = [
 // A canned "AI extraction" result, standing in for a real NLP parse of the
 // chat free-text — same principle as the adult flow: the AI classifies,
 // the rules engine picks a validated question set, nothing is invented.
+// A canned "AI extraction" result, standing in for a real NLP parse of the
+// chat free-text. `onset` and `trigger` are tier-1 (stated outright — "for a
+// few days", "worse at bedtime") so they render collapsed in the canvas
+// recap; `spots` and `quality` are tier-2 (a reasonable guess, shown as a
+// pre-highlighted "Suggested" option the patient still taps to confirm) —
+// same tier split as before, just no longer mixed into a single flat object.
 export const PARSE = {
-  areas: [{ id: "Ear", spots: ["Right ear"], quality: ["Aching"], severity: null as string | null }],
-  follows: { onset: "2–3 days ago", worse: ["Lying down"], tried: ["Paracetamol"] } as Record<string, string | string[]>,
+  region: "Ear",
+  spots: ["Right"],
+  quality: ["Aching"],
+  onset: "2-3 days ago",
+  trigger: "Lying down",
+  tried: ["Paracetamol"],
 };
 
 // Fixed "practice configuration" — in a real deployment these would come
