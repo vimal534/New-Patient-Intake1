@@ -74,9 +74,6 @@ function Shell() {
       {!allReady ? <ProgressSummary /> : null}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <header className="mb-6">
-          <div className="text-xs font-bold uppercase tracking-wide text-[var(--color-brand)]">
-            {state.patientType === "new" ? "New Patient" : "Returning Patient"}
-          </div>
           <h1 className="text-lg font-bold text-[var(--color-ink)]">Brightline Pediatrics — Check-in</h1>
         </header>
 
