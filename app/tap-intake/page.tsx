@@ -68,6 +68,10 @@ function Shell() {
 
   return (
     <PhoneFrame>
+      {/* Directly under the status bar, outside the scrollable area — so
+          it's always visible, not just sticky-while-scrolling, and reads
+          as part of the app chrome rather than page content. */}
+      {!allReady ? <ProgressSummary /> : null}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <header className="mb-6">
           <div className="text-xs font-bold uppercase tracking-wide text-[var(--color-brand)]">
@@ -79,18 +83,11 @@ function Shell() {
         {allReady ? (
           <VisitSummaryPanel mode="full" />
         ) : (
-          <>
-            {/* Pinned above the section stack (sticky while scrolling),
-                not a bottom bar — no separate sidebar fits inside a
-                phone-width card, so this is the one persistent home for
-                "Visit so far" throughout the flow. */}
-            <ProgressSummary />
-            <div className="space-y-3">
-              {order.map((key) => (
-                <SectionRenderer key={key} sectionKey={key} />
-              ))}
-            </div>
-          </>
+          <div className="space-y-3">
+            {order.map((key) => (
+              <SectionRenderer key={key} sectionKey={key} />
+            ))}
+          </div>
         )}
       </div>
     </PhoneFrame>
