@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BTN, BTN_OFF, CARD, CARD_ON, DOT, DOT_ON, BOX, BOX_ON,
-  CHIP, CHIP_ON, CHIP_SUG,
+  CHIP, CHIP_ON, CHIP_SUG, CHIP_ON_SUG,
+  PILL_OUTLINE, PILL_OUTLINE_ON, MIC_BTN, HISTORY_STATEMENT,
   FIGURES, ZONES, SPOTS, DEFAULT_SPOTS, QUALITY, DEFAULT_QUALITY, SEVERITY,
   REGION_META, AGGRAVATING, DEFAULT_AGGRAVATING, CONNECTED_RULES, SCALE,
   FOLLOWS, ONSET_OPTIONS, TRIGGER_OPTIONS, SYMPTOM_CHECKS, HISTORY_PROMPTS,
@@ -12,6 +13,7 @@ import {
 import { initialPedState } from "./types";
 import type { AreaState, CardDraft, PedState, Screen } from "./types";
 import { StatusBar } from "../components/StatusBar";
+import { ConversationShell } from "./Sheet";
 
 const P = PEDIATRIC_CONFIG;
 
@@ -36,8 +38,21 @@ type CanvasStep = {
 
 export default function PediatricIntakePage() {
   const [state, setState] = useState<PedState>(initialPedState);
+  // Whether the current screen's contextual bottom sheet is collapsed to
+  // let the patient review the full conversation history — ephemeral UI,
+  // shared across every ConversationShell screen since only one renders at
+  // a time, and reset whenever the screen itself changes.
+  const [sheetCollapsed, setSheetCollapsed] = useState(false);
 
   function patch(update: Partial<PedState> | ((s: PedState) => Partial<PedState>)) {
+    // The contextual bottom sheet's collapsed state is screen-local UI, same
+    // idea as go()'s sheet/canvasReviewOpen reset — but this needs to catch
+    // every path that changes `screen`, including the few screens that
+    // patch it directly rather than through go(). Read against the last
+    // rendered state purely to detect the transition; the actual merge
+    // below still resolves `update` against the freshest `prev`.
+    const forRead = typeof update === "function" ? update(state) : update;
+    if (forRead.screen !== undefined && forRead.screen !== state.screen) setSheetCollapsed(false);
     setState((prev) => ({ ...prev, ...(typeof update === "function" ? update(prev) : update) }));
   }
 
@@ -56,7 +71,11 @@ export default function PediatricIntakePage() {
   const fig = FIGURES[P.patientAge < 1 ? "infant" : P.patientAge <= 3 ? "toddler" : P.patientAge <= 11 ? "child" : "teen"];
 
   function health(): Screen[] {
-    const f: Screen[] = ["chat", "bodyMap"];
+    // bodyMap is no longer a default step — location is asked as a
+    // quick-choice in canvas (see buildCanvasQueue's tier-2 "spots" gate);
+    // the diagram is now reached only as a fallback ("Not sure" opens it,
+    // and returning from it goes straight back to canvas).
+    const f: Screen[] = ["chat"];
     if (isTeen) {
       f.push("handoff");
       if (s.handedOff) f.push("private");
@@ -71,13 +90,13 @@ export default function PediatricIntakePage() {
       const f: Screen[] = ["picker", "home", ...health(), "idConfirm"];
       if (s.idChanged) f.push("idCapture", "idReview");
       f.push("coverageConfirm");
-      if (s.coverageChanged) f.push("cardScan", "cardRead", "cardConfirm", "copay");
+      if (s.coverageChanged) f.push("rcsCoverage");
       f.push("consentsConfirm");
       if (s.consentsChanged) f.push("consents", "signature");
       return [...f, "review", "done"];
     }
     return (["picker", "signup", "details", "idCapture", "idReview"] as Screen[])
-      .concat(health(), ["coverageForm", "copay", "consents", "signature", "preferences", "review", "done"]);
+      .concat(health(), ["coverageForm", "rcsCoverage", "consents", "signature", "preferences", "review", "done"]);
   }
 
   function eligibleDocs() {
@@ -108,6 +127,13 @@ export default function PediatricIntakePage() {
       const last = s.canvasHistory[s.canvasHistory.length - 1];
       clearStepField(last);
       patch((prev) => ({ canvasHistory: prev.canvasHistory.slice(0, -1), canvasChangeOpen: null, canvasJustSelected: null }));
+      return;
+    }
+    // bodyMap is a fallback reached from canvas's location question, not a
+    // flow() step — its own index there would be -1, sending back() to the
+    // very start. Its back arrow returns to canvas instead.
+    if (s.screen === "bodyMap") {
+      go("canvas");
       return;
     }
     const f = flow();
@@ -231,37 +257,25 @@ export default function PediatricIntakePage() {
     return null;
   }
 
-  // ---------- Insurance-card OCR simulation ----------
-  function startOcr(withBack: boolean) {
-    const low = P.ocrConfidence === "One field unclear";
-    const needsBack = low && !withBack;
-    patch({ ocrStep: 0, ocrElig: "pending", screen: "cardRead", needsBack: false });
-    [1, 2, 3].forEach((n) => setTimeout(() => patch({ ocrStep: n }), n * 620));
-    setTimeout(() => {
-      patch({ ocrStep: 4, needsBack });
-      if (needsBack) return;
-      if (P.eligibilityGate) return;
-      setTimeout(() => patch((prev) => (prev.screen === "cardRead" ? { screen: "cardConfirm" } : {})), 700);
-    }, 2500);
-    setTimeout(() => {
-      patch({ ocrElig: "done" });
-      if (P.eligibilityGate) {
-        setTimeout(
-          () => patch((prev) => (prev.screen === "cardRead" && !prev.needsBack ? { screen: "cardConfirm" } : {})),
-          600
-        );
-      }
-    }, 4300);
-  }
-
+  // ---------- RCS coverage thread: eligibility check + payment ----------
+  // No photo, no typing — the practice already ran the check; the patient
+  // just confirms or corrects what it found. Flow B (insurance changed)
+  // shows a simulated fresh lookup; Flow A (new patient) reflects back
+  // whatever was just typed into the coverage form.
   function ocrFields() {
-    const low = P.ocrConfidence === "One field unclear";
+    if (isB && s.coverageChanged) {
+      return [
+        { id: "insurer", label: "Insurance company", value: "Aetna Choice POS II" },
+        { id: "memberId", label: "Member ID", value: "W2748813902" },
+        { id: "holder", label: "Policyholder", value: "Elena Marquez" },
+        { id: "rel", label: "Relationship", value: "Parent" },
+      ];
+    }
     return [
-      { id: "insurer", label: "Insurance company", value: "Aetna Choice POS II", conf: "high" as const },
-      { id: "memberId", label: "Member ID", value: "W2748813902", conf: "high" as const },
-      { id: "groupNo", label: "Group #", value: low ? "" : "0Y4291-A", conf: low ? ("low" as const) : ("high" as const), placeholder: "Look for “Group” on the front", help: "Usually printed under the member name, sometimes labelled GRP." },
-      { id: "holder", label: "Policyholder", value: "Elena Marquez", conf: "high" as const },
-      { id: "rel", label: "Relationship", value: "Parent", conf: "high" as const },
+      { id: "insurer", label: "Insurance company", value: fv("insurer", "BlueCross BlueShield") || "BlueCross BlueShield" },
+      { id: "memberId", label: "Member ID", value: fv("memberId", "BXP440291847") || "BXP440291847" },
+      { id: "holder", label: "Policyholder", value: fv("holder", guardianName) || guardianName },
+      { id: "rel", label: "Relationship", value: rel || "Parent" },
     ];
   }
 
@@ -312,7 +326,7 @@ export default function PediatricIntakePage() {
       [PARSE.region]: { spots: [...PARSE.spots], quality: [...PARSE.quality], aggravating: [], severity: null, connected: [], suggested: true, confirmed: false, extra: {} },
     };
     patch({
-      areas, order: [PARSE.region], parsed: true, view: "front", screen: "bodyMap",
+      areas, order: [PARSE.region], parsed: true, view: "front", screen: "canvas",
       symptomOnset: PARSE.onset, symptomTrigger: PARSE.trigger,
     });
   }
@@ -482,8 +496,14 @@ export default function PediatricIntakePage() {
       if (!area) continue;
       const meta = REGION_META[region] || { heading: region + " discomfort", locQ: "Where exactly?" };
 
-      if (area.spots.length === 0) {
-        steps.push({ id: `${region}:spots`, region, tier: 3, eyebrow: "Location", question: meta.locQ, options: SPOTS[region] || DEFAULT_SPOTS, multi: false });
+      // Same tier-2 treatment as quality below: a guessed spot from the
+      // free-text description still needs an explicit tap before it counts
+      // as answered, so location surfaces as the canvas's first question
+      // (guess pre-highlighted) rather than being silently assumed —
+      // that's what makes the body-map diagram a fallback, not the default.
+      const spotsAsked = s.canvasHistory.some((h) => h.id === region + ":spots");
+      if (area.spots.length === 0 || (area.suggested && !area.confirmed && !spotsAsked)) {
+        steps.push({ id: `${region}:spots`, region, tier: area.suggested && !area.confirmed ? 2 : 3, eyebrow: "Location", question: meta.locQ, options: SPOTS[region] || DEFAULT_SPOTS, multi: false, suggested: area.suggested ? PARSE.spots : undefined });
         blocked = true;
         break;
       }
@@ -531,14 +551,16 @@ export default function PediatricIntakePage() {
         blocked = true;
         break;
       }
-      if (area.aggravating.length === 0) {
-        steps.push({ id: `${region}:aggravating`, region, tier: 3, eyebrow: "Aggravating factor", question: "When is it worse?", options: AGGRAVATING[region] || DEFAULT_AGGRAVATING, multi: true });
+      const aggravatingId = `${region}:aggravating`;
+      if (!s.canvasHistory.some((h) => h.id === aggravatingId)) {
+        steps.push({ id: aggravatingId, region, tier: 3, eyebrow: "Aggravating factor", question: "When is it worse?", options: AGGRAVATING[region] || DEFAULT_AGGRAVATING, multi: true });
         blocked = true;
         break;
       }
       const rule = CONNECTED_RULES.find((r) => r.region === region);
-      if (rule && area.severity && Number(severityNum(area.severity)) >= rule.minSeverity && area.connected.length === 0) {
-        steps.push({ id: `${region}:connected`, region, tier: 3, eyebrow: "Also noticed", question: rule.lead, options: rule.opts, multi: true });
+      const connectedId = `${region}:connected`;
+      if (rule && area.severity && Number(severityNum(area.severity)) >= rule.minSeverity && !s.canvasHistory.some((h) => h.id === connectedId)) {
+        steps.push({ id: connectedId, region, tier: 3, eyebrow: "Also noticed", question: rule.lead, options: rule.opts, multi: true });
         blocked = true;
         break;
       }
@@ -576,17 +598,12 @@ export default function PediatricIntakePage() {
   const cardDigits = card.number.replace(/[^0-9]/g, "");
   const brand = cardBrand(card.number);
   const newCardValid = cardDigits.length >= 15 && card.exp.trim().length >= 4 && card.cvc.trim().length >= 3 && card.zip.trim().length >= 4;
-  const payReady = usingNewCard ? newCardValid : !!s.payMethod;
   const guardianVal = guardian();
   const typedName = s.signNameTouched ? s.signName : s.signName || guardianVal;
   const signValid = s.signMode === "upload" ? !!s.upload : typedName.trim().length > 2;
   const dueToday = P.financialPolicy === "Due today";
   const ocrFieldsList = ocrFields();
-  const lowField = ocrFieldsList.find((f) => f.conf === "low");
   const ov = (f: { id: string; value: string }) => (s.ocr[f.id] === undefined ? f.value : s.ocr[f.id]);
-  const lowFilled = lowField ? ov(lowField).trim().length > 2 : true;
-  const eligGating = P.eligibilityGate;
-  const readDone = s.ocrStep >= 4;
   const chatReady = s.chatText.trim().length > 4;
   const norm = (a?: AreaState): AreaState => ({
     spots: a?.spots || [], quality: a?.quality || [], aggravating: a?.aggravating || [],
@@ -629,6 +646,16 @@ export default function PediatricIntakePage() {
     if (Math.abs(container.scrollTop - lastAutoScrollTop.current) > 40) patch({ canvasScrolledAway: true });
   }
 
+  // RCS coverage thread: the eligibility check kicks off the moment the
+  // screen is shown (no tap needed — that's the point, the practice already
+  // ran it) and resolves a beat later, same rhythm as a real lookup.
+  useEffect(() => {
+    if (sc !== "rcsCoverage" || s.ocrElig === "done") return;
+    const t = setTimeout(() => patch({ ocrElig: "done" }), 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sc, s.ocrElig]);
+
   // Once nothing's left to ask, pause briefly on the completed state before
   // moving on — long enough to register as "done", not long enough to feel
   // like a delay.
@@ -641,14 +668,44 @@ export default function PediatricIntakePage() {
 
   const plainChip = (on: boolean) => (on ? CHIP_ON : CHIP);
   const stepNames = isB ? ["Health", "Identity", "Coverage", "Consents", "Review"] : ["Account", "Details", "Identity", "Health", "Coverage", "Consents", "Review"];
-  const stepNumB: Record<string, number> = { home: 1, chat: 1, bodyMap: 1, handoff: 1, private: 1, canvas: 1, scale: 1, idConfirm: 2, idCapture: 2, idReview: 2, coverageConfirm: 3, coverageForm: 3, copay: 3, consentsConfirm: 4, consents: 4, signature: 4, review: 5 };
-  const stepNumA: Record<string, number> = { signup: 1, details: 2, idCapture: 3, idReview: 3, chat: 4, bodyMap: 4, handoff: 4, private: 4, canvas: 4, scale: 4, coverageForm: 5, copay: 5, consents: 6, signature: 6, preferences: 6, review: 7 };
+  const stepNumB: Record<string, number> = { home: 1, chat: 1, bodyMap: 1, handoff: 1, private: 1, canvas: 1, scale: 1, idConfirm: 2, idCapture: 2, idReview: 2, coverageConfirm: 3, coverageForm: 3, rcsCoverage: 3, consentsConfirm: 4, consents: 4, signature: 4, review: 5 };
+  const stepNumA: Record<string, number> = { signup: 1, details: 2, idCapture: 3, idReview: 3, chat: 4, bodyMap: 4, handoff: 4, private: 4, canvas: 4, scale: 4, coverageForm: 5, rcsCoverage: 5, consents: 6, signature: 6, preferences: 6, review: 7 };
   const stepNum = (isB ? stepNumB[sc] : stepNumA[sc]) || 1;
   const allAcked = docs.length > 0 && docs.every((d) => s.consentAcks.includes(d.id));
-  const newCopay = P.visitType === "Well visit" ? "$0" : "$30";
   const showHeader = !["picker", "home", "done", "private"].includes(sc);
   const showPassport = isB && !["picker", "home", "done", "private"].includes(sc);
-  const showAssistant = !["picker", "home", "done"].includes(sc) && !s.sheet;
+  // "Need help?" only makes sense where there's an active contextual sheet
+  // to swap its content into — the conversational screens, not the
+  // dedicated full-page task modules (scanner, signature, body map, etc).
+  const conversationalScreens: Screen[] = ["chat", "canvas", "idConfirm", "coverageConfirm", "consentsConfirm", "rcsCoverage"];
+  const showAssistant = conversationalScreens.includes(sc) && !s.sheet;
+
+  // The Q&A content that replaces a screen's own sheet while "Need help?"
+  // is active — same canned answers as before, just swapped in place
+  // rather than opened as a separate overlay drawer.
+  const assistantSheet = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#14b3ac", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>AI</div>
+        <div style={{ flex: 1, fontSize: 16, fontWeight: 700, color: "#0d1421" }}>Need help with this?</div>
+      </div>
+      <div style={{ fontSize: 13, color: "#5b6b7d", lineHeight: 1.45 }}>Answers stay right here — nothing you ask changes what you&apos;ve filled in.</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {[
+          { q: "What counts as a fever?", a: "38°C or 100.4°F and above, measured under the arm or in the ear. If you only felt warm, pick “felt warm, didn't measure” — that's useful too." },
+          { q: "What does “throbbing” mean here?", a: "Pain that comes in a beat, like a pulse. If it's steady instead, pick “dull ache.”" },
+          { q: "Should I go to urgent care instead?", a: "If " + name + " is very hard to wake, breathing fast, or has a stiff neck, don't wait for tomorrow — call the clinic line now." },
+        ].map((x) => (
+          <div key={x.q} className="tap-target" onClick={() => patch({ assistantAnswer: x.a })} style={{ cursor: "pointer", background: "#f4f7fa", borderRadius: 14, padding: "13px 15px", fontSize: 14.5, fontWeight: 500, color: "#0d1421", lineHeight: 1.35 }}>{x.q}</div>
+        ))}
+      </div>
+      {s.assistantAnswer && <div style={{ background: "#e6f7f6", borderRadius: 14, padding: 14, fontSize: 14, color: "#137e7a", lineHeight: 1.5 }}>{s.assistantAnswer}</div>}
+      <div className="tap-target" onClick={() => patch({ sheet: null, assistantAnswer: null })} style={{ cursor: "pointer", textAlign: "center", fontSize: 14.5, fontWeight: 600, color: "#6b7a8d", padding: "4px 0" }}>Back to my visit</div>
+    </>
+  );
+  function sheetContent(normal: React.ReactNode) {
+    return s.sheet === "assistant" ? assistantSheet : normal;
+  }
 
   const flowBadge = isB ? "Flow B" : s.flow === "A" ? "Flow A" : "Flows";
   const flowBadgeStyle: React.CSSProperties = {
@@ -670,6 +727,10 @@ export default function PediatricIntakePage() {
         .qstep-enter { animation: pedQStepIn 260ms ease-out; }
         .tap-target { transition: transform 100ms ease-out, filter 100ms ease-out; }
         .tap-target:active { transform: scale(0.97); filter: brightness(0.97); }
+        @keyframes rcsDotPulse { 0%, 60%, 100% { opacity: 0.35; } 30% { opacity: 1; } }
+        .rcs-dot { animation: rcsDotPulse 1100ms ease-in-out infinite; }
+        @keyframes rcsCheckPop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        .rcs-check-pop { animation: rcsCheckPop 420ms cubic-bezier(.34,1.56,.64,1); }
       `}</style>
       <div style={{ position: "relative", width: 390, height: 844, background: "#f4f7fa", borderRadius: 44, boxShadow: "0 30px 70px rgba(16,32,50,0.18),0 2px 6px rgba(16,32,50,0.08)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <StatusBar />
@@ -685,19 +746,32 @@ export default function PediatricIntakePage() {
         {showHeader && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 20px 14px", background: "#ffffff", flexShrink: 0, borderBottom: "1px solid #eef2f6" }}>
             <div onClick={back} style={{ cursor: "pointer", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: "#1f9ed4", fontSize: 24, fontWeight: 600, lineHeight: 1, marginLeft: -6 }}>‹</div>
-            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 8 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.06em", color: "#8b9aab", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{stepNames[stepNum - 1]}</div>
-              <div style={{ fontSize: 11, fontWeight: 500, color: "#c2ceda", whiteSpace: "nowrap" }}>Step {stepNum} of {stepNames.length}</div>
-            </div>
-            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              {stepNames.map((_, n) => (
-                <div key={n} style={{ width: 9, height: 3, borderRadius: 2, background: n < stepNum - 1 ? "#14b3ac" : n === stepNum - 1 ? "#8fdad6" : "#e3eaf1" }} />
-              ))}
-            </div>
+            {sc === "canvas" ? (
+              // The conversational moments read patient-relative progress
+              // ("a few things left"), not a page count — a step tally would
+              // mislead anyway once branching adds or skips questions.
+              <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: "#8b9aab", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {canvasCurrent ? "A few quick details left" : "Almost there with " + (REGION_META[s.order[0]]?.heading || (s.order[0] || "") + " pain").toLowerCase()}
+              </div>
+            ) : (
+              <>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.06em", color: "#8b9aab", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{stepNames[stepNum - 1]}</div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: "#c2ceda", whiteSpace: "nowrap" }}>Step {stepNum} of {stepNames.length}</div>
+                </div>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  {stepNames.map((_, n) => (
+                    <div key={n} style={{ width: 9, height: 3, borderRadius: 2, background: n < stepNum - 1 ? "#14b3ac" : n === stepNum - 1 ? "#8fdad6" : "#e3eaf1" }} />
+                  ))}
+                </div>
+              </>
+            )}
             {showAssistant && (
-              <div onClick={() => patch({ sheet: "assistant", assistantAnswer: null })} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, background: "#0d1421", color: "#ffffff", borderRadius: 999, padding: "7px 12px 7px 7px", flexShrink: 0, marginLeft: 4 }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, fontWeight: 700 }}>AI</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600 }}>Ask</div>
+              // Swaps the current screen's own contextual sheet to a Q&A
+              // composer in place — a support layer on top of the current
+              // question, not a separate assistant mode.
+              <div onClick={() => patch({ sheet: "assistant", assistantAnswer: null })} className="tap-target" style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "#1f9ed4", flexShrink: 0, marginLeft: 4, padding: "6px 4px" }}>
+                Need help?
               </div>
             )}
           </div>
@@ -953,7 +1027,7 @@ export default function PediatricIntakePage() {
             // update that hasn't committed yet.
             const nextScreens: Record<string, [Screen, Screen]> = {
               idConfirm: ["coverageConfirm", "idCapture"],
-              coverageConfirm: ["consentsConfirm", "cardScan"],
+              coverageConfirm: ["consentsConfirm", "rcsCoverage"],
               consentsConfirm: ["review", "consents"],
             };
             const justPickedId = "confirm:" + sc;
@@ -967,382 +1041,229 @@ export default function PediatricIntakePage() {
               }, 180);
             }
             return (
-              <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-                <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>{confirmTitle}</div>
-                <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>{confirmSub}</div>
-
-                <div style={{ background: "#ffffff", border: "1px solid #e2f2f1", borderRadius: 20, padding: 18, marginTop: 18 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ flex: 1, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase" }}>{confirmCardLabel}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "6px 11px", flexShrink: 0, background: "#e8f8ee" }}>
-                      <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700 }}>✓</div>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap", color: "#15803d" }}>On file</div>
+              <ConversationShell
+                historyKey={sc}
+                sheetCollapsed={sheetCollapsed}
+                onToggleCollapse={() => setSheetCollapsed((v) => !v)}
+                history={
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={HISTORY_STATEMENT}>{confirmTitle}</div>
+                      <div style={{ fontSize: 15, color: "#5b6b7d", lineHeight: 1.45 }}>{confirmSub}</div>
                     </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 14 }}>
-                    {confirmRows.map((row, ri) => (
-                      <div key={ri} style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                        <div style={{ width: 88, flexShrink: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>{row.label}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.3 }}>{row.value}</div>
-                          {row.sub && <div style={{ fontSize: 13, color: (row as { subGreen?: boolean }).subGreen ? "#16a34a" : "#8b9aab", fontWeight: (row as { subGreen?: boolean }).subGreen ? 500 : 400, marginTop: 2 }}>{row.sub}</div>}
-                        </div>
-                        {(row as { link?: boolean; docId?: string }).link && (
-                          <div onClick={() => patch({ consentsChanged: true, consentOpen: (row as { docId?: string }).docId || null, screen: "consents" })} style={{ cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#1f9ed4", flexShrink: 0, padding: "4px 0" }}>Review</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div style={{ fontSize: 16, fontWeight: 600, color: "#0d1421", marginTop: 22, lineHeight: 1.35 }}>{confirmQuestion}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-                  {opts.map((o, oi) => {
-                    const onVal = o[2] as boolean;
-                    const picked = justPicked ? s.canvasJustSelected!.value === String(onVal) : touched && changed === onVal;
-                    return (
-                      <div key={oi} className="tap-target" onClick={() => pick(onVal)} style={picked ? CARD_ON : CARD}>
-                        <div style={picked ? DOT_ON : DOT}>{picked ? "✓" : ""}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 16.5, fontWeight: 500, color: "#0d1421" }}>{o[0] as string}</div>
-                          {o[1] ? <div style={{ fontSize: 13.5, color: "#8b9aab", marginTop: 2 }}>{o[1] as string}</div> : null}
+                    <div style={{ background: "#ffffff", border: "1px solid #e2f2f1", borderRadius: 20, padding: 18 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ flex: 1, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase" }}>{confirmCardLabel}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, padding: "6px 11px", flexShrink: 0, background: "#e8f8ee" }}>
+                          <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700 }}>✓</div>
+                          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap", color: "#15803d" }}>On file</div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div style={{ marginTop: "auto", paddingTop: 22 }}>
-                  <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>Tap an answer to continue — we don&apos;t assume.</div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {sc === "cardScan" && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Let&apos;s update {name}&apos;s insurance</div>
-              <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>Take a photo of the side showing the plan name and member ID. We&apos;ll fill in the details for you.</div>
-              <div style={{ background: "#ffffff", border: "1.5px dashed #cfdae5", borderRadius: 20, padding: "32px 22px", marginTop: 20, textAlign: "center" }}>
-                <div style={{ width: 60, height: 60, borderRadius: 18, background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3.6 8.4A2 2 0 0 1 5.6 6.4h1.9l1.2-2h6.6l1.2 2h1.9a2 2 0 0 1 2 2v8.2a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V8.4Z" />
-                    <circle cx="12" cy="12.4" r="3.4" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#0d1421", marginTop: 16, lineHeight: 1.3 }}>Take a photo of the card</div>
-                <div style={{ fontSize: 14, color: "#6b7a8d", marginTop: 7, lineHeight: 1.45 }}>Make sure the plan name and member ID are clearly visible.</div>
-                <div onClick={() => startOcr(false)} style={{ cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 16, padding: 18, textAlign: "center", fontSize: 16.5, fontWeight: 600, marginTop: 20, boxShadow: "0 6px 16px rgba(43,157,217,0.26)" }}>Take photo</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 11, background: "#eef4fa", borderRadius: 14, padding: "14px 15px", marginTop: 14 }}>
-                <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="#3d6b96" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                  <rect x="3.2" y="7" width="9.6" height="6.8" rx="1.8" />
-                  <path d="M5.4 7V5.2a2.6 2.6 0 0 1 5.2 0V7" />
-                </svg>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#0d1421", lineHeight: 1.3 }}>You&apos;re in control</div>
-                  <div style={{ fontSize: 13.5, color: "#3f5162", marginTop: 2, lineHeight: 1.4 }}>We won&apos;t update {name}&apos;s insurance until you confirm the details.</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {sc === "cardRead" && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, background: "#e8f8ee", borderRadius: 999, padding: "8px 14px", alignSelf: "flex-start" }}>
-                <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700 }}>✓</div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: "0.05em", color: "#15803d", textTransform: "uppercase" }}>Card captured</div>
-              </div>
-              <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: 16 }}>Reading {name}&apos;s insurance card…</div>
-              <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>A few seconds. You don&apos;t need to type anything, and nothing is saved yet.</div>
-
-              <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 18, padding: 18, marginTop: 20 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {["Plan found", "Member ID found", "Group number found"].map((label, n) => {
-                    const done = s.ocrStep > n;
-                    const active = s.ocrStep === n;
-                    return (
-                      <div key={label} style={{ display: "flex", alignItems: "center", gap: 13 }}>
-                        <div style={done ? { width: 24, height: 24, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 } as React.CSSProperties : active ? { width: 24, height: 24, borderRadius: "50%", border: "2.5px solid #8fdad6", flexShrink: 0 } : { width: 24, height: 24, borderRadius: "50%", border: "2px solid #e3eaf1", flexShrink: 0 }}>
-                          {done ? "✓" : ""}
-                        </div>
-                        <div style={{ flex: 1, fontSize: 16, fontWeight: done ? 600 : 500, color: done ? "#0d1421" : active ? "#5b6b7d" : "#a9b7c5" }}>{label}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 13, borderRadius: 16, padding: "15px 16px", marginTop: 12, background: s.ocrElig === "done" ? "#e8f8ee" : "#eef4fa" }}>
-                <div style={s.ocrElig === "done" ? { width: 24, height: 24, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 } as React.CSSProperties : { width: 24, height: 24, borderRadius: "50%", border: "2.5px solid #a8bfd6", flexShrink: 0 }}>
-                  {s.ocrElig === "done" ? "✓" : ""}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: s.ocrElig === "done" ? "#15803d" : "#3f5162" }}>{s.ocrElig === "done" ? "Coverage verified" : "Checking coverage…"}</div>
-                  <div style={{ fontSize: 13, color: "#5b6b7d", marginTop: 2, lineHeight: 1.4 }}>{s.ocrElig === "done" ? "Active plan · copay confirmed for this visit type." : "This runs with your insurer and can lag behind the card read. You can keep going."}</div>
-                </div>
-              </div>
-
-              {s.needsBack && (
-                <div style={{ background: "#ffffff", border: "1.5px solid #e0a63a", borderRadius: 18, padding: 17, marginTop: 14 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#e0a63a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>!</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.35 }}>We couldn&apos;t find the group number — take a photo of the back of the card too.</div>
-                      <div style={{ fontSize: 13.5, color: "#8a6516", marginTop: 5, lineHeight: 1.4 }}>Some insurers print it on the reverse. You can also type it in on the next screen.</div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                    <div onClick={() => startOcr(true)} style={{ cursor: "pointer", flex: 1, textAlign: "center", background: "#2b9dd9", color: "#ffffff", borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 600 }}>Take photo of the back</div>
-                    <div onClick={() => patch({ needsBack: false, screen: "cardConfirm" })} style={{ cursor: "pointer", flex: 1, textAlign: "center", background: "#ffffff", border: "1.5px solid #cfdae5", color: "#1f6d96", borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 600 }}>I&apos;ll type it</div>
-                  </div>
-                </div>
-              )}
-
-              {!s.needsBack && !eligGating && (
-                <div style={{ marginTop: "auto", paddingTop: 20, textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>
-                  {!readDone ? "Reading the card…" : "Details found — taking you to confirm. The coverage check continues in the background."}
-                </div>
-              )}
-              {!s.needsBack && eligGating && (
-                <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 9 }}>
-                  <div onClick={() => { if (readDone && s.ocrElig === "done") go("cardConfirm"); }} style={readDone && s.ocrElig === "done" ? BTN : BTN_OFF}>{readDone ? "Check what we found" : "Reading…"}</div>
-                  <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>
-                    {!readDone ? "Reading the card…" : s.ocrElig !== "done" ? "This practice waits for the insurer before continuing." : "Details found and coverage verified."}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {sc === "cardConfirm" && (() => {
-            const cardNeedsCheck = !s.cardUpdated && !!lowField;
-            const cardAllGood = !s.cardUpdated && !lowField;
-            const eligPending = s.ocrElig !== "done";
-            return (
-              <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-                {s.cardUpdated && (
-                  <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#e8f8ee", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 700 }}>✓</div>
-                    <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: 18 }}>Insurance updated.</div>
-                    <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>{name}&apos;s record now shows the new plan.</div>
-                    <div style={{ background: "#ffffff", border: "1px solid #e2f2f1", borderRadius: 18, padding: 18, marginTop: 20 }}>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: "#0d1421", lineHeight: 1.25 }}>{ov(ocrFieldsList[0])}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-                        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>✓</div>
-                        <div style={{ fontSize: 14.5, fontWeight: 600, color: "#15803d" }}>Coverage verified</div>
-                      </div>
-                      <div style={{ height: 1, background: "#eef2f6", margin: "16px 0 14px" }} />
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                        <div style={{ flex: 1, fontSize: 14.5, color: "#5b6b7d", lineHeight: 1.35 }}>Estimated copay for this visit</div>
-                        <div style={{ fontSize: 20, fontWeight: 700, color: "#137e7a", flexShrink: 0 }}>{newCopay}</div>
-                      </div>
-                    </div>
-                    <div style={{ marginTop: "auto", paddingTop: 22 }}>
-                      <div onClick={next} style={{ cursor: "pointer", background: "#2b9dd9", color: "#ffffff", borderRadius: 18, padding: 20, textAlign: "center", fontSize: 17, fontWeight: 600, boxShadow: "0 6px 16px rgba(43,157,217,0.28)", display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
-                        Continue <span style={{ fontSize: 18, lineHeight: 1 }}>→</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {cardNeedsCheck && lowField && (
-                  <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                    <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Please check one detail.</div>
-                    <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>We couldn&apos;t clearly read the {lowField.label}. Everything else came through fine.</div>
-                    <div style={{ background: "#ffffff", border: "1.5px solid #e0a63a", borderRadius: 18, padding: 17, marginTop: 18 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                        <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#e0a63a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>!</div>
-                        <div style={{ flex: 1, fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8a6516", textTransform: "uppercase" }}>{lowField.label} · needs a look</div>
-                      </div>
-                      <input
-                        value={ov(lowField)}
-                        onChange={(e) => patch((prev) => ({ ocr: { ...prev.ocr, [lowField.id]: e.target.value } }))}
-                        onFocus={scrollIntoViewOnFocus}
-                        placeholder={lowField.placeholder || lowField.label}
-                        style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 19, fontWeight: 600, color: "#0d1421", marginTop: 10, padding: "4px 0" }}
-                      />
-                      <div style={{ fontSize: 13, color: "#8a6516", marginTop: 6, lineHeight: 1.4 }}>{lowField.help || ""}</div>
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase", marginTop: 20 }}>Already accepted</div>
-                    <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 18, padding: 17, marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-                      {ocrFieldsList.filter((f) => f.conf !== "low").map((f) => (
-                        <div key={f.id} style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                          <div style={{ width: 100, flexShrink: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>{f.label}</div>
-                          <div style={{ flex: 1, fontSize: 15, fontWeight: 500, color: "#5b6b7d", lineHeight: 1.35 }}>{ov(f)}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 9 }}>
-                      <div onClick={() => { if (lowFilled) patch({ cardUpdated: true, editCard: false }); }} style={lowFilled ? BTN : BTN_OFF}>Save and update coverage</div>
-                      <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>
-                        {lowFilled ? "We'll update " + name + "'s insurance with these details." : "Type the " + lowField.label.toLowerCase() + " from the card to continue."}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {cardAllGood && (
-                  <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                    <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Check what we found.</div>
-                    <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>We won&apos;t update {name}&apos;s insurance until you confirm the details.</div>
-                    <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 18, padding: 18, marginTop: 18, display: "flex", flexDirection: "column", gap: 14 }}>
-                      {ocrFieldsList.map((f) => (
-                        <div key={f.id} style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                          <div style={{ width: 100, flexShrink: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>{f.label}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            {s.editCard ? (
-                              <input
-                                value={ov(f)}
-                                onChange={(e) => patch((prev) => ({ ocr: { ...prev.ocr, [f.id]: e.target.value } }))}
-                                placeholder={f.label}
-                                style={{ width: "100%", border: "none", borderBottom: "1.5px solid #14b3ac", outline: "none", background: "transparent", fontSize: 16, fontWeight: 600, color: "#0d1421", padding: "2px 0" }}
-                              />
-                            ) : (
-                              <div style={{ fontSize: 16, fontWeight: 600, color: "#0d1421", lineHeight: 1.35 }}>{ov(f)}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 14 }}>
+                        {confirmRows.map((row, ri) => (
+                          <div key={ri} style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+                            <div style={{ width: 88, flexShrink: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>{row.label}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 15.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.3 }}>{row.value}</div>
+                              {row.sub && <div style={{ fontSize: 13, color: (row as { subGreen?: boolean }).subGreen ? "#16a34a" : "#8b9aab", fontWeight: (row as { subGreen?: boolean }).subGreen ? 500 : 400, marginTop: 2 }}>{row.sub}</div>}
+                            </div>
+                            {(row as { link?: boolean; docId?: string }).link && (
+                              <div onClick={() => patch({ consentsChanged: true, consentOpen: (row as { docId?: string }).docId || null, screen: "consents" })} style={{ cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#1f9ed4", flexShrink: 0, padding: "4px 0" }}>Review</div>
                             )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    {eligPending && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 11, background: "#eef4fa", borderRadius: 14, padding: "13px 15px", marginTop: 12 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3d6b96", flexShrink: 0 }} />
-                        <div style={{ flex: 1, fontSize: 13.5, color: "#3f5162", lineHeight: 1.4 }}>Still checking coverage in the background — you don&apos;t have to wait for it.</div>
-                      </div>
-                    )}
-                    <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 9 }}>
-                      <div onClick={() => { if (!lowField || lowFilled) patch({ cardUpdated: true, editCard: false }); }} style={BTN}>Everything looks correct →</div>
-                      <div onClick={() => patch((prev) => ({ editCard: !prev.editCard }))} style={{ cursor: "pointer", background: "#ffffff", border: "1.5px solid #cfdae5", color: "#1f6d96", borderRadius: 18, padding: 19, textAlign: "center", fontSize: 16.5, fontWeight: 600 }}>{s.editCard ? "Done editing" : "Edit details"}</div>
-                      <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>
-                        {s.editCard ? "Editing — tap Done when the details match the card." : "We won't update " + name + "'s insurance until you confirm the details."}
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  </>
+                }
+                sheet={sheetContent(
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#0d1421", lineHeight: 1.35 }}>{confirmQuestion}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {opts.map((o, oi) => {
+                        const onVal = o[2] as boolean;
+                        const picked = justPicked ? s.canvasJustSelected!.value === String(onVal) : touched && changed === onVal;
+                        return (
+                          <div key={oi} className="tap-target" onClick={() => pick(onVal)} style={picked ? PILL_OUTLINE_ON : PILL_OUTLINE}>
+                            <div style={{ fontSize: 15.5, fontWeight: 600 }}>{o[0] as string}</div>
+                            {o[1] ? <div style={{ fontSize: 13, fontWeight: 500, marginTop: 2, opacity: 0.8 }}>{o[1] as string}</div> : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
-              </div>
+              />
             );
           })()}
 
-          {sc === "copay" && (() => {
-            const relLower = (rel || "Parent").toLowerCase();
+          {sc === "rcsCoverage" && (() => {
+            const BUBBLE_BOT: React.CSSProperties = { alignSelf: "flex-start", maxWidth: "88%", background: "#ffffff", border: "1px solid #eef2f6", borderRadius: "4px 16px 16px 16px", padding: "13px 15px", fontSize: 15, color: "#0d1421", lineHeight: 1.45, boxShadow: "0 1px 2px rgba(13,20,33,0.04)" };
+            const BUBBLE_ME: React.CSSProperties = { alignSelf: "flex-end", maxWidth: "80%", background: "#0d1421", color: "#ffffff", borderRadius: "16px 4px 16px 16px", padding: "12px 16px", fontSize: 15, fontWeight: 600 };
+            const inputStyle: React.CSSProperties = { border: "1.5px solid #e3eaf1", borderRadius: 10, padding: "10px 12px", fontSize: 14.5, outline: "none", background: "#f8fafc", color: "#0d1421" };
+            const ROW_LABEL: React.CSSProperties = { color: "#8b9aab", fontSize: 12.5, flexShrink: 0 };
+            const ROW_VALUE: React.CSSProperties = { fontWeight: 600, textAlign: "right" };
+            const checking = s.ocrElig !== "done";
+            const eligFound = s.ocrElig === "done";
             const copayAmount = P.visitType === "Well visit" ? "$0" : "$25";
-            const copayRows = [
-              { label: P.visitType + " with Dr. Reyes", value: P.visitType === "Well visit" ? "Covered in full" : "$25 copay", strong: false },
-              { label: "Deductible remaining this year", value: "$0", strong: false },
-              { label: "Estimated today", value: P.visitType === "Well visit" ? "$0" : "$25", strong: true },
-            ];
-            const payOptsRaw: [string, string, string | null, string][] = savedCard
-              ? [[cardOnFile, "Saved at your last visit · still good", savedCard.brand, savedCard.exp], [NEW_CARD, "", null, ""], [AT_DESK, "You'll stop at reception", null, ""]]
-              : [[ADD_CARD, "Filling in the form below", null, ""], [AT_DESK, "You'll stop at reception", null, ""]];
-            const chargeLabel = s.payMethod === AT_DESK ? "You'll pay at reception" : dueToday ? "Due today · " + copayAmount : "Charged after your visit";
-            const chargeDetail = s.payMethod === AT_DESK
-              ? "Bring a card or cash to the front desk when you arrive."
-              : dueToday
-              ? "The card is charged when you tap Continue. You'll get a receipt by email."
-              : "Nothing is taken now. We charge the card once Dr. Reyes has seen " + name + " and the claim is priced.";
+            const chargeLabel = s.payMethod === AT_DESK ? "at reception" : dueToday ? "today" : "after your visit";
+            const addCardLabel = savedCard ? NEW_CARD : ADD_CARD;
+            const paidLabel = usingNewCard ? (brand || "Card") + " ····" + (cardDigits.slice(-4) || "····") : s.payMethod;
+            function tapPay(label: string) {
+              if (label === addCardLabel) { patch({ payMethod: label }); return; }
+              patch({ payMethod: label, rcsPayConfirmed: true });
+            }
             return (
-              <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-                <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.08em", color: "#14b3ac", textTransform: "uppercase" }}>{P.visitType} · estimate</div>
-                <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em", marginTop: 8 }}>Your estimate is {copayAmount}.</div>
-                <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>Scoped to this visit type only. You pay as {name}&apos;s {relLower} — nothing is charged until after the visit.</div>
-
-                <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 18, padding: 18, marginTop: 18 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-                    {copayRows.map((row) => (
-                      <div key={row.label} style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                        <div style={{ flex: 1, fontSize: 15, color: "#5b6b7d", lineHeight: 1.35 }}>{row.label}</div>
-                        <div style={{ fontSize: row.strong ? 16 : 15, fontWeight: row.strong ? 700 : 600, color: row.strong ? "#137e7a" : "#0d1421", flexShrink: 0 }}>{row.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase", marginTop: 22 }}>Payment method</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-                  {payOptsRaw.map(([label, sub, cardBrandLabel, expiry]) => {
-                    const on = s.payMethod === label || (!savedCard && !s.payMethod && label === ADD_CARD);
-                    return (
-                      <div key={label} onClick={() => patch({ payMethod: label })} style={on ? CARD_ON : CARD}>
-                        <div style={on ? DOT_ON : DOT} />
-                        {cardBrandLabel && <div style={{ background: "#0d1421", color: "#ffffff", borderRadius: 6, padding: "5px 8px", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.04em", flexShrink: 0 }}>{cardBrandLabel}</div>}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 16.5, fontWeight: 500, color: "#0d1421" }}>{label}</div>
-                          {sub && <div style={{ fontSize: 13.5, color: "#8b9aab", marginTop: 2 }}>{sub}</div>}
-                        </div>
-                        {expiry && <div style={{ fontSize: 13, color: "#8b9aab", flexShrink: 0 }}>{expiry}</div>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {usingNewCard && (
-                  <div style={{ background: "#ffffff", border: "1.5px solid #e2f2f1", borderRadius: 18, padding: 17, marginTop: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ flex: 1, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase" }}>New card</div>
-                      <div style={brand ? { background: "#0d1421", color: "#ffffff", borderRadius: 6, padding: "5px 9px", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.04em" } : { background: "#f0f4f8", color: "#a9b7c5", borderRadius: 6, padding: "5px 9px", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.03em" }}>{brand || "Detecting…"}</div>
+              <ConversationShell
+                historyKey={[s.ocrElig, s.rcsEligConfirmed, s.editCard, s.cardUpdated, s.payMethod, s.rcsPayConfirmed].join(":")}
+                sheetCollapsed={sheetCollapsed}
+                onToggleCollapse={() => setSheetCollapsed((v) => !v)}
+                history={
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, alignSelf: "center", background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 999, padding: "6px 14px 6px 6px" }}>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#0d1421", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{P.practiceName[0]}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: "#5b6b7d", textTransform: "uppercase" }}>Verified practice · RCS</div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-                      <div style={{ background: "#f8fafc", border: "1.5px solid #eef2f6", borderRadius: 14, padding: "12px 14px" }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Card number</div>
-                        <input value={card.number} onChange={(e) => setCard("number", e.target.value)} placeholder="4242 4242 4242 4242" style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 16.5, fontWeight: 500, color: "#0d1421", marginTop: 5, padding: "3px 0", letterSpacing: "0.02em" }} />
+
+                    {/* History first, then what follows is scoped to why this visit is happening. */}
+                    <div style={{ ...BUBBLE_BOT, display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#8b9aab", textTransform: "uppercase" }}>This visit</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={ROW_LABEL}>Reason</span><span style={ROW_VALUE}>{P.visitType} · Dr. Reyes</span></div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={ROW_LABEL}>When</span><span style={ROW_VALUE}>Tomorrow · 10:20 AM</span></div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={ROW_LABEL}>Patient</span><span style={ROW_VALUE}>{name} · {P.patientAge} years</span></div>
+                      <div style={{ height: 1, background: "#eef2f6", margin: "2px 0" }} />
+                      <div style={{ fontSize: 12.5, color: "#5b6b7d", lineHeight: 1.4 }}>On file: penicillin allergy · ear pain reported in March · asthma plan current.</div>
+                    </div>
+
+                    <div style={BUBBLE_BOT}>{!eligFound ? <>Checking {name}&apos;s coverage with the insurer…</> : <>Good news — {name}&apos;s coverage is active.</>}</div>
+                    {checking && (
+                      <div style={{ alignSelf: "flex-start", display: "flex", gap: 5, padding: "2px 6px" }}>
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="rcs-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: "#b7c3ce", animationDelay: i * 140 + "ms" }} />
+                        ))}
                       </div>
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <div style={{ flex: 1, background: "#f8fafc", border: "1.5px solid #eef2f6", borderRadius: 14, padding: "12px 14px" }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Expiry</div>
-                          <input value={card.exp} onChange={(e) => setCard("exp", e.target.value)} placeholder="MM / YY" style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 16.5, fontWeight: 500, color: "#0d1421", marginTop: 5, padding: "3px 0" }} />
-                        </div>
-                        <div style={{ width: 92, background: "#f8fafc", border: "1.5px solid #eef2f6", borderRadius: 14, padding: "12px 14px" }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>CVC</div>
-                          <input value={card.cvc} onChange={(e) => setCard("cvc", e.target.value)} placeholder="123" style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 16.5, fontWeight: 500, color: "#0d1421", marginTop: 5, padding: "3px 0" }} />
+                    )}
+
+                    {eligFound && (
+                      <div style={{ ...BUBBLE_BOT, display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#8b9aab", textTransform: "uppercase" }}>Coverage on file</div>
+                        {ocrFieldsList.map((f) => (
+                          <div key={f.id} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                            <span style={ROW_LABEL}>{f.label}</span>
+                            <span style={ROW_VALUE}>{ov(f)}</span>
+                          </div>
+                        ))}
+                        <div style={{ height: 1, background: "#eef2f6", margin: "2px 0" }} />
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={ROW_LABEL}>Copay this visit</span>
+                          <span style={{ fontWeight: 700, color: "#137e7a" }}>{copayAmount}</span>
                         </div>
                       </div>
-                      <div style={{ background: "#f8fafc", border: "1.5px solid #eef2f6", borderRadius: 14, padding: "12px 14px" }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Billing ZIP</div>
-                        <input value={card.zip} onChange={(e) => setCard("zip", e.target.value)} placeholder="78704" style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 16.5, fontWeight: 500, color: "#0d1421", marginTop: 5, padding: "3px 0" }} />
-                      </div>
-                    </div>
-                    <div onClick={() => patch((prev) => ({ saveCard: !prev.saveCard }))} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 13, background: "#f8fafc", borderRadius: 14, padding: "14px 15px", marginTop: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.3 }}>Save this card for future visits?</div>
-                        <div style={{ fontSize: 13, color: "#8b9aab", marginTop: 2, lineHeight: 1.35 }}>{s.saveCard ? "We'll keep it on file for next time." : "Off — we won't store it."}</div>
-                      </div>
-                      <div style={{ width: 48, height: 28, borderRadius: 999, background: s.saveCard ? "#14b3ac" : "#dbe6ee", padding: 3, display: "flex", justifyContent: s.saveCard ? "flex-end" : "flex-start", flexShrink: 0 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#ffffff", boxShadow: "0 1px 3px rgba(13,20,33,0.2)" }} />
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                    {s.rcsEligConfirmed && <div style={BUBBLE_ME}>{s.cardUpdated ? "That's updated — thanks." : "Looks right"}</div>}
+
+                    {s.rcsEligConfirmed && <div style={BUBBLE_BOT}>How would you like to pay the {copayAmount} {chargeLabel}?</div>}
+                    {s.rcsPayConfirmed && (
+                      <>
+                        <div style={BUBBLE_ME}>{paidLabel}</div>
+                        <div className="rcs-check-pop" style={{ alignSelf: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "10px 0 4px" }}>
+                          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#16a34a", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 700, boxShadow: "0 8px 20px rgba(22,163,74,0.28)" }}>✓</div>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: "#0d1421" }}>Payment confirmed.</div>
+                        </div>
+                        <div style={{ ...BUBBLE_BOT, alignSelf: "stretch", maxWidth: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "#8b9aab", textTransform: "uppercase" }}>Receipt</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={ROW_LABEL}>Visit</span><span style={ROW_VALUE}>{P.visitType} · Dr. Reyes</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={ROW_LABEL}>Coverage</span><span style={ROW_VALUE}>{ov(ocrFieldsList[0])}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={ROW_LABEL}>Payment method</span><span style={ROW_VALUE}>{paidLabel}</span></div>
+                          <div style={{ height: 1, background: "#eef2f6", margin: "2px 0" }} />
+                          <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 700 }}>{s.payMethod === AT_DESK ? "Pay at reception" : dueToday ? "Charged today" : "Due after visit"}</span><span style={{ fontWeight: 700, color: "#137e7a" }}>{copayAmount}</span></div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                }
+                sheet={sheetContent(
+                  <>
+                    {eligFound && !s.rcsEligConfirmed && !s.editCard && (
+                      <>
+                        <div style={{ fontSize: 15.5, fontWeight: 700, color: "#0d1421" }}>Does this look right?</div>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <div className="tap-target" onClick={() => patch({ rcsEligConfirmed: true })} style={{ ...PILL_OUTLINE_ON, flex: 1 }}>Looks right</div>
+                          <div className="tap-target" onClick={() => patch({ editCard: true })} style={{ ...PILL_OUTLINE, flex: 1 }}>Something&apos;s changed</div>
+                        </div>
+                      </>
+                    )}
+
+                    {s.editCard && (
+                      <>
+                        <div style={{ fontSize: 13.5, color: "#5b6b7d" }}>No problem — update the plan below.</div>
+                        <input
+                          value={ov(ocrFieldsList[0])}
+                          onChange={(e) => patch((prev) => ({ ocr: { ...prev.ocr, insurer: e.target.value } }))}
+                          placeholder="Insurance company"
+                          style={inputStyle}
+                        />
+                        <input
+                          value={ov(ocrFieldsList[1])}
+                          onChange={(e) => patch((prev) => ({ ocr: { ...prev.ocr, memberId: e.target.value } }))}
+                          placeholder="Member ID"
+                          style={inputStyle}
+                        />
+                        <div className="tap-target" onClick={() => patch({ cardUpdated: true, editCard: false, rcsEligConfirmed: true })} style={{ ...BTN, padding: 13, fontSize: 15 }}>Save updated plan</div>
+                        <div className="tap-target" onClick={() => patch({ editCard: false })} style={{ cursor: "pointer", textAlign: "center", fontSize: 13, color: "#8b9aab" }}>Never mind, that&apos;s right</div>
+                      </>
+                    )}
+
+                    {s.rcsEligConfirmed && !s.rcsPayConfirmed && (
+                      <>
+                        {!usingNewCard && (
+                          <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 16, overflow: "hidden" }}>
+                            {(savedCard ? [cardOnFile, AT_DESK] : [AT_DESK]).map((label, i) => {
+                              const selected = s.payMethod === label && !usingNewCard;
+                              return (
+                                <div key={label} className="tap-target" onClick={() => tapPay(label)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 15px", borderTop: i > 0 ? "1px solid #eef2f6" : "none", cursor: "pointer" }}>
+                                  {label === cardOnFile ? (
+                                    <div style={{ width: 34, height: 22, borderRadius: 4, background: "#1a1f71", color: "#ffffff", fontSize: 9, fontWeight: 800, letterSpacing: "0.03em", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>VISA</div>
+                                  ) : (
+                                    <div style={{ width: 34, height: 22, borderRadius: 4, background: "#eef2f6", color: "#5b6b7d", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>$</div>
+                                  )}
+                                  <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 500, color: "#0d1421" }}>{label}</div>
+                                  <div style={selected ? DOT_ON : DOT}>{selected ? "✓" : ""}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {!usingNewCard && (
+                          <div className="tap-target" onClick={() => tapPay(addCardLabel)} style={{ cursor: "pointer", alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 8, background: "#ffffff", border: "1.5px dashed #cfdae5", borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 600, color: "#1f6d96" }}>+ {addCardLabel}</div>
+                        )}
+
+                        {usingNewCard && (
+                          <>
+                            <input value={card.number} onChange={(e) => setCard("number", e.target.value)} placeholder="Card number" style={inputStyle} />
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <input value={card.exp} onChange={(e) => setCard("exp", e.target.value)} placeholder="MM/YY" style={{ ...inputStyle, flex: 1 }} />
+                              <input value={card.cvc} onChange={(e) => setCard("cvc", e.target.value)} placeholder="CVC" style={{ ...inputStyle, width: 70 }} />
+                              <input value={card.zip} onChange={(e) => setCard("zip", e.target.value)} placeholder="ZIP" style={{ ...inputStyle, width: 80 }} />
+                            </div>
+                            <div onClick={() => patch((prev) => ({ saveCard: !prev.saveCard }))} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#5b6b7d" }}>
+                              <div style={{ width: 34, height: 20, borderRadius: 999, background: s.saveCard ? "#14b3ac" : "#dbe6ee", padding: 2, display: "flex", justifyContent: s.saveCard ? "flex-end" : "flex-start", flexShrink: 0 }}>
+                                <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#ffffff" }} />
+                              </div>
+                              Save this card for next time
+                            </div>
+                            <div className="tap-target" onClick={() => { if (newCardValid) patch({ rcsPayConfirmed: true }); }} style={newCardValid ? { ...BTN, padding: 13, fontSize: 15 } : { ...BTN_OFF, padding: 13, fontSize: 15 }}>Save card</div>
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {s.rcsPayConfirmed && <div className="tap-target" onClick={next} style={BTN}>Continue</div>}
+                  </>
                 )}
-
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 11, borderRadius: 14, padding: "14px 15px", marginTop: 12, background: s.payMethod === AT_DESK ? "#eef4fa" : dueToday ? "#fdf3d9" : "#e6f7f6" }}>
-                  <div style={{ width: 19, height: 19, borderRadius: "50%", background: "#14b3ac", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>$</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.3 }}>{chargeLabel}</div>
-                    <div style={{ fontSize: 13, color: "#5b6b7d", marginTop: 2, lineHeight: 1.4 }}>{chargeDetail}</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 12, padding: "0 2px" }}>
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8b9aab" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 1.6 13.2 3.6v4.2c0 3.2-2.1 5.6-5.2 6.6-3.1-1-5.2-3.4-5.2-6.6V3.6L8 1.6Z" />
-                    <path d="M5.9 7.9 7.4 9.4l2.9-3" />
-                  </svg>
-                  <div style={{ fontSize: 12.5, color: "#8b9aab", lineHeight: 1.35 }}>Secure &amp; HIPAA-compliant</div>
-                </div>
-
-                <div style={{ marginTop: "auto", paddingTop: 20, display: "flex", flexDirection: "column", gap: 9 }}>
-                  <div onClick={() => { if (payReady) next(); }} style={payReady ? BTN : BTN_OFF}>Continue</div>
-                  <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.4 }}>
-                    {usingNewCard
-                      ? newCardValid
-                        ? s.saveCard ? "Card added and saved for next time." : "Card added for this visit only."
-                        : "Fill in the card number, expiry, CVC and ZIP."
-                      : s.payMethod
-                      ? s.payMethod === AT_DESK ? "We'll flag it for reception." : "Using your saved card."
-                      : "Choose how you'd like to pay."}
-                  </div>
-                </div>
-              </div>
+              />
             );
           })()}
 
@@ -1545,19 +1466,9 @@ export default function PediatricIntakePage() {
                 <div style={{ fontSize: 16.5, fontWeight: 600, color: "#0d1421", marginTop: 4 }}>Tomorrow · 10:20 AM · Dr. Reyes</div>
               </div>
 
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#8b9aab", textTransform: "uppercase", marginTop: 22 }}>Good to know</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 9 }}>
-                {[
-                  { label: "Penicillin allergy on file", detail: "Confirmed", dot: "#e0a63a" },
-                  { label: "Ear pain reported in March", detail: "14 Mar", dot: "#8b9aab" },
-                  { label: "Asthma plan up to date", detail: "8 Jan", dot: "#16a34a" },
-                ].map((f) => (
-                  <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: "14px 16px" }}>
-                    <div style={{ width: 9, height: 9, borderRadius: "50%", background: f.dot, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 500, color: "#0d1421" }}>{f.label}</div>
-                    <div style={{ fontSize: 13, color: "#8b9aab", flexShrink: 0 }}>{f.detail}</div>
-                  </div>
-                ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 18, background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: "13px 16px" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e0a63a", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: "#5b6b7d" }}>We already have: <span style={{ color: "#0d1421", fontWeight: 600 }}>Penicillin allergy · Asthma plan</span></div>
               </div>
 
               <div style={{ marginTop: "auto", paddingTop: 24, display: "flex", flexDirection: "column", gap: 11 }}>
@@ -1567,50 +1478,50 @@ export default function PediatricIntakePage() {
           )}
 
           {sc === "chat" && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-              <div style={{ fontSize: 26, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>What&apos;s going on with {name}?</div>
-              <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>Your own words are fine. We&apos;ll turn it into a picture you can check.</div>
-
-              <div style={{ background: "#ffffff", border: "1.5px solid #e3eaf1", borderRadius: 18, padding: 16, marginTop: 18 }}>
-                <textarea
-                  value={s.chatText}
-                  onChange={(e) => patch({ chatText: e.target.value })}
-                  onFocus={scrollIntoViewOnFocus}
-                  placeholder="She's been tugging her right ear for a few days and it's worse at bedtime…"
-                  rows={4}
-                  style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, lineHeight: 1.45, color: "#0d1421", background: "transparent" }}
-                />
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
-                  <div onClick={() => patch((prev) => ({ mic: !prev.mic }))} style={s.mic ? { cursor: "pointer", width: 46, height: 46, borderRadius: "50%", background: "#c0392b", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } : { cursor: "pointer", width: 46, height: 46, borderRadius: "50%", background: "#e6f7f6", color: "#14b3ac", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                      <path d="M12 4.5a2.8 2.8 0 0 1 2.8 2.8v4.4a2.8 2.8 0 0 1-5.6 0V7.3A2.8 2.8 0 0 1 12 4.5Z" />
-                      <path d="M6.6 11.4a5.4 5.4 0 0 0 10.8 0" />
-                      <path d="M12 16.8V19.5" />
-                    </svg>
+            <ConversationShell
+              historyKey="chat"
+              sheetCollapsed={sheetCollapsed}
+              onToggleCollapse={() => setSheetCollapsed((v) => !v)}
+              history={
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={HISTORY_STATEMENT}>What&apos;s going on with {name}?</div>
+                  <div style={{ fontSize: 15, color: "#5b6b7d", lineHeight: 1.5 }}>Tell me in your own words — I&apos;ll only ask what&apos;s relevant after that.</div>
+                </div>
+              }
+              sheet={sheetContent(
+                <>
+                  <div style={{ background: "#f8fafc", border: "1.5px solid #e3eaf1", borderRadius: 16, padding: 14 }}>
+                    <textarea
+                      value={s.chatText}
+                      onChange={(e) => patch({ chatText: e.target.value })}
+                      onFocus={scrollIntoViewOnFocus}
+                      placeholder="She's been tugging her right ear for a few days and it's worse at bedtime…"
+                      rows={3}
+                      style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 15.5, lineHeight: 1.45, color: "#0d1421", background: "transparent" }}
+                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, paddingTop: 10, borderTop: "1px solid #eef2f6" }}>
+                      <div className="tap-target" onClick={() => patch((prev) => ({ mic: !prev.mic }))} style={s.mic ? { ...MIC_BTN, background: "#c0392b" } : MIC_BTN}>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                          <path d="M12 4.5a2.8 2.8 0 0 1 2.8 2.8v4.4a2.8 2.8 0 0 1-5.6 0V7.3A2.8 2.8 0 0 1 12 4.5Z" />
+                          <path d="M6.6 11.4a5.4 5.4 0 0 0 10.8 0" />
+                          <path d="M12 16.8V19.5" />
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1, fontSize: 13, color: "#8b9aab", lineHeight: 1.35 }}>{s.mic ? "Listening — talk normally, tap to stop." : "Or tap the mic and just say it."}</div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, fontSize: 13.5, color: "#8b9aab", lineHeight: 1.35 }}>{s.mic ? "Listening — talk normally, tap to stop." : "Prefer to talk? Tap the mic and just say it."}</div>
-                </div>
-              </div>
 
-              <div style={{ fontSize: 12.5, color: "#8b9aab", marginTop: 14, marginLeft: 2 }}>Or start from a common one</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 9 }}>
-                {["Ear pain", "Tummy ache", "Fever", "Sore throat", "Cough"].map((v) => (
-                  <div key={v} onClick={() => patch({ chatText: v + " for a few days, worse at night" })} style={{ cursor: "pointer", background: "#ffffff", border: "1.5px solid #e3eaf1", borderRadius: 999, padding: "11px 16px", fontSize: 14.5, fontWeight: 500, color: "#3d4d5f" }}>{v}</div>
-                ))}
-              </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {["Ear pain", "Fever", "Cough", "Tummy ache", "Something else"].map((v) => (
+                      <div key={v} className="tap-target" onClick={() => { if (v !== "Something else") patch({ chatText: v + " for a few days, worse at night" }); }} style={PILL_OUTLINE}>{v}</div>
+                    ))}
+                  </div>
 
-              {chatReady && (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 11, background: "#e6f7f6", borderRadius: 16, padding: "15px 16px", marginTop: 16 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#14b3ac", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>AI</div>
-                  <div style={{ flex: 1, fontSize: 14.5, color: "#137e7a", lineHeight: 1.45 }}>Sounds like right ear pain, a few days, worse lying down. Check it on the next screen.</div>
-                </div>
+                  <div className="tap-target" onClick={() => { if (chatReady) parseText(); }} style={chatReady ? BTN : BTN_OFF}>Tell Dr. Reyes</div>
+                  <div style={{ textAlign: "center", fontSize: 13, color: "#8b9aab" }}>{chatReady ? "Nothing is sent yet — you'll confirm everything first." : "Type or say a few words to continue."}</div>
+                </>
               )}
-
-              <div style={{ marginTop: "auto", paddingTop: 22, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div onClick={() => { if (chatReady) parseText(); }} style={chatReady ? BTN : BTN_OFF}>Show me what you understood</div>
-                <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab" }}>{chatReady ? "Nothing is sent yet — you'll confirm everything first." : "Type or say a few words to continue."}</div>
-              </div>
-            </div>
+            />
           )}
 
           {sc === "handoff" && (
@@ -1712,7 +1623,7 @@ export default function PediatricIntakePage() {
               )}
 
               <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 9 }}>
-                <div onClick={() => { if (order.length) next(); }} style={order.length ? BTN : BTN_OFF}>Continue</div>
+                <div onClick={() => { if (order.length) go("canvas"); }} style={order.length ? BTN : BTN_OFF}>Continue</div>
                 <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", lineHeight: 1.35 }}>
                   {order.length
                     ? "A few quick questions next."
@@ -1737,151 +1648,169 @@ export default function PediatricIntakePage() {
             const changeOpen = s.canvasChangeOpen === "recap";
             const cur = canvasCurrent;
 
+            // The location question's "Not sure" is the one deliberate
+            // escape hatch to the body-map diagram — every other question
+            // (including "Not sure" elsewhere) commits normally.
+            function tapSingle(step: CanvasStep, opt: string) {
+              if (s.canvasJustSelected) return;
+              if (step.id.endsWith(":spots") && opt === "Not sure") { go("bodyMap"); return; }
+              selectSingle(step, opt);
+            }
+
             return (
-              <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-                {recapItems.length > 0 && (
-                  <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                      <div style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: "#0d1421", lineHeight: 1.4 }}>
-                        Got it. I picked up:{" "}
-                        {recapItems.map((r, i) => (
-                          <span key={r.id}>
-                            {i > 0 ? " · " : ""}
-                            <span style={{ color: "#14b3ac" }}>✓</span> {r.label}
-                          </span>
-                        ))}
-                      </div>
-                      <div
-                        onClick={() => patch((prev) => ({ canvasChangeOpen: prev.canvasChangeOpen === "recap" ? null : "recap" }))}
-                        className="tap-target"
-                        style={{ cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "#1f9ed4", flexShrink: 0 }}
-                      >
-                        Change anything
-                      </div>
-                    </div>
-                    {changeOpen && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
-                        {primaryRegion && primaryArea?.suggested && primaryArea.spots.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Location</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                              {(SPOTS[primaryRegion] || DEFAULT_SPOTS).map((v) => (
-                                <div
-                                  key={v} className="tap-target"
-                                  onClick={() => patch((prev) => ({ areas: { ...prev.areas, [primaryRegion]: { ...prev.areas[primaryRegion], spots: [v] } }, canvasChangeOpen: null }))}
-                                  style={plainChip(primaryArea.spots[0] === v)}
-                                >
-                                  {v}
+              <ConversationShell
+                historyKey={s.canvasHistory.length + ":" + (cur?.id || "done")}
+                sheetCollapsed={sheetCollapsed}
+                onToggleCollapse={() => setSheetCollapsed((v) => !v)}
+                history={
+                  <>
+                    {recapItems.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                          <div style={{ flex: 1, fontSize: 17, fontWeight: 700, color: "#0d1421", lineHeight: 1.4 }}>
+                            Got it. I picked up:{" "}
+                            {recapItems.map((r, i) => (
+                              <span key={r.id} style={{ fontSize: 14.5, fontWeight: 600, color: "#137e7a" }}>
+                                {i > 0 ? " · " : ""}✓ {r.label}
+                              </span>
+                            ))}
+                          </div>
+                          <div
+                            onClick={() => patch((prev) => ({ canvasChangeOpen: prev.canvasChangeOpen === "recap" ? null : "recap" }))}
+                            className="tap-target"
+                            style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#1f9ed4", flexShrink: 0 }}
+                          >
+                            Change anything
+                          </div>
+                        </div>
+                        {changeOpen && (
+                          <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+                            {primaryRegion && primaryArea?.suggested && primaryArea.spots.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>Location</div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                                  {(SPOTS[primaryRegion] || DEFAULT_SPOTS).map((v) => (
+                                    <div
+                                      key={v} className="tap-target"
+                                      onClick={() => patch((prev) => ({ areas: { ...prev.areas, [primaryRegion]: { ...prev.areas[primaryRegion], spots: [v] } }, canvasChangeOpen: null }))}
+                                      style={plainChip(primaryArea.spots[0] === v)}
+                                    >
+                                      {v}
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {s.symptomOnset && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>When it started</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                              {ONSET_OPTIONS.map((v) => (
-                                <div key={v} className="tap-target" onClick={() => patch({ symptomOnset: v, canvasChangeOpen: null })} style={plainChip(s.symptomOnset === v)}>{v}</div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {s.symptomTrigger && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>What makes it worse</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                              {TRIGGER_OPTIONS.map((v) => (
-                                <div key={v} className="tap-target" onClick={() => patch({ symptomTrigger: v, canvasChangeOpen: null })} style={plainChip(s.symptomTrigger === v)}>{v}</div>
-                              ))}
-                            </div>
+                              </div>
+                            )}
+                            {s.symptomOnset && (
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>When it started</div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                                  {ONSET_OPTIONS.map((v) => (
+                                    <div key={v} className="tap-target" onClick={() => patch({ symptomOnset: v, canvasChangeOpen: null })} style={plainChip(s.symptomOnset === v)}>{v}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {s.symptomTrigger && (
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#8b9aab", textTransform: "uppercase" }}>What makes it worse</div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                                  {TRIGGER_OPTIONS.map((v) => (
+                                    <div key={v} className="tap-target" onClick={() => patch({ symptomTrigger: v, canvasChangeOpen: null })} style={plainChip(s.symptomTrigger === v)}>{v}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {canvasDetailCount > 0 && (
-                  <div
-                    onClick={() => patch((prev) => ({ canvasReviewOpen: !prev.canvasReviewOpen }))}
-                    className="tap-target"
-                    style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}
-                  >
-                    <span style={{ color: "#14b3ac", fontSize: 13 }}>✓</span>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: "#137e7a" }}>{canvasDetailCount} {canvasDetailCount === 1 ? "detail" : "details"} captured</span>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: "#1f9ed4" }}>— {s.canvasReviewOpen ? "Hide" : "Review"}</span>
-                  </div>
-                )}
-                {s.canvasReviewOpen && (
-                  <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: 14, marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-                    {s.canvasHistory.map((rec, i) => {
-                      const val = historyValue(rec);
-                      const label = Array.isArray(val) ? val.join(", ") : val;
-                      return (
-                        <div key={rec.id} style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                          <div style={{ flex: 1, fontSize: 13.5, color: "#5b6b7d" }}>{rec.eyebrow}</div>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0d1421" }}>{label || "—"}</div>
-                          <div onClick={() => editFromHistory(i)} className="tap-target" style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "#1f9ed4" }}>Edit</div>
+                    {canvasDetailCount > 0 && (
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ flex: 1, fontSize: 14, color: "#5b6b7d", lineHeight: 1.4 }}>
+                          So far: {s.canvasHistory.map((rec) => {
+                            const val = historyValue(rec);
+                            return Array.isArray(val) ? val.join(", ") : val;
+                          }).filter(Boolean).join(" · ")}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {cur ? (
-                  <div key={cur.id} ref={canvasQuestionRef} className="qstep-enter">
-                    <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.08em", color: "#14b3ac", textTransform: "uppercase" }}>{cur.eyebrow}</div>
-                    {cur.statement && <div style={{ fontSize: 14.5, color: "#5b6b7d", marginTop: 6, lineHeight: 1.4 }}>{cur.statement}</div>}
-                    <div style={{ fontSize: 24, fontWeight: 700, color: "#0d1421", lineHeight: 1.25, letterSpacing: "-0.01em", marginTop: 6 }}>{cur.question}</div>
-                    <div style={cur.multi ? { display: "flex", flexWrap: "wrap", gap: 9, marginTop: 18 } : { display: "flex", flexDirection: "column", gap: 10, marginTop: 18 }}>
-                      {cur.options.map((opt) => {
-                        if (cur.multi) {
-                          const on = multiValue(cur).includes(opt);
-                          const suggested = !on && !!cur.suggested?.includes(opt);
+                        <div onClick={() => patch((prev) => ({ canvasReviewOpen: !prev.canvasReviewOpen }))} className="tap-target" style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#1f9ed4", flexShrink: 0 }}>
+                          {s.canvasReviewOpen ? "Hide" : "Review"}
+                        </div>
+                      </div>
+                    )}
+                    {s.canvasReviewOpen && (
+                      <div style={{ background: "#ffffff", border: "1px solid #eef2f6", borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                        {s.canvasHistory.map((rec, i) => {
+                          const val = historyValue(rec);
+                          const label = Array.isArray(val) ? val.join(", ") : val;
                           return (
-                            <div key={opt} className="tap-target" onClick={() => { toggleMulti(cur, opt); patch({ canvasScrolledAway: false }); }} style={suggested ? CHIP_SUG : on ? CHIP_ON : CHIP}>
-                              {opt}
+                            <div key={rec.id} style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                              <div style={{ flex: 1, fontSize: 13.5, color: "#5b6b7d" }}>{rec.eyebrow}</div>
+                              <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0d1421" }}>{label || "—"}</div>
+                              <div onClick={() => editFromHistory(i)} className="tap-target" style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "#1f9ed4" }}>Edit</div>
                             </div>
                           );
-                        }
-                        const justSelectedHere = s.canvasJustSelected?.id === cur.id;
-                        const on = justSelectedHere ? s.canvasJustSelected!.value === opt : singleValue(cur) === opt;
-                        return (
-                          <div
-                            key={opt} className="tap-target"
-                            onClick={() => { if (!s.canvasJustSelected) selectSingle(cur, opt); }}
-                            style={on ? CARD_ON : CARD}
-                          >
-                            <div style={on ? DOT_ON : DOT}>{on ? "✓" : ""}</div>
-                            <div style={{ flex: 1, fontSize: 16.5, fontWeight: 500, color: "#0d1421" }}>{opt}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {cur.multi && (
-                      <div style={{ marginTop: 20 }}>
-                        <div onClick={() => { if (multiValue(cur).length) finishMulti(cur); }} className="tap-target" style={multiValue(cur).length ? BTN : BTN_OFF}>Continue</div>
+                        })}
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div style={{ marginTop: 40, textAlign: "center" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e8f8ee", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, margin: "0 auto" }}>✓</div>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#0d1421", marginTop: 12 }}>That&apos;s everything for now.</div>
-                  </div>
-                )}
 
-                {s.canvasScrolledAway && cur && (
-                  <div
-                    onClick={() => patch({ canvasScrolledAway: false })}
-                    className="tap-target"
-                    style={{ position: "sticky", bottom: 12, alignSelf: "center", cursor: "pointer", background: "#0d1421", color: "#ffffff", borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, marginTop: 16, boxShadow: "0 4px 12px rgba(13,20,33,0.25)" }}
-                  >
-                    ↓ Back to current question
-                  </div>
+                    {!cur && (
+                      <div style={{ textAlign: "center", padding: "16px 0" }}>
+                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e8f8ee", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, margin: "0 auto" }}>✓</div>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: "#0d1421", marginTop: 12 }}>That&apos;s everything for now.</div>
+                      </div>
+                    )}
+                  </>
+                }
+                sheet={sheetContent(
+                  cur ? (
+                    <div key={cur.id} className="qstep-enter">
+                      <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: "0.08em", color: "#14b3ac", textTransform: "uppercase" }}>{cur.eyebrow}</div>
+                      {cur.statement && <div style={{ fontSize: 13.5, color: "#5b6b7d", marginTop: 6, lineHeight: 1.4 }}>{cur.statement}</div>}
+                      <div style={{ fontSize: 19, fontWeight: 700, color: "#0d1421", lineHeight: 1.3, marginTop: 6 }}>{cur.question}</div>
+                      <div style={cur.multi ? { display: "flex", flexWrap: "wrap", gap: 9, marginTop: 14 } : { display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+                        {cur.options.map((opt) => {
+                          if (cur.multi) {
+                            const curVals = multiValue(cur);
+                            const on = curVals.includes(opt);
+                            // Tier-2 pre-fills the guess as already selected — it only
+                            // keeps the "still just a guess" dashed treatment for as
+                            // long as the patient hasn't changed anything; the moment
+                            // they touch the set at all, it reads as their own answer.
+                            const stillUntouchedGuess = !!cur.suggested && curVals.length === cur.suggested.length && curVals.every((v) => cur.suggested!.includes(v));
+                            const suggestedNotOn = !on && !!cur.suggested?.includes(opt);
+                            const style = on ? (stillUntouchedGuess ? CHIP_ON_SUG : CHIP_ON) : suggestedNotOn ? CHIP_SUG : CHIP;
+                            return (
+                              <div key={opt} className="tap-target" onClick={() => toggleMulti(cur, opt)} style={style}>
+                                {opt}
+                              </div>
+                            );
+                          }
+                          // Quick-choice: outlined pills, not filled cards — they
+                          // read as options, not committed actions, until tapped.
+                          const justSelectedHere = s.canvasJustSelected?.id === cur.id;
+                          const on = justSelectedHere ? s.canvasJustSelected!.value === opt : singleValue(cur) === opt;
+                          const isSuggested = !on && cur.tier === 2 && !!cur.suggested?.includes(opt);
+                          const style = on ? PILL_OUTLINE_ON : isSuggested ? { ...PILL_OUTLINE, background: "#f0fbfa", border: "1.5px dashed #14b3ac" } : PILL_OUTLINE;
+                          return (
+                            <div key={opt} className="tap-target" onClick={() => tapSingle(cur, opt)} style={style}>
+                              {opt}{isSuggested ? " · Suggested" : ""}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {cur.multi && (
+                        <div style={{ marginTop: 16 }}>
+                          <div onClick={() => { if (multiValue(cur).length) finishMulti(cur); }} className="tap-target" style={multiValue(cur).length ? BTN : BTN_OFF}>Continue</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", fontSize: 13.5, color: "#8b9aab", padding: "6px 0" }}>Moving on…</div>
+                  )
                 )}
-              </div>
+              />
             );
           })()}
 
@@ -1926,7 +1855,7 @@ export default function PediatricIntakePage() {
                   { label: "Policy holder", value: s.cardUpdated ? ov(ocrFieldsList[3]) : fv("holder", "Elena Marquez") || guardianName || "Elena Marquez" },
                   { label: "Payment", value: usingNewCard ? (brand || "Card") + " ending " + (cardDigits.slice(-4) || "····") + (s.saveCard ? " · saved for next time" : " · this visit only") : s.payMethod || "Card on file · " + cardOnFile },
                 ],
-                target: (isB ? (s.coverageChanged ? "cardConfirm" : "coverageConfirm") : "coverageForm") as Screen,
+                target: (isB ? (s.coverageChanged ? "rcsCoverage" : "coverageConfirm") : "coverageForm") as Screen,
               },
               {
                 key: "consents", label: "Consents", icon: "✓", changed: !isB || s.consentsChanged,
@@ -1942,12 +1871,26 @@ export default function PediatricIntakePage() {
             const reviewCards = order.map((id, n) => {
               const a = norm(s.areas[id]);
               const sev = (SEVERITY.find((x) => x[0] === severityNum(a.severity)) || ["", "Not set"])[1];
+              const checkRows = SYMPTOM_CHECKS.filter((c) => c.region === id).flatMap((c) => {
+                const answer = a.extra[c.id] as string | undefined;
+                if (answer === undefined) return [];
+                const out = [{ label: c.eyebrow, value: answer }];
+                const onset = a.extra[c.id + "Onset"] as string | undefined;
+                if (onset) out.push({ label: c.durationEyebrow, value: onset });
+                return out;
+              });
+              const historyRows = HISTORY_PROMPTS.filter((h) => h.region === id && a.extra[h.id] !== undefined)
+                .map((h) => ({ label: "History", value: a.extra[h.id] as string }));
               const rows = [
                 { label: "Where", value: a.spots.length ? a.spots.join(", ") : "Not set" },
                 { label: "How bad", value: a.severity ? severityNum(a.severity) + " of 4 · " + sev : "Not set" },
-                { label: "Feels like", value: a.quality.length ? a.quality.join(", ") : "Not described" },
-                { label: "Worse when", value: (a.aggravating || []).length ? a.aggravating.join(", ") : "Not described" },
               ]
+                .concat(checkRows)
+                .concat(historyRows)
+                .concat([
+                  { label: "Feels like", value: a.quality.length ? a.quality.join(", ") : "Not described" },
+                  { label: "Worse when", value: (a.aggravating || []).length ? a.aggravating.join(", ") : "Not described" },
+                ])
                 .concat((a.connected || []).length ? [{ label: "Also noticed", value: a.connected.join(", ") }] : [])
                 .concat([{ label: "Source", value: a.suggested ? (a.confirmed ? "Suggested, you confirmed it" : "Suggested — not confirmed yet") : "You chose this" }]);
               return { rank: String(n + 1), area: id, rows };
@@ -1960,7 +1903,7 @@ export default function PediatricIntakePage() {
               .concat(isTeen && s.scale ? [{ label: "Pain scale", value: s.scale + " · " + (SCALE.find((x) => x[0] === s.scale) || ["", ""])[1] }] : []);
             return (
               <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "22px 20px 24px", background: "#f4f7fa" }}>
-                <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>Does this look right?</div>
+                <div style={{ fontSize: 27, fontWeight: 700, color: "#0d1421", lineHeight: 1.2, letterSpacing: "-0.01em" }}>{isB ? "Everything looks ready for Dr. Reyes." : "Does this look right?"}</div>
                 <div style={{ fontSize: 15, color: "#5b6b7d", marginTop: 9, lineHeight: 1.45 }}>
                   {isB ? "Only what's new or changed is opened up. Everything else was confirmed as-is." : "Everything here is new. Change anything before it goes to Dr. Reyes."}
                 </div>
@@ -2143,29 +2086,6 @@ export default function PediatricIntakePage() {
           })()}
         </div>
 
-        {!!s.sheet && <div onClick={() => patch({ sheet: null, assistantAnswer: null })} style={{ position: "absolute", inset: 0, background: "rgba(13,20,33,0.44)" }} />}
-
-        {s.sheet === "assistant" && (
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#ffffff", borderRadius: "28px 28px 0 0", padding: "20px 20px 24px", boxShadow: "0 -12px 40px rgba(13,20,33,0.18)" }}>
-            <div style={{ width: 40, height: 4, background: "#e3eaf1", borderRadius: 2, margin: "0 auto 18px" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#14b3ac", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>AI</div>
-              <div style={{ flex: 1, fontSize: 20, fontWeight: 700, color: "#0d1421" }}>Ask about anything here</div>
-            </div>
-            <div style={{ fontSize: 14.5, color: "#5b6b7d", marginTop: 12, lineHeight: 1.5 }}>Answers stay on this screen. Nothing you ask changes what you&apos;ve filled in.</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
-              {[
-                { q: "What counts as a fever?", a: "38°C or 100.4°F and above, measured under the arm or in the ear. If you only felt warm, pick “felt warm, didn't measure” — that's useful too." },
-                { q: "What does “throbbing” mean here?", a: "Pain that comes in a beat, like a pulse. If it's steady instead, pick “dull ache.”" },
-                { q: "Should I go to urgent care instead?", a: "If " + name + " is very hard to wake, breathing fast, or has a stiff neck, don't wait for tomorrow — call the clinic line now." },
-              ].map((x) => (
-                <div key={x.q} onClick={() => patch({ assistantAnswer: x.a })} style={{ cursor: "pointer", background: "#f4f7fa", borderRadius: 14, padding: "15px 16px", fontSize: 15.5, fontWeight: 500, color: "#0d1421", lineHeight: 1.35 }}>{x.q}</div>
-              ))}
-            </div>
-            {s.assistantAnswer && <div style={{ background: "#e6f7f6", borderRadius: 16, padding: 16, marginTop: 12, fontSize: 14.5, color: "#137e7a", lineHeight: 1.5 }}>{s.assistantAnswer}</div>}
-            <div onClick={() => patch({ sheet: null, assistantAnswer: null })} style={{ cursor: "pointer", textAlign: "center", fontSize: 15.5, fontWeight: 600, color: "#6b7a8d", padding: "18px 0 4px" }}>Close</div>
-          </div>
-        )}
       </div>
     </div>
   );

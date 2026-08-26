@@ -13,10 +13,7 @@ export type Screen =
   | "scale"
   | "idConfirm"
   | "coverageConfirm"
-  | "cardScan"
-  | "cardRead"
-  | "cardConfirm"
-  | "copay"
+  | "rcsCoverage"
   | "coverageForm"
   | "consentsConfirm"
   | "consents"
@@ -70,12 +67,16 @@ export type PedState = {
   upload: string | null;
   card: CardDraft;
   saveCard: boolean;
-  ocrStep: number;
   ocrElig: "pending" | "done";
   ocr: Record<string, string>;
   editCard: boolean;
   cardUpdated: boolean;
-  needsBack: boolean;
+  // RCS-thread coverage/payment beats (rcsCoverage screen): whether the
+  // patient tapped through the found coverage and the chosen payment
+  // method. The eligibility check itself is tracked by ocrElig alone —
+  // it starts as soon as the screen mounts, no separate flag needed.
+  rcsEligConfirmed: boolean;
+  rcsPayConfirmed: boolean;
   passportOpen: boolean;
   chatText: string;
   mic: boolean;
@@ -134,12 +135,12 @@ export const initialPedState: PedState = {
   upload: null,
   card: { number: "", exp: "", cvc: "", zip: "" },
   saveCard: false,
-  ocrStep: 0,
   ocrElig: "pending",
   ocr: {},
   editCard: false,
   cardUpdated: false,
-  needsBack: false,
+  rcsEligConfirmed: false,
+  rcsPayConfirmed: false,
   passportOpen: false,
   chatText: "",
   mic: false,

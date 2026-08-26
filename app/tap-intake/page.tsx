@@ -1,0 +1,188 @@
+"use client";
+
+import { useState } from "react";
+import { VisitContext, useVisitReducer, useVisit, SECTION_ORDER, SECTION_LABELS } from "./state";
+import { SectionKey } from "./types";
+import { IntroScreen } from "./components/IntroScreen";
+import { ReturningHome } from "./components/ReturningHome";
+import { Welcome } from "./components/Welcome";
+import { ConcernSection } from "./components/ConcernSection";
+import { SymptomsSection } from "./components/SymptomsSection";
+import { ChildDetailsSection } from "./components/ChildDetailsSection";
+import { MedicalHistorySection } from "./components/MedicalHistorySection";
+import { FamilyHistorySection } from "./components/FamilyHistorySection";
+import { GuardianSection } from "./components/GuardianSection";
+import { CoverageSection } from "./components/CoverageSection";
+import { PaymentSection } from "./components/PaymentSection";
+import { ConsentsSection } from "./components/ConsentsSection";
+import { VisitSummaryPanel } from "./components/VisitSummaryPanel";
+import { ProgressSummary } from "./components/ProgressSummary";
+import { PhoneFrame } from "./components/PhoneFrame";
+import { SectionShell } from "./components/ui";
+
+export default function TapIntakePage() {
+  const [state, dispatch] = useVisitReducer();
+  return (
+    <VisitContext.Provider value={{ state, dispatch }}>
+      <Shell />
+    </VisitContext.Provider>
+  );
+}
+
+function Shell() {
+  const { state, dispatch } = useVisit();
+  // Two one-time UI beats ahead of the flow — neither holds visit data, so
+  // they live as local state rather than in visitState.
+  const [introDone, setIntroDone] = useState(false);
+  const [returningHomeDone, setReturningHomeDone] = useState(false);
+
+  if (!introDone) {
+    return <IntroScreen onNext={() => setIntroDone(true)} />;
+  }
+
+  if (!state.patientType) {
+    return (
+      <PhoneFrame>
+        <div className="flex-1 overflow-y-auto px-4">
+          <Welcome />
+        </div>
+      </PhoneFrame>
+    );
+  }
+
+  // Returning patients see who/what's on file before landing on a
+  // question — new patients skip this (there's no record yet to show).
+  if (state.patientType === "returning" && !returningHomeDone) {
+    return (
+      <ReturningHome
+        onStart={() => {
+          setReturningHomeDone(true);
+          dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
+        }}
+      />
+    );
+  }
+
+  const order = SECTION_ORDER[state.patientType];
+  const allReady = order.every((k) => state.sectionStatus[k] === "ready");
+
+  return (
+    <PhoneFrame>
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <header className="mb-6">
+          <div className="text-xs font-bold uppercase tracking-wide text-[var(--color-brand)]">
+            {state.patientType === "new" ? "New Patient" : "Returning Patient"}
+          </div>
+          <h1 className="text-lg font-bold text-[var(--color-ink)]">Brightline Pediatrics — Check-in</h1>
+        </header>
+
+        {allReady ? (
+          <VisitSummaryPanel mode="full" />
+        ) : (
+          <>
+            {/* Pinned above the section stack (sticky while scrolling),
+                not a bottom bar — no separate sidebar fits inside a
+                phone-width card, so this is the one persistent home for
+                "Visit so far" throughout the flow. */}
+            <ProgressSummary />
+            <div className="space-y-3">
+              {order.map((key) => (
+                <SectionRenderer key={key} sectionKey={key} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </PhoneFrame>
+  );
+}
+
+function SectionRenderer({ sectionKey }: { sectionKey: SectionKey }) {
+  const { state, dispatch } = useVisit();
+  const order = state.patientType ? SECTION_ORDER[state.patientType] : [];
+  const status = state.sectionStatus[sectionKey];
+  const displayStatus = status === "ready" ? "ready" : sectionKey === state.activeSection ? "active" : "locked";
+
+  // Dispatches into the reducer rather than computing the frontier here:
+  // this fires right after a MARK_SECTION_READY/CONFIRM_*_NO_CHANGE
+  // dispatch in the same handler, and the component's own `state` is still
+  // one render behind at that point. Computing "next" from sectionStatus
+  // read off this closure would pick the section that was JUST completed
+  // right back up again. The reducer sees its own true latest state, so
+  // ADVANCE_TO_FRONTIER there is never stale.
+  function goToNext() {
+    dispatch({ type: "ADVANCE_TO_FRONTIER", order });
+  }
+
+  return (
+    <SectionShell
+      title={SECTION_LABELS[sectionKey]}
+      status={displayStatus}
+      summaryLine={displayStatus === "ready" ? summaryFor(sectionKey, state) : undefined}
+      onReopen={() => dispatch({ type: "REOPEN_SECTION", key: sectionKey })}
+    >
+      {displayStatus === "active" ? <SectionBody sectionKey={sectionKey} onDone={goToNext} /> : null}
+    </SectionShell>
+  );
+}
+
+function SectionBody({ sectionKey, onDone }: { sectionKey: SectionKey; onDone: () => void }) {
+  switch (sectionKey) {
+    case "concern":
+      return <ConcernSection onDone={onDone} />;
+    case "symptoms":
+      return <SymptomsSection onDone={onDone} />;
+    case "childDetails":
+      return <ChildDetailsSection onDone={onDone} />;
+    case "medicalHistory":
+      return <MedicalHistorySection onDone={onDone} />;
+    case "familyHistory":
+      return <FamilyHistorySection onDone={onDone} />;
+    case "guardian":
+      return <GuardianSection onDone={onDone} />;
+    case "coverage":
+      return <CoverageSection onDone={onDone} />;
+    case "payment":
+      return <PaymentSection onDone={onDone} />;
+    case "consents":
+      return <ConsentsSection onDone={onDone} />;
+    default:
+      return null;
+  }
+}
+
+function summaryFor(key: SectionKey, state: ReturnType<typeof useVisit>["state"]): string {
+  const name = state.child.name || "Child";
+  switch (key) {
+    case "concern":
+      return [state.concern.reason, ...state.concern.structuredSymptoms.filter((t) => t !== state.concern.reason)]
+        .filter(Boolean)
+        .join(" · ");
+    case "symptoms":
+      return `${Object.keys(state.symptomAnswers).length} details captured`;
+    case "childDetails":
+      return `${name}${state.child.age !== null ? `, age ${state.child.age}` : ""}`;
+    case "medicalHistory":
+      return state.medicalHistory.selectedCategories.length || state.medicalHistory.changedCategories.length
+        ? "Updated"
+        : state.medicalHistory.reviewed
+          ? "Confirmed as-is"
+          : "Nothing flagged";
+    case "familyHistory":
+      return state.familyHistory.selected.length ? `${state.familyHistory.selected.length} flagged` : "Confirmed as-is";
+    case "guardian":
+      return [state.guardian.name, state.guardian.relationship].filter(Boolean).join(" · ");
+    case "coverage":
+      return [state.coverage.payer, state.coverage.policyNumber].filter(Boolean).join(" · ");
+    case "payment":
+      return state.payment.method === "on_file"
+        ? `Card on file · •••• ${state.payment.cardLast4}`
+        : state.payment.method === "new_card"
+          ? "New card added"
+          : "Pay at visit";
+    case "consents":
+      return `Signed by ${state.guardian.name || "guardian"}`;
+    default:
+      return "";
+  }
+}

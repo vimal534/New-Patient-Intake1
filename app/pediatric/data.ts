@@ -100,6 +100,41 @@ export const TAG_ON: CSS = {
 };
 export const TAG_ON_SEL: CSS = { ...TAG_ON, background: "rgba(255,255,255,0.24)", color: "#ffffff" };
 
+// ---------- Conversation + bottom-sheet redesign (Flow B) ----------
+// Quick-choice pills read as *options*, not committed actions — outlined,
+// not filled, distinct from CARD/CHIP's solid-fill-on-select used for
+// multi-select "choice cards." PILL_ON is only the brief ~180ms
+// tap-confirmation highlight before a single-select answer commits and
+// collapses into history, mirroring the existing CARD/CARD_ON beat.
+export const PILL_OUTLINE: CSS = {
+  cursor: "pointer",
+  textAlign: "center",
+  background: "#ffffff",
+  border: "1.5px solid #14b3ac",
+  borderRadius: 999,
+  padding: "13px 18px",
+  fontSize: 15,
+  fontWeight: 600,
+  color: "#0f6f6b",
+};
+export const PILL_OUTLINE_ON: CSS = { ...PILL_OUTLINE, background: "#14b3ac", color: "#ffffff" };
+export const MIC_BTN: CSS = {
+  cursor: "pointer",
+  width: 44,
+  height: 44,
+  borderRadius: "50%",
+  background: "#0d1421",
+  color: "#ffffff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+};
+// The system's own "I understood you" lines in the history pane — bold and
+// slightly oversized so they read with the same warmth as a real reply,
+// never small-print.
+export const HISTORY_STATEMENT: CSS = { fontSize: 19, fontWeight: 700, color: "#0d1421", lineHeight: 1.4 };
+
 export type Figure = { label: string; w: number; h: number; path: string };
 
 export const FIGURES: Record<"infant" | "toddler" | "child" | "teen", Figure> = {
