@@ -159,9 +159,14 @@ export function SectionShell({
   children?: ReactNode;
 }) {
   if (status === "locked") {
+    // Flat row + dashed circle bullet, matching the same "not started" row
+    // style used in the Visit-so-far progress panel — no boxed border, so
+    // the upcoming-sections list reads as one quiet list rather than a
+    // stack of empty cards competing for attention with the active one.
     return (
-      <div className="rounded-xl border border-dashed border-[var(--color-line)] px-5 py-3 text-sm text-[var(--color-placeholder)]">
-        {title}
+      <div className="flex items-center gap-2 px-1 py-1.5">
+        <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-dashed border-[var(--color-line-strong)]" />
+        <span className="text-sm font-medium text-[var(--color-placeholder)]">{title}</span>
       </div>
     );
   }
