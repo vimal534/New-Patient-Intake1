@@ -10,7 +10,13 @@ import { FREE_TEXT_TAGS } from "./questionBank";
 
 export const ON_FILE_RECORD = {
   child: { name: "Ana", dob: "2020-03-14", age: 6, sex: "Female" },
-  nextVisit: { date: "Tomorrow", time: "10:20 AM", provider: "Dr. Reyes" },
+  nextVisit: {
+    date: "Tomorrow",
+    time: "10:20 AM",
+    provider: "Dr. Reyes",
+    visitType: "Annual physical",
+    location: "Brightline Pediatrics",
+  },
   // Surfaced on the returning-patient home screen as quick, scannable
   // context before the guardian even starts the check-in — not the full
   // chart, just what's worth knowing at a glance. `dot` is a status read
