@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { VisitContext, useVisitReducer, useVisit, SECTION_ORDER, SECTION_LABELS } from "./state";
-import { SectionKey, MEDICAL_CATEGORY_KEYS } from "./types";
+import { SectionKey, MEDICAL_CATEGORY_KEYS, PatientType } from "./types";
 import { IntroScreen } from "./components/IntroScreen";
 import { ReturningHome } from "./components/ReturningHome";
 import { ConfirmDetailsScreen } from "./components/ConfirmDetailsScreen";
 import { VisitCompleteScreen } from "./components/VisitCompleteScreen";
-import { Welcome } from "./components/Welcome";
+import { DemoScenarioSwitcher } from "./components/DemoScenarioSwitcher";
 import { ConcernSection } from "./components/ConcernSection";
 import { SymptomsSection } from "./components/SymptomsSection";
 import { ChildDetailsSection } from "./components/ChildDetailsSection";
@@ -39,18 +39,32 @@ function Shell() {
   const [confirmDetailsDone, setConfirmDetailsDone] = useState(false);
   const [sentToProvider, setSentToProvider] = useState(false);
 
+  // A real patient's app already knows who they are (a lookup or a magic
+  // link) — there's no real-world "are you new or returning" screen to
+  // show. That prominent choice only ever existed for demoing this
+  // prototype, so it's gone as its own step: Intro's "Next" goes straight
+  // into the fuller "new patient" scenario, and DemoScenarioSwitcher (a
+  // small floating control inside the main flow below) is how a demo
+  // switches to "returning" instead.
   if (!introDone) {
-    return <IntroScreen onNext={() => setIntroDone(true)} />;
+    return (
+      <IntroScreen
+        onNext={() => {
+          dispatch({ type: "SET_PATIENT_TYPE", patientType: "new" });
+          dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
+          setIntroDone(true);
+        }}
+      />
+    );
   }
 
   if (!state.patientType) {
-    return (
-      <PhoneFrame>
-        <div className="flex-1 overflow-y-auto px-4">
-          <Welcome />
-        </div>
-      </PhoneFrame>
-    );
+    // Unreachable in practice — SET_PATIENT_TYPE dispatches in the same
+    // batch as setIntroDone(true) above, so patientType is already set by
+    // the render where introDone flips true. Kept as a narrowing guard
+    // (everything below assumes non-null patientType) and a safe no-op
+    // fallback rather than a real screen, should that assumption ever break.
+    return null;
   }
 
   // Returning patients see who/what's on file before landing on a
@@ -72,6 +86,27 @@ function Shell() {
         onBack={() => setReturningHomeDone(false)}
       />
     );
+  }
+
+  // DemoScenarioSwitcher's handler — restarts the whole visit fresh into
+  // the chosen scenario. Mirrors exactly what the old Welcome screen used
+  // to dispatch (SET_PATIENT_TYPE, then either SET_ACTIVE_SECTION for a
+  // new patient or PRESET_ON_FILE for a returning one), plus resetting
+  // the three local UI-beat flags below — those aren't reducer state, so
+  // RESTART alone can't touch them, and stale true values would skip
+  // straight past ReturningHome/ConfirmDetailsScreen into a blank
+  // activeSection.
+  function switchScenario(type: PatientType) {
+    dispatch({ type: "RESTART" });
+    dispatch({ type: "SET_PATIENT_TYPE", patientType: type });
+    if (type === "returning") {
+      dispatch({ type: "PRESET_ON_FILE" });
+    } else {
+      dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
+    }
+    setReturningHomeDone(false);
+    setConfirmDetailsDone(false);
+    setSentToProvider(false);
   }
 
   const order = SECTION_ORDER[state.patientType];
@@ -110,6 +145,8 @@ function Shell() {
           </>
         )}
       </div>
+
+      <DemoScenarioSwitcher onSwitch={switchScenario} />
     </PhoneFrame>
   );
 }
