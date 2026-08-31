@@ -68,6 +68,7 @@ function Shell() {
           setConfirmDetailsDone(true);
           dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
         }}
+        onBack={() => setReturningHomeDone(false)}
       />
     );
   }
