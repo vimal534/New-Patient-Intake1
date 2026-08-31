@@ -5,6 +5,7 @@ import { VisitContext, useVisitReducer, useVisit, SECTION_ORDER, SECTION_LABELS 
 import { SectionKey } from "./types";
 import { IntroScreen } from "./components/IntroScreen";
 import { ReturningHome } from "./components/ReturningHome";
+import { ConfirmDetailsScreen } from "./components/ConfirmDetailsScreen";
 import { Welcome } from "./components/Welcome";
 import { ConcernSection } from "./components/ConcernSection";
 import { SymptomsSection } from "./components/SymptomsSection";
@@ -31,10 +32,11 @@ export default function TapIntakePage() {
 
 function Shell() {
   const { state, dispatch } = useVisit();
-  // Two one-time UI beats ahead of the flow — neither holds visit data, so
+  // Three one-time UI beats ahead of the flow — none hold visit data, so
   // they live as local state rather than in visitState.
   const [introDone, setIntroDone] = useState(false);
   const [returningHomeDone, setReturningHomeDone] = useState(false);
+  const [confirmDetailsDone, setConfirmDetailsDone] = useState(false);
 
   if (!introDone) {
     return <IntroScreen onNext={() => setIntroDone(true)} />;
@@ -53,10 +55,17 @@ function Shell() {
   // Returning patients see who/what's on file before landing on a
   // question — new patients skip this (there's no record yet to show).
   if (state.patientType === "returning" && !returningHomeDone) {
+    return <ReturningHome onStart={() => setReturningHomeDone(true)} />;
+  }
+
+  // Then confirm contact/emergency-contact are still accurate — also
+  // returning-patient only, for the same reason. Only after this does the
+  // active section become "concern" (Reason for Visit).
+  if (state.patientType === "returning" && !confirmDetailsDone) {
     return (
-      <ReturningHome
-        onStart={() => {
-          setReturningHomeDone(true);
+      <ConfirmDetailsScreen
+        onConfirm={() => {
+          setConfirmDetailsDone(true);
           dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
         }}
       />
