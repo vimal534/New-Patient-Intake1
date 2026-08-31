@@ -48,19 +48,18 @@ const PASSPORT_CATEGORY_LABELS: Record<PassportCategoryKey, string> = {
 // one-step category picker (all checked by default) before landing on the
 // saved confirmation, which then names what's actually being shared.
 //
-// The "‹ Today's Visit" header and the floating DemoScenarioSwitcher were
-// both in the original reference but missing from the first pass here —
-// added to match it exactly: the header reopens the Visit Summary (the
-// only place left to go from a terminal screen), and the switcher is the
+// The floating DemoScenarioSwitcher matches the original reference — the
 // same one used throughout the main flow, so a demo can restart into
 // either scenario from this screen too, not just from mid-flow.
+//
+// `onBack` is still passed in from page.tsx (it reopens the Visit Summary
+// checklist via setReviewingSummary(true)) but is intentionally not
+// destructured/rendered here anymore — the "‹ Today's Visit" header was
+// removed per request, leaving this a purely terminal screen with no way
+// back except restarting via the demo switcher below.
 export function VisitCompleteScreen({
-  onBack,
   onSwitchScenario,
 }: {
-  // "‹ Today's Visit" — the only place left to go from a terminal screen
-  // is back to reviewing what was sent, so this reopens the Visit Summary
-  // rather than being purely decorative.
   onBack: () => void;
   onSwitchScenario: (type: PatientType) => void;
 }) {
@@ -77,7 +76,7 @@ export function VisitCompleteScreen({
   // (still warm) "your visit" instead of fabricating a date.
   const whenLabel = isReturning ? ON_FILE_RECORD.nextVisit.date.toLowerCase() : "your visit";
 
-  const [passportState, setPassportState] = useState<"offer" | "options" | "saved" | "dismissed">("offer");
+  const [passportState, setPassportState] = useState<"offer" | "options" | "saved">("offer");
   const [selected, setSelected] = useState<Record<PassportCategoryKey, boolean>>({
     healthHistory: true,
     medications: true,
@@ -89,20 +88,7 @@ export function VisitCompleteScreen({
 
   return (
     <PhoneFrame>
-      <div className="flex items-center gap-1.5 px-6 pt-4">
-        <button type="button" onClick={onBack} aria-label="Back to visit summary" className="cursor-pointer text-lg text-teal">
-          ←
-        </button>
-        <button type="button" onClick={onBack} className="cursor-pointer text-sm font-medium text-teal">
-          Today&apos;s Visit
-        </button>
-      </div>
-
       <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-8 pt-6">
-        {/* Grouped as one flex-1 block instead of just the hero, so
-            dismissing the Passport card ("Maybe later") re-centers what's
-            left in the available space rather than stranding a tall empty
-            gap below a now-shorter, top-anchored screen. */}
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal/15">
             <span className="text-3xl font-bold text-teal" aria-hidden="true">
@@ -133,14 +119,9 @@ export function VisitCompleteScreen({
             </ul>
 
             {passportState === "offer" ? (
-              <>
-                <div className="mt-4">
-                  <PrimaryButton onClick={() => setPassportState("options")}>Make it my Passport</PrimaryButton>
-                </div>
-                <div className="mt-3 text-center">
-                  <TextLink onClick={() => setPassportState("dismissed")}>Maybe later</TextLink>
-                </div>
-              </>
+              <div className="mt-4">
+                <PrimaryButton onClick={() => setPassportState("options")}>Make it my Passport</PrimaryButton>
+              </div>
             ) : (
               <div className="mt-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-teal">
