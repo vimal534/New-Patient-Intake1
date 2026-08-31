@@ -80,14 +80,44 @@ function Shell() {
         {allReady ? (
           <VisitSummaryPanel mode="full" />
         ) : (
-          <div className="space-y-3">
-            {order.map((key) => (
-              <SectionRenderer key={key} sectionKey={key} />
-            ))}
-          </div>
+          <>
+            <div className="space-y-3">
+              {order
+                .filter((key) => state.sectionStatus[key] === "ready" || key === state.activeSection)
+                .map((key) => (
+                  <SectionRenderer key={key} sectionKey={key} />
+                ))}
+            </div>
+            <LockedSectionsList order={order} />
+          </>
         )}
       </div>
     </PhoneFrame>
+  );
+}
+
+// Renders every not-yet-reached section as one merged, compact block
+// (shared border, hairline dividers) instead of individual rows each
+// carrying the full space-y-3 gap used between active/ready cards — see
+// the comment on SectionShell's `lockedPosition` prop for why.
+function LockedSectionsList({ order }: { order: SectionKey[] }) {
+  const { state } = useVisit();
+  const lockedKeys = order.filter((key) => state.sectionStatus[key] !== "ready" && key !== state.activeSection);
+  if (lockedKeys.length === 0) return null;
+
+  return (
+    <div className="mt-3">
+      {lockedKeys.map((key, i) => (
+        <SectionShell
+          key={key}
+          title={SECTION_LABELS[key]}
+          status="locked"
+          lockedPosition={
+            lockedKeys.length === 1 ? "only" : i === 0 ? "first" : i === lockedKeys.length - 1 ? "last" : "middle"
+          }
+        />
+      ))}
+    </div>
   );
 }
 

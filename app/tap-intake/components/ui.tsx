@@ -150,23 +150,37 @@ export function SectionShell({
   status,
   onReopen,
   summaryLine,
+  lockedPosition = "only",
   children,
 }: {
   title: string;
   status: "locked" | "active" | "ready";
   onReopen?: () => void;
   summaryLine?: string;
+  // Only meaningful when status === "locked". Consecutive locked rows are
+  // rendered as one merged block (shared outer border, hairline dividers
+  // between rows) instead of separate floating lines each carrying the
+  // same space-y-3 gap as a full active/ready card — that gap made a
+  // 7-item "what's left" list read as a long, effortful scroll for text
+  // that's meant to be a quick, quiet glance ahead.
+  lockedPosition?: "first" | "middle" | "last" | "only";
   children?: ReactNode;
 }) {
   if (status === "locked") {
-    // Flat row + dashed circle bullet, matching the same "not started" row
-    // style used in the Visit-so-far progress panel — no boxed border, so
-    // the upcoming-sections list reads as one quiet list rather than a
-    // stack of empty cards competing for attention with the active one.
+    const isTop = lockedPosition === "first" || lockedPosition === "only";
+    const isBottom = lockedPosition === "last" || lockedPosition === "only";
     return (
-      <div className="flex items-center gap-2 px-1 py-1.5">
-        <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-dashed border-[var(--color-line-strong)]" />
-        <span className="text-sm font-medium text-[var(--color-placeholder)]">{title}</span>
+      <div
+        className={[
+          "flex items-center gap-2 border-x border-b border-[var(--color-line)] bg-white px-3 py-2.5",
+          isTop ? "rounded-t-xl border-t" : "",
+          isBottom ? "rounded-b-xl" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <span className="h-3 w-3 shrink-0 rounded-full border border-dashed border-[var(--color-line-strong)]" />
+        <span className="text-sm font-medium text-[var(--color-muted)]">{title}</span>
       </div>
     );
   }
