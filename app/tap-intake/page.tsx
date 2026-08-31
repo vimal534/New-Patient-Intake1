@@ -37,7 +37,12 @@ function Shell() {
   const [introDone, setIntroDone] = useState(false);
   const [returningHomeDone, setReturningHomeDone] = useState(false);
   const [confirmDetailsDone, setConfirmDetailsDone] = useState(false);
-  const [sentToProvider, setSentToProvider] = useState(false);
+  // Whether the guardian has stepped back from the end screen to review
+  // the checklist ("‹ Today's Visit"). Defaults false so the moment every
+  // section is ready, VisitCompleteScreen shows immediately — no separate
+  // "Send to Dr. Reyes" tap gating it anymore, per the reference: the
+  // checklist is a reachable review, not a required stop.
+  const [reviewingSummary, setReviewingSummary] = useState(false);
 
   // A real patient's app already knows who they are (a lookup or a magic
   // link) — there's no real-world "are you new or returning" screen to
@@ -106,17 +111,18 @@ function Shell() {
     }
     setReturningHomeDone(false);
     setConfirmDetailsDone(false);
-    setSentToProvider(false);
+    setReviewingSummary(false);
   }
 
   const order = SECTION_ORDER[state.patientType];
   const allReady = order.every((k) => state.sectionStatus[k] === "ready");
 
-  // Once everything's ready AND the guardian has actually tapped "Send to
-  // Dr. Reyes" (not just reached the summary), swap to a dedicated
-  // full-bleed confirmation screen — see VisitCompleteScreen.
-  if (allReady && sentToProvider) {
-    return <VisitCompleteScreen onBack={() => setSentToProvider(false)} onSwitchScenario={switchScenario} />;
+  // The moment every section is ready, go straight to the dedicated
+  // full-bleed confirmation screen — see VisitCompleteScreen. The
+  // checklist below is still reachable via its "‹ Today's Visit" back
+  // link (setReviewingSummary(true)), just no longer a required stop.
+  if (allReady && !reviewingSummary) {
+    return <VisitCompleteScreen onBack={() => setReviewingSummary(true)} onSwitchScenario={switchScenario} />;
   }
 
   return (
@@ -131,7 +137,7 @@ function Shell() {
         </header>
 
         {allReady ? (
-          <VisitSummaryPanel mode="full" onSend={() => setSentToProvider(true)} />
+          <VisitSummaryPanel mode="full" onSend={() => setReviewingSummary(false)} />
         ) : (
           <>
             <div className="space-y-3">
