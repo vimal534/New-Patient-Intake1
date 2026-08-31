@@ -10,14 +10,23 @@ import { FREE_TEXT_TAGS } from "./questionBank";
 import { MedicalCategoryKey } from "./types";
 
 export const ON_FILE_RECORD = {
-  child: { name: "Ana", dob: "2020-03-14", age: 6, sex: "Female" },
-  // Household contact + emergency contact — the two the confirm-details
-  // screen (right after ReturningHome, before Today's Concern) asks about
-  // specifically, since they're the two most likely to have changed since
-  // the last visit; identity itself is shown but not re-confirmed the same
-  // way (a legal name/DOB correction goes through the front desk, not a
-  // self-service edit here). Same address as the demo "on file" patient in
-  // the /intake build, for a consistent identity across both prototypes.
+  // legalLastName matches the guardian ("Elena Marquez") and emergency
+  // contact ("Carlos Marquez") below — one consistent family surname.
+  child: {
+    name: "Ana",
+    legalFirstName: "Ana",
+    legalLastName: "Marquez",
+    preferredName: "Ana",
+    dob: "2020-03-14",
+    age: 6,
+    sex: "Female",
+  },
+  // Household contact + emergency contact — the two the identity/contact
+  // gate (AboutYouScreen, right after ReturningHome, before Today's
+  // Concern) asks about specifically, since along with identity they're
+  // what's most likely to have changed or need a quick correction since
+  // the last visit. Same address as the demo "on file" patient in the
+  // /intake build, for a consistent identity across both prototypes.
   contact: { phone: "(512) 555-0148", address: "214 Oakwood Dr, Austin, TX 78701" },
   emergencyContact: { name: "Carlos Marquez", relationship: "Grandparent", phone: "(512) 555-0199" },
   nextVisit: {

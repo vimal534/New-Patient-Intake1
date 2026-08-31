@@ -32,7 +32,7 @@ const PASSPORT_CATEGORY_LABELS: Record<PassportCategoryKey, string> = {
 // The screen shown once every section is ready and the guardian has tapped
 // "Send to Dr. Reyes" on the Visit Summary (see VisitSummaryPanel's onSend).
 // A dedicated full-bleed moment of its own — own PhoneFrame, like
-// IntroScreen/ReturningHome/ConfirmDetailsScreen — rather than just another
+// IntroScreen/ReturningHome/AboutYouScreen — rather than just another
 // card appended to the checklist, since "you're done" deserves more weight
 // than a list item ever could.
 //

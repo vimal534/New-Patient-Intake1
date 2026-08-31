@@ -13,7 +13,7 @@ import { CONSENT_ITEMS, matchCarrierChip } from "./questionBank";
 
 export const initialVisitState: VisitState = {
   patientType: null,
-  child: { name: "", dob: "", age: null, sex: null },
+  child: { name: "", legalFirstName: "", legalLastName: "", preferredName: "", dob: "", age: null, sex: null },
   concern: { reason: null, reasonSource: null, freeText: "", structuredSymptoms: [] },
   symptomAnswers: {},
   medicalHistory: {
@@ -47,7 +47,11 @@ export type Action =
   | { type: "SET_CONCERN_FREETEXT"; text: string }
   | { type: "SET_STRUCTURED_SYMPTOMS"; tags: string[] }
   | { type: "ANSWER_SYMPTOM"; id: string; value: string | string[] }
-  | { type: "SET_CHILD_FIELD"; field: "name" | "dob" | "sex"; value: string }
+  | {
+      type: "SET_CHILD_FIELD";
+      field: "legalFirstName" | "legalLastName" | "preferredName" | "dob" | "sex";
+      value: string;
+    }
   | { type: "SET_CHILD_AGE"; age: number }
   | { type: "TOGGLE_MEDICAL_CATEGORY"; category: MedicalCategoryKey }
   | { type: "SET_MEDICAL_DETAIL"; category: MedicalCategoryKey; values: string[] }
@@ -107,12 +111,18 @@ export function visitReducer(state: VisitState, action: Action): VisitState {
       return withStatus({ ...state, symptomAnswers: next }, "symptoms", "in_progress");
     }
 
-    case "SET_CHILD_FIELD":
-      return withStatus(
-        { ...state, child: { ...state.child, [action.field]: action.value } },
-        "childDetails",
-        "in_progress"
-      );
+    // Not tied to any sectionStatus — the identity card lives on the
+    // standalone AboutYouScreen gate, not in SECTION_KEYS (see the comment
+    // on ChildInfo). `name` is kept in sync here as the derived
+    // `preferredName || legalFirstName` display value every existing
+    // "childName" read around the app already relies on.
+    case "SET_CHILD_FIELD": {
+      const nextChild = { ...state.child, [action.field]: action.value };
+      if (action.field === "legalFirstName" || action.field === "preferredName") {
+        nextChild.name = nextChild.preferredName.trim() || nextChild.legalFirstName.trim();
+      }
+      return { ...state, child: nextChild };
+    }
 
     case "SET_CHILD_AGE":
       return { ...state, child: { ...state.child, age: action.age } };
@@ -321,7 +331,15 @@ export function visitReducer(state: VisitState, action: Action): VisitState {
       // straight from ON_FILE_RECORD by the section components themselves.
       return {
         ...state,
-        child: { name: "Ana", dob: "2020-03-14", age: 6, sex: "Female" },
+        child: {
+          name: "Ana",
+          legalFirstName: "Ana",
+          legalLastName: "Marquez",
+          preferredName: "Ana",
+          dob: "2020-03-14",
+          age: 6,
+          sex: "Female",
+        },
         guardian: {
           name: "Elena Marquez",
           relationship: "Parent",
@@ -365,17 +383,17 @@ export function useVisitReducer() {
   return useReducer(visitReducer, initialVisitState);
 }
 
-// Section order per flow — the sole source of truth for sequencing. Child
-// Details is skipped entirely for returning patients (already on file).
+// Section order per flow — the sole source of truth for sequencing. Both
+// flows are identical now that identity lives on AboutYouScreen instead of
+// a "Child Details" section here.
 export const SECTION_ORDER: Record<PatientType, SectionKey[]> = {
-  new: ["concern", "symptoms", "childDetails", "medicalHistory", "guardian", "coverage", "payment", "consents"],
+  new: ["concern", "symptoms", "medicalHistory", "guardian", "coverage", "payment", "consents"],
   returning: ["concern", "symptoms", "medicalHistory", "guardian", "coverage", "payment", "consents"],
 };
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   concern: "Today's Concern",
   symptoms: "A Few Details",
-  childDetails: "Child Details",
   medicalHistory: "Health History",
   guardian: "Guardian Details",
   coverage: "Coverage",

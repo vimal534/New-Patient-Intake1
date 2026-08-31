@@ -5,12 +5,11 @@ import { VisitContext, useVisitReducer, useVisit, SECTION_ORDER, SECTION_LABELS 
 import { SectionKey, MEDICAL_CATEGORY_KEYS, PatientType } from "./types";
 import { IntroScreen } from "./components/IntroScreen";
 import { ReturningHome } from "./components/ReturningHome";
-import { ConfirmDetailsScreen } from "./components/ConfirmDetailsScreen";
+import { AboutYouScreen } from "./components/AboutYouScreen";
 import { VisitCompleteScreen } from "./components/VisitCompleteScreen";
 import { DemoScenarioSwitcher } from "./components/DemoScenarioSwitcher";
 import { ConcernSection } from "./components/ConcernSection";
 import { SymptomsSection } from "./components/SymptomsSection";
-import { ChildDetailsSection } from "./components/ChildDetailsSection";
 import { MedicalHistorySection } from "./components/MedicalHistorySection";
 import { GuardianSection } from "./components/GuardianSection";
 import { CoverageSection } from "./components/CoverageSection";
@@ -36,7 +35,7 @@ function Shell() {
   // they live as local state rather than in visitState.
   const [introDone, setIntroDone] = useState(false);
   const [returningHomeDone, setReturningHomeDone] = useState(false);
-  const [confirmDetailsDone, setConfirmDetailsDone] = useState(false);
+  const [aboutYouDone, setAboutYouDone] = useState(false);
   // Whether the guardian has stepped back from the end screen to review
   // the checklist ("‹ Today's Visit"). Defaults false so the moment every
   // section is ready, VisitCompleteScreen shows immediately — no separate
@@ -56,7 +55,6 @@ function Shell() {
       <IntroScreen
         onNext={() => {
           dispatch({ type: "SET_PATIENT_TYPE", patientType: "new" });
-          dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
           setIntroDone(true);
         }}
       />
@@ -78,39 +76,39 @@ function Shell() {
     return <ReturningHome onStart={() => setReturningHomeDone(true)} />;
   }
 
-  // Then confirm contact/emergency-contact are still accurate — also
-  // returning-patient only, for the same reason. Only after this does the
-  // active section become "concern" (Reason for Visit).
-  if (state.patientType === "returning" && !confirmDetailsDone) {
+  // Then confirm identity/contact/emergency-contact — shown to both
+  // patient types now (new patients start with blank fields instead of
+  // pre-filled ones; see AboutYouScreen's own comment). Only after this
+  // does the active section become "concern" (Reason for Visit).
+  if (!aboutYouDone) {
     return (
-      <ConfirmDetailsScreen
+      <AboutYouScreen
         onConfirm={() => {
-          setConfirmDetailsDone(true);
+          setAboutYouDone(true);
           dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
         }}
-        onBack={() => setReturningHomeDone(false)}
+        onBack={state.patientType === "returning" ? () => setReturningHomeDone(false) : () => setIntroDone(false)}
       />
     );
   }
 
   // DemoScenarioSwitcher's handler — restarts the whole visit fresh into
   // the chosen scenario. Mirrors exactly what the old Welcome screen used
-  // to dispatch (SET_PATIENT_TYPE, then either SET_ACTIVE_SECTION for a
-  // new patient or PRESET_ON_FILE for a returning one), plus resetting
-  // the three local UI-beat flags below — those aren't reducer state, so
-  // RESTART alone can't touch them, and stale true values would skip
-  // straight past ReturningHome/ConfirmDetailsScreen into a blank
-  // activeSection.
+  // to dispatch (SET_PATIENT_TYPE, then PRESET_ON_FILE for a returning
+  // one), plus resetting the local UI-beat flags below — those aren't
+  // reducer state, so RESTART alone can't touch them, and stale true
+  // values would skip straight past ReturningHome/AboutYouScreen into a
+  // blank activeSection. SET_ACTIVE_SECTION is no longer dispatched here
+  // directly for new patients — AboutYouScreen's onConfirm does that once
+  // it's actually been shown again, same as the returning path.
   function switchScenario(type: PatientType) {
     dispatch({ type: "RESTART" });
     dispatch({ type: "SET_PATIENT_TYPE", patientType: type });
     if (type === "returning") {
       dispatch({ type: "PRESET_ON_FILE" });
-    } else {
-      dispatch({ type: "SET_ACTIVE_SECTION", key: "concern" });
     }
     setReturningHomeDone(false);
-    setConfirmDetailsDone(false);
+    setAboutYouDone(false);
     setReviewingSummary(false);
   }
 
@@ -217,8 +215,6 @@ function SectionBody({ sectionKey, onDone }: { sectionKey: SectionKey; onDone: (
       return <ConcernSection onDone={onDone} />;
     case "symptoms":
       return <SymptomsSection onDone={onDone} />;
-    case "childDetails":
-      return <ChildDetailsSection onDone={onDone} />;
     case "medicalHistory":
       return <MedicalHistorySection onDone={onDone} />;
     case "guardian":
@@ -235,7 +231,6 @@ function SectionBody({ sectionKey, onDone }: { sectionKey: SectionKey; onDone: (
 }
 
 function summaryFor(key: SectionKey, state: ReturnType<typeof useVisit>["state"]): string {
-  const name = state.child.name || "Child";
   switch (key) {
     case "concern":
       return [state.concern.reason, ...state.concern.structuredSymptoms.filter((t) => t !== state.concern.reason)]
@@ -243,8 +238,6 @@ function summaryFor(key: SectionKey, state: ReturnType<typeof useVisit>["state"]
         .join(" · ");
     case "symptoms":
       return `${Object.keys(state.symptomAnswers).length} details captured`;
-    case "childDetails":
-      return `${name}${state.child.age !== null ? `, age ${state.child.age}` : ""}`;
     case "medicalHistory": {
       const entryCount = MEDICAL_CATEGORY_KEYS.reduce((sum, cat) => sum + state.medicalHistory.detail[cat].length, 0);
       return entryCount > 0 ? `${entryCount} detail${entryCount === 1 ? "" : "s"} captured` : "Nothing to report";

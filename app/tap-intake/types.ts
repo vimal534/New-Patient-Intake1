@@ -16,10 +16,14 @@ export type PatientType = "new" | "returning";
 // used to be two. The old FamilyHistoryState/familyHistory reducer
 // actions are left in place (harmless, no longer dispatched from any UI)
 // rather than fully excised — see the comment on VisitState.familyHistory.
+// "childDetails" is no longer a standalone tracked section — the child's
+// identity (name/DOB/sex, now split into legal first/last + preferred
+// name) is collected on the one-time "About You" gate (AboutYouScreen.tsx)
+// shown to both new and returning patients right after Intro/ReturningHome,
+// before the main section flow starts. See ChildInfo's own comment.
 export const SECTION_KEYS = [
   "concern",
   "symptoms",
-  "childDetails",
   "medicalHistory",
   "guardian",
   "coverage",
@@ -32,9 +36,18 @@ export type SectionKey = (typeof SECTION_KEYS)[number];
 export type SectionStatus = "not_started" | "in_progress" | "ready";
 
 export type ChildInfo = {
+  // `name` is a derived display convenience — kept in sync by the reducer
+  // (SET_CHILD_FIELD) as `preferredName || legalFirstName` whenever either
+  // changes, so every existing "childName"/`state.child.name` read around
+  // the app (summaries, headers, VisitCompleteScreen, etc.) keeps working
+  // untouched. The three fields below are the actual source of truth,
+  // entered on the "About You" identity card (AboutYouScreen.tsx).
   name: string;
+  legalFirstName: string;
+  legalLastName: string;
+  preferredName: string;
   dob: string; // free text, e.g. "2020-03-14" — kept simple for the prototype
-  age: number | null; // null until known (new patient, before Child Details)
+  age: number | null; // null until known (new patient, before the identity card is confirmed)
   sex: string | null;
 };
 

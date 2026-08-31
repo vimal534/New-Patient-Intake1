@@ -57,17 +57,25 @@ export function PrimaryButton({
   children,
   onClick,
   disabled,
+  tone = "brand",
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  // "teal" — the confirm-a-card affirmation color (StepHeader, "✓ Looks
+  // right" on AboutYouScreen) — vs. "brand", the default blue used for
+  // every other primary CTA in the app.
+  tone?: "brand" | "teal";
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="min-h-[44px] cursor-pointer rounded-xl bg-[var(--color-brand)] px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-[var(--color-placeholder)] active:scale-[0.98]"
+      className={[
+        "min-h-[44px] cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-[var(--color-placeholder)] active:scale-[0.98]",
+        tone === "teal" ? "bg-[var(--color-teal)]" : "bg-[var(--color-brand)]",
+      ].join(" ")}
     >
       {children}
     </button>
