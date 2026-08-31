@@ -64,6 +64,17 @@ export function mockScanCard(): { companyName: string; policyNumber: string; gro
   return { companyName: "Aetna", policyNumber: "W123456789", groupId: null };
 }
 
+// Mocked "scan a medication label" result — no real camera/OCR, same
+// convention as mockScanCard() above. Always returns the same 2 items so
+// the demo is repeatable, one with an uncertain dose, so the "flag what
+// we're not sure about" UX is directly exercisable without a real photo.
+export function mockScanMedicationLabel(): { name: string; dose: string; frequency: string; doseUncertain: boolean }[] {
+  return [
+    { name: "Albuterol inhaler", dose: "90mcg", frequency: "As needed", doseUncertain: false },
+    { name: "Amoxicillin", dose: "250mg/5mL", frequency: "Twice daily", doseUncertain: true },
+  ];
+}
+
 export function hasOnFileCondition(name: string) {
   return ON_FILE_RECORD.medicalHistory.conditions.some((c) => c.toLowerCase().includes(name.toLowerCase()));
 }

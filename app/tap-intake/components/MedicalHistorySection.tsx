@@ -5,6 +5,7 @@ import { MEDICAL_CATEGORY_LABELS, MEDICAL_CATEGORY_OPTIONS } from "../questionBa
 import { MedicalCategoryKey } from "../types";
 import { ON_FILE_RECORD } from "../mockData";
 import { Chip, ConfirmCard, PrimaryButton, QuestionBlock } from "./ui";
+import { MedicationChipInput, SimpleChipInput } from "./MedicalHistoryChips";
 
 const CATEGORY_KEYS = Object.keys(MEDICAL_CATEGORY_LABELS) as MedicalCategoryKey[];
 
@@ -38,30 +39,23 @@ function NewMedicalHistory({ onDone }: { onDone: () => void }) {
         <div className="mt-1 text-xs text-[var(--color-muted)]">Leave all unselected if none apply.</div>
       </QuestionBlock>
 
-      {selectedCategories.map((cat) => (
-        <QuestionBlock key={cat} eyebrow={MEDICAL_CATEGORY_LABELS[cat]} prompt={`Which ${MEDICAL_CATEGORY_LABELS[cat].toLowerCase()}?`}>
-          <div className="flex flex-wrap gap-2">
-            {MEDICAL_CATEGORY_OPTIONS[cat].map((opt) => {
-              const values = detail[cat];
-              const selected = values.includes(opt);
-              return (
-                <Chip
-                  key={opt}
-                  label={opt}
-                  selected={selected}
-                  onClick={() =>
-                    dispatch({
-                      type: "SET_MEDICAL_DETAIL",
-                      category: cat,
-                      values: selected ? values.filter((v) => v !== opt) : [...values, opt],
-                    })
-                  }
-                />
-              );
-            })}
-          </div>
-        </QuestionBlock>
-      ))}
+      {selectedCategories.map((cat) =>
+        cat === "medications" ? (
+          <MedicationChipInput
+            key={cat}
+            onChange={(values) => dispatch({ type: "SET_MEDICAL_DETAIL", category: cat, values })}
+          />
+        ) : (
+          <QuestionBlock key={cat} eyebrow={MEDICAL_CATEGORY_LABELS[cat]} prompt={`Which ${MEDICAL_CATEGORY_LABELS[cat].toLowerCase()}?`}>
+            <SimpleChipInput
+              suggestions={MEDICAL_CATEGORY_OPTIONS[cat]}
+              values={detail[cat]}
+              onChange={(values) => dispatch({ type: "SET_MEDICAL_DETAIL", category: cat, values })}
+              placeholder={`Search or type a ${MEDICAL_CATEGORY_LABELS[cat].toLowerCase().replace(/s$/, "")}`}
+            />
+          </QuestionBlock>
+        )
+      )}
 
       <PrimaryButton
         disabled={selectedCategories.some((cat) => state.medicalHistory.detail[cat].length === 0)}
