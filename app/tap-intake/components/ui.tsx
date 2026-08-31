@@ -163,6 +163,63 @@ export function TextField({
   );
 }
 
+// A fixed-length numeric code entry — one box per digit, driven by a single
+// hidden text input underneath (a <label> wrapping a real input, so tapping
+// anywhere in the box row focuses it natively, no manual ref-forwarding
+// needed). Two users: a device PIN (`mask` true — dots, since it's a
+// standing credential someone could be watching a shoulder for) and an
+// email/SMS one-time code (`mask` false — visible digits, since an OTP is
+// single-use and the person needs to visually confirm they typed what was
+// sent). First used by /intake's personal-device verification flow
+// (Pass 14) but kept here rather than local to that route since a numeric-
+// code entry is a generic enough primitive other flows may want later.
+export function CodeInput({
+  length,
+  value,
+  onChange,
+  mask = true,
+  error,
+  autoFocus,
+}: {
+  length: number;
+  value: string;
+  onChange: (v: string) => void;
+  mask?: boolean;
+  error?: string;
+  autoFocus?: boolean;
+}) {
+  return (
+    <label className="block">
+      <div className="flex justify-center gap-2.5">
+        {Array.from({ length }).map((_, i) => (
+          <div
+            key={i}
+            className={[
+              "flex h-14 w-11 items-center justify-center rounded-xl border text-2xl font-bold text-[var(--color-ink)]",
+              i < value.length
+                ? "border-[var(--color-brand)] bg-[var(--color-brand)]/5"
+                : "border-[var(--color-line-strong)] bg-white",
+              error ? "border-red-400" : "",
+            ].join(" ")}
+          >
+            {i < value.length ? (mask ? "•" : value[i]) : ""}
+          </div>
+        ))}
+      </div>
+      <input
+        autoFocus={autoFocus}
+        inputMode="numeric"
+        value={value}
+        maxLength={length}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, length))}
+        className="sr-only"
+        aria-label={mask ? "PIN" : "Verification code"}
+      />
+      {error ? <p className="mt-3 text-center text-xs text-red-500">{error}</p> : null}
+    </label>
+  );
+}
+
 // The wrapper every section renders inside — handles the three visual
 // states (locked / active / ready) so individual sections only worry about
 // their own questions.
