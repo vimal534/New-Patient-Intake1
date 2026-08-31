@@ -232,6 +232,15 @@ export function SectionShell({
 // Confirm Details, Health History's "still accurate?" gate). Was three
 // near-identical hand-rolled copies before this — extracted once a third
 // screen needed the exact same markup.
+//
+// Sticky to the top of the section's own card (not the whole viewport —
+// it's contained by SectionShell's bordered box, so it can never float
+// over a different section's card): the active section can sit well down
+// the page, below every already-completed section's collapsed row, so
+// without this the guardian could scroll past the header entirely while
+// filling in the fields below it. The negative margins cancel the card's
+// own padding so the sticky bar spans edge-to-edge instead of leaving a
+// gap the card's border shows through.
 export function StepHeader({
   eyebrow,
   stepLabel,
@@ -244,7 +253,7 @@ export function StepHeader({
   onBack: () => void;
 }) {
   return (
-    <div>
+    <div className="sticky top-0 z-10 -mx-5 -mt-5 border-b border-[var(--color-line)] bg-white px-5 pb-3 pt-5">
       <div className="flex items-center gap-3">
         <button type="button" onClick={onBack} aria-label="Back" className="cursor-pointer text-lg text-[var(--color-teal)]">
           ←
