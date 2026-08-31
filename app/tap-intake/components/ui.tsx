@@ -100,6 +100,7 @@ export function TextField({
   error,
   inputRef,
   disabled,
+  icon,
 }: {
   label: string;
   value: string;
@@ -114,29 +115,41 @@ export function TextField({
   error?: string;
   inputRef?: Ref<HTMLInputElement>;
   disabled?: boolean;
+  // A leading glyph inside the field itself — same treatment as the
+  // search icon in Coverage's carrier picker. Optional since most
+  // TextFields (name, ZIP, expiry...) don't need one.
+  icon?: ReactNode;
 }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
         {label}
       </span>
-      <input
-        ref={inputRef}
-        type={type}
-        inputMode={inputMode}
-        maxLength={maxLength}
-        autoComplete={autoComplete}
-        value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        onBlur={onBlur}
-        className={[
-          "min-h-[44px] w-full rounded-lg border bg-white px-3 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] disabled:cursor-not-allowed disabled:bg-[var(--color-background)] disabled:text-[var(--color-placeholder)]",
-          error ? "border-red-400 focus:border-red-400" : "border-[var(--color-line-strong)]",
-        ].join(" ")}
-      />
+      <div className="relative">
+        {icon ? (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base leading-none text-[var(--color-muted)]">
+            {icon}
+          </span>
+        ) : null}
+        <input
+          ref={inputRef}
+          type={type}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          autoComplete={autoComplete}
+          value={value}
+          placeholder={placeholder}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={onBlur}
+          className={[
+            "min-h-[44px] w-full rounded-lg border bg-white text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] disabled:cursor-not-allowed disabled:bg-[var(--color-background)] disabled:text-[var(--color-placeholder)]",
+            icon ? "pl-9 pr-3" : "px-3",
+            error ? "border-red-400 focus:border-red-400" : "border-[var(--color-line-strong)]",
+          ].join(" ")}
+        />
+      </div>
       {error ? <span className="mt-1 block text-xs text-red-500">{error}</span> : null}
     </label>
   );

@@ -180,6 +180,7 @@ export function PaymentSection({ onDone }: { onDone: () => void }) {
             placeholder="4242 4242 4242 4242"
             inputMode="numeric"
             autoComplete="cc-number"
+            icon="💳"
             error={touched.number && !cardValid ? (cardDigits.length === 0 ? "Card number is required" : "Enter all 16 digits") : undefined}
           />
           <div className="grid grid-cols-2 gap-3">
