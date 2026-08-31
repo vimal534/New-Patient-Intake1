@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   QuestionBlock,
   SecondaryButton,
+  StepHeader,
   TextField,
   TextLink,
 } from "./ui";
@@ -209,22 +210,12 @@ function CardCaptureSteps({
 
   return (
     <div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => (side === "back" ? setSide("front") : onBack())}
-          aria-label="Back"
-          className="cursor-pointer text-lg text-teal"
-        >
-          ←
-        </button>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-teal">
-          Coverage · Step {side === "front" ? 1 : 2} of 2
-        </div>
-      </div>
-      <div className="mt-2 h-[3px] w-full rounded-full bg-line">
-        <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${progress}%` }} />
-      </div>
+      <StepHeader
+        eyebrow="Coverage"
+        stepLabel={`Step ${side === "front" ? 1 : 2} of 2`}
+        progressPercent={progress}
+        onBack={() => (side === "back" ? setSide("front") : onBack())}
+      />
 
       {side === "front" ? (
         <>
@@ -369,7 +360,7 @@ function ReturningCoverage({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={() => setStep("capture")}
-            className="flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-2xl border-[1.5px] border-teal bg-teal/10 px-4 py-3.5 text-left text-sm font-semibold text-teal-dark active:scale-[0.98]"
+            className="flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-2xl border-[1.5px] border-teal bg-teal/10 px-4 py-3.5 text-left text-sm font-semibold text-teal active:scale-[0.98]"
           >
             <span className="text-lg" aria-hidden="true">
               📷

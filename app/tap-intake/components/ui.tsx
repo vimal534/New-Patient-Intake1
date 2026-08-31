@@ -214,6 +214,42 @@ export function SectionShell({
   );
 }
 
+// The back-chevron + "EYEBROW · STEP X OF Y" + teal progress bar used by
+// any multi-step sub-flow within a section (Coverage's card capture,
+// Confirm Details, Health History's "still accurate?" gate). Was three
+// near-identical hand-rolled copies before this — extracted once a third
+// screen needed the exact same markup.
+export function StepHeader({
+  eyebrow,
+  stepLabel,
+  progressPercent,
+  onBack,
+}: {
+  eyebrow: string;
+  stepLabel: string;
+  progressPercent: number;
+  onBack: () => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={onBack} aria-label="Back" className="cursor-pointer text-lg text-[var(--color-teal)]">
+          ←
+        </button>
+        <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-teal)]">
+          {eyebrow} · {stepLabel}
+        </div>
+      </div>
+      <div className="mt-2 h-[3px] w-full rounded-full bg-[var(--color-line)]">
+        <div
+          className="h-full rounded-full bg-[var(--color-teal)] transition-all"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function CheckBadge() {
   return (
     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-teal)] text-[11px] font-bold text-white">

@@ -5,7 +5,7 @@ import { useVisit } from "../state";
 import { MEDICAL_CATEGORY_LABELS, MEDICAL_CATEGORY_OPTIONS } from "../questionBank";
 import { MedicalCategoryKey, MEDICAL_CATEGORY_KEYS } from "../types";
 import { ON_FILE_RECORD, structureHealthHistoryText } from "../mockData";
-import { Chip, PrimaryButton, QuestionBlock } from "./ui";
+import { Chip, PrimaryButton, QuestionBlock, StepHeader } from "./ui";
 import { MedicationChipInput, SimpleChipInput } from "./MedicalHistoryChips";
 
 // One combined "Health History" section — was two (Medical History +
@@ -16,14 +16,25 @@ import { MedicationChipInput, SimpleChipInput } from "./MedicalHistoryChips";
 // mechanism every other category already used — no new reducer shape.
 //
 // Same component for both patient types now (the old NewMedicalHistory /
-// ReturningMedicalHistory split is gone): returning patients just get
-// `detail` pre-seeded from ON_FILE_RECORD on mount plus an "On file"
-// recap card, everything else — free text, quick-select, "nothing to
-// report" — behaves identically either way.
+// ReturningMedicalHistory split is gone): returning patients get `detail`
+// pre-seeded from ON_FILE_RECORD on mount, plus a "Still accurate?" gate
+// (StepHeader + on-file recap + Nothing/Something changed, same shape as
+// Guardian/Coverage's on-file gates) before the editor below. "Nothing
+// changed" completes the section straight from seeded data; "Something
+// changed" drops into the same free-text/quick-select editor a new
+// patient sees immediately (they have nothing on file to gate on).
 export function MedicalHistorySection({ onDone }: { onDone: () => void }) {
   const { state, dispatch } = useVisit();
   const isReturning = state.patientType === "returning";
   const { detail } = state.medicalHistory;
+
+  // Returning patients see a "Still accurate?" gate first — same
+  // confirm-or-change shape as Guardian and Coverage's on-file gates —
+  // before landing on the free-text/quick-select editor below. New
+  // patients have nothing on file to reconfirm, so they skip straight to
+  // "edit". Named "gate"/"edit" rather than numbered steps since there
+  // are only ever these two, same as Coverage's capture/details split.
+  const [step, setStep] = useState<"gate" | "edit">(isReturning ? "gate" : "edit");
 
   // Which category's panel is open — one at a time (accordion), not the
   // old "every selected category's panel stays open" model. Tapping the
@@ -93,6 +104,42 @@ export function MedicalHistorySection({ onDone }: { onDone: () => void }) {
         ...ON_FILE_RECORD.familyHistory.map((f) => `${f.label} — ${f.relative ?? "relative"} (family history)`),
       ].join(" · ")
     : "";
+
+  if (step === "gate") {
+    return (
+      <>
+        <StepHeader eyebrow="Your health" stepLabel="Step 1 of 2" progressPercent={50} onBack={onDone} />
+        <h2 className="mt-4 text-xl font-bold text-ink">Still accurate?</h2>
+        <p className="mt-1 text-sm text-muted">
+          Here&apos;s what&apos;s on file for {state.child.name || "your child"} — let us know if anything&apos;s
+          changed.
+        </p>
+        <div className="mt-4 rounded-lg border border-line p-3">
+          <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-2">On file</div>
+          <div className="text-sm text-ink">{onFileSummary || "Nothing on file"}</div>
+        </div>
+        <div className="mt-4 flex flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              dispatch({ type: "MARK_SECTION_READY", key: "medicalHistory" });
+              onDone();
+            }}
+            className="min-h-[44px] w-full cursor-pointer rounded-full border border-teal bg-white px-4 py-2 text-sm font-semibold text-teal active:scale-[0.97]"
+          >
+            ✓ Nothing changed
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep("edit")}
+            className="min-h-[44px] w-full cursor-pointer rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-medium text-ink active:scale-[0.97]"
+          >
+            Something changed
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

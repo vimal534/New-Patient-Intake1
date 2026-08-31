@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ON_FILE_RECORD } from "../mockData";
-import { PrimaryButton, TextField } from "./ui";
+import { PrimaryButton, StepHeader, TextField } from "./ui";
 import { PhoneFrame } from "./PhoneFrame";
 
 type CardState = "view" | "editing";
@@ -77,15 +77,7 @@ export function ConfirmDetailsScreen({ onConfirm, onBack }: { onConfirm: () => v
   return (
     <PhoneFrame>
       <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-6 pt-6">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={onBack} aria-label="Back" className="cursor-pointer text-lg text-teal">
-            ←
-          </button>
-          <div className="text-[11px] font-bold uppercase tracking-wide text-teal">Confirm details · Step 1 of 1</div>
-        </div>
-        <div className="mt-2 h-[3px] w-full rounded-full bg-line">
-          <div className="h-full w-full rounded-full bg-teal" />
-        </div>
+        <StepHeader eyebrow="Confirm details" stepLabel="Step 1 of 1" progressPercent={100} onBack={onBack} />
 
         <h1 className="mt-4 text-[22px] font-bold leading-tight text-ink">Let&apos;s confirm a few things.</h1>
 
