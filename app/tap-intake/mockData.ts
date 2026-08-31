@@ -7,6 +7,7 @@
 // visible chat/assistant persona.
 
 import { FREE_TEXT_TAGS } from "./questionBank";
+import { MedicalCategoryKey } from "./types";
 
 export const ON_FILE_RECORD = {
   child: { name: "Ana", dob: "2020-03-14", age: 6, sex: "Female" },
@@ -98,6 +99,65 @@ export function structureFreeText(text: string): { tags: string[]; inferredReaso
     }
   }
   return { tags, inferredReason };
+}
+
+// Mocked "AI structures free text into health-history categories" — same
+// convention as structureFreeText() above: a small keyword matcher, never
+// the only way to enter data (the quick-select chips below the box always
+// work), and the guardian reviews/fixes whatever it finds afterward —
+// exactly the framing in the free-text box's own helper copy ("you'll
+// review and fix anything after").
+export function structureHealthHistoryText(text: string): Partial<Record<MedicalCategoryKey, string[]>> {
+  const lower = text.toLowerCase();
+  const result: Partial<Record<MedicalCategoryKey, string[]>> = {};
+
+  function add(category: MedicalCategoryKey, value: string) {
+    const existing = result[category] ?? [];
+    if (!existing.includes(value)) result[category] = [...existing, value];
+  }
+
+  const conditionKeywords: Record<string, string> = {
+    diabetes: "Diabetes",
+    asthma: "Asthma",
+    eczema: "Eczema",
+    adhd: "ADHD",
+    cancer: "Cancer",
+  };
+  for (const [kw, label] of Object.entries(conditionKeywords)) {
+    if (lower.includes(kw)) add("conditions", label);
+  }
+
+  const medicationKeywords: Record<string, string> = {
+    metformin: "Metformin",
+    albuterol: "Albuterol inhaler",
+    amoxicillin: "Amoxicillin",
+    insulin: "Insulin",
+  };
+  for (const [kw, label] of Object.entries(medicationKeywords)) {
+    if (lower.includes(kw)) add("medications", label);
+  }
+
+  if (/appendix|appendectomy/.test(lower)) add("surgeries", "Appendectomy");
+  if (/ear tubes?/.test(lower)) add("surgeries", "Ear tubes");
+  if (/tonsil/.test(lower)) add("surgeries", "Tonsillectomy");
+
+  if (lower.includes("peanut")) add("allergies", "Peanuts");
+  if (lower.includes("penicillin")) add("allergies", "Penicillin");
+  if (lower.includes("latex")) add("allergies", "Latex");
+
+  // Family history: a condition keyword mentioned alongside a relative —
+  // formatted "Label — Relative" to match how the on-file summary and the
+  // quick-select category display family-history entries elsewhere.
+  const relativeMatch = lower.match(/\b(mother|father|mom|dad|sister|brother|grandmother|grandfather)\b/);
+  if (relativeMatch) {
+    const relative = relativeMatch[1];
+    const capitalized = relative[0].toUpperCase() + relative.slice(1);
+    for (const [kw, label] of Object.entries(conditionKeywords)) {
+      if (lower.includes(kw)) add("familyHistory", `${label} — ${capitalized}`);
+    }
+  }
+
+  return result;
 }
 
 // Mock plain-language summary line generator for the Visit Summary — AI

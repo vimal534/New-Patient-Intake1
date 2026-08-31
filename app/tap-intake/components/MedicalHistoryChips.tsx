@@ -28,8 +28,27 @@ function nextId() {
 // Clicking the camera button simulates a short scan delay then adds a
 // fixed demo pair, one flagged as uncertain, so the "something needs a
 // second look" UX is exercisable without a real photo.
-export function MedicationChipInput({ onChange }: { onChange: (formatted: string[]) => void }) {
-  const [entries, setEntries] = useState<MedEntry[]>([]);
+export function MedicationChipInput({
+  initialFormatted = [],
+  onChange,
+}: {
+  // Seeds the list from previously-saved "name · dose · frequency"
+  // strings — needed because this component remounts fresh each time the
+  // Health History accordion re-opens the Medications panel (only one
+  // category panel exists in the DOM at a time); without this, switching
+  // to another category and back would silently drop everything entered
+  // so far. Parsed back into structured entries via the same "·"
+  // delimiter formatMed() writes with — good enough for round-tripping
+  // this component's own output, not a general parser.
+  initialFormatted?: string[];
+  onChange: (formatted: string[]) => void;
+}) {
+  const [entries, setEntries] = useState<MedEntry[]>(() =>
+    initialFormatted.map((formatted, i) => {
+      const [name, dose, frequency] = formatted.split(" · ");
+      return { id: `seed-${i}`, name: name ?? formatted, dose: dose ?? "", frequency: frequency ?? "", uncertain: false };
+    })
+  );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ReturnType<typeof searchMedications>>([]);
   const [pending, setPending] = useState<{ name: string; doses: string[]; frequencies: string[] } | null>(null);

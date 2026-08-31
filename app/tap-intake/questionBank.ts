@@ -178,6 +178,7 @@ export const MEDICAL_CATEGORY_LABELS: Record<string, string> = {
   conditions: "Conditions",
   surgeries: "Surgeries",
   hospitalizations: "Hospitalizations",
+  familyHistory: "Family history",
 };
 
 export const MEDICAL_CATEGORY_OPTIONS: Record<string, string[]> = {
@@ -186,6 +187,12 @@ export const MEDICAL_CATEGORY_OPTIONS: Record<string, string[]> = {
   conditions: ["Asthma", "Eczema", "ADHD", "Diabetes", "Other"],
   surgeries: ["Ear tubes", "Tonsillectomy", "Appendectomy", "Other"],
   hospitalizations: ["Birth/NICU stay", "Respiratory illness", "Other"],
+  // Simple condition names, not FAMILY_HISTORY_BANK's fuller sentences
+  // ("Asthma in the immediate family") — these are meant as quick-add
+  // chips the guardian can pair with a typed "— Mother" / "— Father" etc.,
+  // matching how the free-text extractor formats its own family-history
+  // entries (see structureHealthHistoryText in mockData.ts).
+  familyHistory: ["Diabetes", "Asthma", "Heart disease", "High blood pressure", "Cancer", "Other"],
 };
 
 // Family-history bank, tagged with which concerns/risk-flags they're

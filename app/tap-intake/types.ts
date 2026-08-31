@@ -10,12 +10,17 @@
 
 export type PatientType = "new" | "returning";
 
+// "familyHistory" is no longer a standalone section — it's folded into
+// "medicalHistory" (labeled "Health History" — see SECTION_LABELS) as a
+// 6th MEDICAL_CATEGORY_KEY below, so one section covers everything that
+// used to be two. The old FamilyHistoryState/familyHistory reducer
+// actions are left in place (harmless, no longer dispatched from any UI)
+// rather than fully excised — see the comment on VisitState.familyHistory.
 export const SECTION_KEYS = [
   "concern",
   "symptoms",
   "childDetails",
   "medicalHistory",
-  "familyHistory",
   "guardian",
   "coverage",
   "payment",
@@ -46,6 +51,7 @@ export const MEDICAL_CATEGORY_KEYS = [
   "conditions",
   "surgeries",
   "hospitalizations",
+  "familyHistory",
 ] as const;
 
 export type MedicalCategoryKey = (typeof MEDICAL_CATEGORY_KEYS)[number];
@@ -62,6 +68,10 @@ export type MedicalHistoryState = {
 
 export type FamilyHistoryItem = { id: string; label: string; relative?: string };
 
+// No longer driven by any UI (Family History was merged into Health
+// History — see MEDICAL_CATEGORY_KEYS above). Kept only so
+// VisitState.familyHistory and the reducer's family-history action cases
+// still type-check; a deeper cleanup would remove this entirely.
 export type FamilyHistoryState = {
   applicable: string[]; // ids of items relevant to this visit (concern/age/risk-flag filtered)
   selected: string[]; // new-patient: ids guardian confirmed apply

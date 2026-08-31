@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { VisitContext, useVisitReducer, useVisit, SECTION_ORDER, SECTION_LABELS } from "./state";
-import { SectionKey } from "./types";
+import { SectionKey, MEDICAL_CATEGORY_KEYS } from "./types";
 import { IntroScreen } from "./components/IntroScreen";
 import { ReturningHome } from "./components/ReturningHome";
 import { ConfirmDetailsScreen } from "./components/ConfirmDetailsScreen";
@@ -11,7 +11,6 @@ import { ConcernSection } from "./components/ConcernSection";
 import { SymptomsSection } from "./components/SymptomsSection";
 import { ChildDetailsSection } from "./components/ChildDetailsSection";
 import { MedicalHistorySection } from "./components/MedicalHistorySection";
-import { FamilyHistorySection } from "./components/FamilyHistorySection";
 import { GuardianSection } from "./components/GuardianSection";
 import { CoverageSection } from "./components/CoverageSection";
 import { PaymentSection } from "./components/PaymentSection";
@@ -170,8 +169,6 @@ function SectionBody({ sectionKey, onDone }: { sectionKey: SectionKey; onDone: (
       return <ChildDetailsSection onDone={onDone} />;
     case "medicalHistory":
       return <MedicalHistorySection onDone={onDone} />;
-    case "familyHistory":
-      return <FamilyHistorySection onDone={onDone} />;
     case "guardian":
       return <GuardianSection onDone={onDone} />;
     case "coverage":
@@ -196,14 +193,10 @@ function summaryFor(key: SectionKey, state: ReturnType<typeof useVisit>["state"]
       return `${Object.keys(state.symptomAnswers).length} details captured`;
     case "childDetails":
       return `${name}${state.child.age !== null ? `, age ${state.child.age}` : ""}`;
-    case "medicalHistory":
-      return state.medicalHistory.selectedCategories.length || state.medicalHistory.changedCategories.length
-        ? "Updated"
-        : state.medicalHistory.reviewed
-          ? "Confirmed as-is"
-          : "Nothing flagged";
-    case "familyHistory":
-      return state.familyHistory.selected.length ? `${state.familyHistory.selected.length} flagged` : "Confirmed as-is";
+    case "medicalHistory": {
+      const entryCount = MEDICAL_CATEGORY_KEYS.reduce((sum, cat) => sum + state.medicalHistory.detail[cat].length, 0);
+      return entryCount > 0 ? `${entryCount} detail${entryCount === 1 ? "" : "s"} captured` : "Nothing to report";
+    }
     case "guardian":
       return [state.guardian.name, state.guardian.relationship].filter(Boolean).join(" · ");
     case "coverage":

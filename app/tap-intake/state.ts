@@ -18,7 +18,7 @@ export const initialVisitState: VisitState = {
   symptomAnswers: {},
   medicalHistory: {
     selectedCategories: [],
-    detail: { allergies: [], medications: [], conditions: [], surgeries: [], hospitalizations: [] },
+    detail: { allergies: [], medications: [], conditions: [], surgeries: [], hospitalizations: [], familyHistory: [] },
     reviewed: false,
     changedCategories: [],
   },
@@ -170,27 +170,25 @@ export function visitReducer(state: VisitState, action: Action): VisitState {
     case "SET_FAMILY_APPLICABLE":
       return { ...state, familyHistory: { ...state.familyHistory, applicable: action.ids } };
 
+    // These three no longer have a "familyHistory" SectionKey to attach a
+    // status to — Family History was folded into Health History (see
+    // types.ts) as a MEDICAL_CATEGORY_KEY, driven entirely by
+    // SET_MEDICAL_DETAIL now. Kept only so nothing that still dispatches
+    // these (there is none, but this is a prototype, not a guarantee)
+    // throws; they update state.familyHistory but touch no section status.
     case "TOGGLE_FAMILY_ITEM": {
       const has = state.familyHistory.selected.includes(action.id);
       const selected = has
         ? state.familyHistory.selected.filter((i) => i !== action.id)
         : [...state.familyHistory.selected, action.id];
-      return withStatus({ ...state, familyHistory: { ...state.familyHistory, selected } }, "familyHistory", "in_progress");
+      return { ...state, familyHistory: { ...state.familyHistory, selected } };
     }
 
     case "CONFIRM_FAMILY_NO_CHANGE":
-      return withStatus(
-        { ...state, familyHistory: { ...state.familyHistory, reviewed: true, changed: false } },
-        "familyHistory",
-        "ready"
-      );
+      return { ...state, familyHistory: { ...state.familyHistory, reviewed: true, changed: false } };
 
     case "FLAG_FAMILY_CHANGED":
-      return withStatus(
-        { ...state, familyHistory: { ...state.familyHistory, reviewed: true, changed: true } },
-        "familyHistory",
-        "in_progress"
-      );
+      return { ...state, familyHistory: { ...state.familyHistory, reviewed: true, changed: true } };
 
     case "SET_GUARDIAN_FIELD":
       return withStatus(
@@ -370,35 +368,15 @@ export function useVisitReducer() {
 // Section order per flow — the sole source of truth for sequencing. Child
 // Details is skipped entirely for returning patients (already on file).
 export const SECTION_ORDER: Record<PatientType, SectionKey[]> = {
-  new: [
-    "concern",
-    "symptoms",
-    "childDetails",
-    "medicalHistory",
-    "familyHistory",
-    "guardian",
-    "coverage",
-    "payment",
-    "consents",
-  ],
-  returning: [
-    "concern",
-    "symptoms",
-    "medicalHistory",
-    "familyHistory",
-    "guardian",
-    "coverage",
-    "payment",
-    "consents",
-  ],
+  new: ["concern", "symptoms", "childDetails", "medicalHistory", "guardian", "coverage", "payment", "consents"],
+  returning: ["concern", "symptoms", "medicalHistory", "guardian", "coverage", "payment", "consents"],
 };
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   concern: "Today's Concern",
   symptoms: "A Few Details",
   childDetails: "Child Details",
-  medicalHistory: "Medical History",
-  familyHistory: "Family History",
+  medicalHistory: "Health History",
   guardian: "Guardian Details",
   coverage: "Coverage",
   payment: "Payment",
