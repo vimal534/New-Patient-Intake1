@@ -220,6 +220,23 @@ export const CONSENT_ITEMS = [
 
 export const PAYER_CHIPS = ["BlueCross BS", "Aetna", "UnitedHealth", "Cigna", "Other / not sure"];
 
+// The broader searchable list behind Coverage's "Search for your carrier"
+// box — PAYER_CHIPS minus "Other / not sure" is still the "Most common"
+// quick-pick grid shown above the search results; this is just what
+// typing can additionally find. A name here that isn't one of the 4 known
+// chips still resolves through matchCarrierChip() same as any typed/OCR'd
+// name — picking "Kaiser Permanente" behaves exactly like scanning a card
+// and getting an unmatched name back.
+export const CARRIER_DIRECTORY = [
+  "BlueCross BS",
+  "Aetna",
+  "UnitedHealth",
+  "Cigna",
+  "Kaiser Permanente",
+  "Humana",
+  "Anthem",
+];
+
 // Matches a scanned/typed carrier name against the known chip list. Simple
 // substring/keyword matching, deliberately — this is what "AI-assisted OCR
 // only fills form fields, never decides logic" means in practice: matching
