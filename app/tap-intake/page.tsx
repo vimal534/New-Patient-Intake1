@@ -6,6 +6,7 @@ import { SectionKey, MEDICAL_CATEGORY_KEYS } from "./types";
 import { IntroScreen } from "./components/IntroScreen";
 import { ReturningHome } from "./components/ReturningHome";
 import { ConfirmDetailsScreen } from "./components/ConfirmDetailsScreen";
+import { VisitCompleteScreen } from "./components/VisitCompleteScreen";
 import { Welcome } from "./components/Welcome";
 import { ConcernSection } from "./components/ConcernSection";
 import { SymptomsSection } from "./components/SymptomsSection";
@@ -36,6 +37,7 @@ function Shell() {
   const [introDone, setIntroDone] = useState(false);
   const [returningHomeDone, setReturningHomeDone] = useState(false);
   const [confirmDetailsDone, setConfirmDetailsDone] = useState(false);
+  const [sentToProvider, setSentToProvider] = useState(false);
 
   if (!introDone) {
     return <IntroScreen onNext={() => setIntroDone(true)} />;
@@ -75,6 +77,13 @@ function Shell() {
   const order = SECTION_ORDER[state.patientType];
   const allReady = order.every((k) => state.sectionStatus[k] === "ready");
 
+  // Once everything's ready AND the guardian has actually tapped "Send to
+  // Dr. Reyes" (not just reached the summary), swap to a dedicated
+  // full-bleed confirmation screen — see VisitCompleteScreen.
+  if (allReady && sentToProvider) {
+    return <VisitCompleteScreen />;
+  }
+
   return (
     <PhoneFrame>
       {/* Directly under the status bar, outside the scrollable area — so
@@ -87,7 +96,7 @@ function Shell() {
         </header>
 
         {allReady ? (
-          <VisitSummaryPanel mode="full" />
+          <VisitSummaryPanel mode="full" onSend={() => setSentToProvider(true)} />
         ) : (
           <>
             <div className="space-y-3">

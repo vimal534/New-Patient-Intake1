@@ -7,7 +7,7 @@ import { PrimaryButton, CheckBadge } from "./ui";
 // Shared by both flows, in both "panel" (persistent, always present per the
 // Build-As-You-Go principle) and "full" (final Visit Summary screen) modes.
 // Renders entirely off sectionStatus — never off guessing field emptiness.
-export function VisitSummaryPanel({ mode = "panel" }: { mode?: "panel" | "full" }) {
+export function VisitSummaryPanel({ mode = "panel", onSend }: { mode?: "panel" | "full"; onSend?: () => void }) {
   const { state } = useVisit();
   const order = state.patientType ? SECTION_ORDER[state.patientType] : [];
   const childName = state.child.name || "your child";
@@ -67,7 +67,7 @@ export function VisitSummaryPanel({ mode = "panel" }: { mode?: "panel" | "full" 
           <div className="mb-3 text-sm font-semibold text-[var(--color-teal)]">
             {allReady ? "Ready for Dr. Reyes" : "Almost there — finish the sections above."}
           </div>
-          <PrimaryButton onClick={() => {}} disabled={!allReady}>
+          <PrimaryButton onClick={() => onSend?.()} disabled={!allReady}>
             Send to Dr. Reyes
           </PrimaryButton>
         </div>
