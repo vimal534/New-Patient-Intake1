@@ -4,13 +4,28 @@ import { useState } from "react";
 import { useVisit } from "../state";
 import { ON_FILE_RECORD } from "../mockData";
 import { PhoneFrame } from "./PhoneFrame";
-import { PrimaryButton, TextLink } from "./ui";
+import { Checkbox, PrimaryButton, TextLink } from "./ui";
 
 const PASSPORT_BENEFITS = [
   "Never start over at a new practice",
   "Travels with you anywhere",
   "Revoke or delete any time",
 ];
+
+// What actually goes in the Passport — the card's own copy promises "you
+// decide what to share, with whom," so "Make it my Passport" opens this
+// picker instead of just saving everything silently. All default checked
+// (opt-out, not opt-in) since that's what a guardian who just tapped the
+// button clearly wants; unchecking is for the rarer case they'd rather
+// leave something out.
+const PASSPORT_CATEGORY_KEYS = ["healthHistory", "medications", "contact", "insurance"] as const;
+type PassportCategoryKey = (typeof PASSPORT_CATEGORY_KEYS)[number];
+const PASSPORT_CATEGORY_LABELS: Record<PassportCategoryKey, string> = {
+  healthHistory: "Health history",
+  medications: "Medications & allergies",
+  contact: "Guardian & emergency contact",
+  insurance: "Insurance details",
+};
 
 // The screen shown once every section is ready and the guardian has tapped
 // "Send to Dr. Reyes" on the Visit Summary (see VisitSummaryPanel's onSend).
@@ -25,6 +40,11 @@ const PASSPORT_BENEFITS = [
 // stopping there. Right after finishing is when a guardian is most
 // receptive to "keep this for next time" — not a hard sell earlier in the
 // flow, and not nothing at all once they're done.
+//
+// "Make it my Passport" doesn't save silently — the card's own copy
+// promises "you decide what to share, with whom," so tapping it opens a
+// one-step category picker (all checked by default) before landing on the
+// saved confirmation, which then names what's actually being shared.
 export function VisitCompleteScreen() {
   const { state } = useVisit();
   const isReturning = state.patientType === "returning";
@@ -39,7 +59,15 @@ export function VisitCompleteScreen() {
   // (still warm) "your visit" instead of fabricating a date.
   const whenLabel = isReturning ? ON_FILE_RECORD.nextVisit.date.toLowerCase() : "your visit";
 
-  const [passportState, setPassportState] = useState<"offer" | "saved" | "dismissed">("offer");
+  const [passportState, setPassportState] = useState<"offer" | "options" | "saved" | "dismissed">("offer");
+  const [selected, setSelected] = useState<Record<PassportCategoryKey, boolean>>({
+    healthHistory: true,
+    medications: true,
+    contact: true,
+    insurance: true,
+  });
+  const selectedCount = PASSPORT_CATEGORY_KEYS.filter((k) => selected[k]).length;
+  const selectedLabels = PASSPORT_CATEGORY_KEYS.filter((k) => selected[k]).map((k) => PASSPORT_CATEGORY_LABELS[k]);
 
   return (
     <PhoneFrame>
@@ -60,7 +88,7 @@ export function VisitCompleteScreen() {
           </p>
         </div>
 
-        {passportState !== "dismissed" ? (
+        {passportState === "offer" || passportState === "saved" ? (
           <div className="mt-2 rounded-2xl border border-teal/30 bg-teal/5 p-5">
             <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-teal">One more thing</div>
             <h2 className="text-lg font-bold text-ink">Save this as your Passport.</h2>
@@ -80,20 +108,55 @@ export function VisitCompleteScreen() {
             {passportState === "offer" ? (
               <>
                 <div className="mt-4">
-                  <PrimaryButton onClick={() => setPassportState("saved")}>Make it my Passport</PrimaryButton>
+                  <PrimaryButton onClick={() => setPassportState("options")}>Make it my Passport</PrimaryButton>
                 </div>
                 <div className="mt-3 text-center">
                   <TextLink onClick={() => setPassportState("dismissed")}>Maybe later</TextLink>
                 </div>
               </>
             ) : (
-              <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-teal">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal text-[11px] font-bold text-white">
-                  ✓
-                </span>
-                Saved to your Passport
+              <div className="mt-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-teal">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal text-[11px] font-bold text-white">
+                    ✓
+                  </span>
+                  Saved to your Passport
+                </div>
+                <div className="mt-1 text-xs text-muted">Sharing: {selectedLabels.join(", ")}</div>
               </div>
             )}
+          </div>
+        ) : null}
+
+        {passportState === "options" ? (
+          <div className="mt-2 rounded-2xl border border-teal/30 bg-teal/5 p-5">
+            <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-teal">You decide what to share</div>
+            <h2 className="text-lg font-bold text-ink">What&apos;s in your Passport?</h2>
+            <p className="mt-1.5 text-sm text-muted">
+              Every practice {knowsChildName ? childName : "your child"} visits still has to request access — this
+              just decides what&apos;s available to share. Change it anytime.
+            </p>
+
+            <div className="mt-3 space-y-1 rounded-xl bg-white p-1">
+              {PASSPORT_CATEGORY_KEYS.map((key) => (
+                <div key={key} className="rounded-lg px-2 hover:bg-background">
+                  <Checkbox
+                    label={PASSPORT_CATEGORY_LABELS[key]}
+                    checked={selected[key]}
+                    onChange={(v) => setSelected((prev) => ({ ...prev, [key]: v }))}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4">
+              <PrimaryButton disabled={selectedCount === 0} onClick={() => setPassportState("saved")}>
+                {selectedCount === 0 ? "Select at least one" : `Confirm & Save (${selectedCount})`}
+              </PrimaryButton>
+            </div>
+            <div className="mt-3 text-center">
+              <TextLink onClick={() => setPassportState("offer")}>Back</TextLink>
+            </div>
           </div>
         ) : null}
       </div>
