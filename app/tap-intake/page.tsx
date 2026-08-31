@@ -116,7 +116,7 @@ function Shell() {
   // Dr. Reyes" (not just reached the summary), swap to a dedicated
   // full-bleed confirmation screen — see VisitCompleteScreen.
   if (allReady && sentToProvider) {
-    return <VisitCompleteScreen />;
+    return <VisitCompleteScreen onBack={() => setSentToProvider(false)} onSwitchScenario={switchScenario} />;
   }
 
   return (

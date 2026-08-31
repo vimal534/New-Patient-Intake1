@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useVisit } from "../state";
+import { PatientType } from "../types";
 import { ON_FILE_RECORD } from "../mockData";
 import { PhoneFrame } from "./PhoneFrame";
+import { DemoScenarioSwitcher } from "./DemoScenarioSwitcher";
 import { Checkbox, PrimaryButton, TextLink } from "./ui";
 
 const PASSPORT_BENEFITS = [
@@ -45,7 +47,23 @@ const PASSPORT_CATEGORY_LABELS: Record<PassportCategoryKey, string> = {
 // promises "you decide what to share, with whom," so tapping it opens a
 // one-step category picker (all checked by default) before landing on the
 // saved confirmation, which then names what's actually being shared.
-export function VisitCompleteScreen() {
+//
+// The "‹ Today's Visit" header and the floating DemoScenarioSwitcher were
+// both in the original reference but missing from the first pass here —
+// added to match it exactly: the header reopens the Visit Summary (the
+// only place left to go from a terminal screen), and the switcher is the
+// same one used throughout the main flow, so a demo can restart into
+// either scenario from this screen too, not just from mid-flow.
+export function VisitCompleteScreen({
+  onBack,
+  onSwitchScenario,
+}: {
+  // "‹ Today's Visit" — the only place left to go from a terminal screen
+  // is back to reviewing what was sent, so this reopens the Visit Summary
+  // rather than being purely decorative.
+  onBack: () => void;
+  onSwitchScenario: (type: PatientType) => void;
+}) {
   const { state } = useVisit();
   const isReturning = state.patientType === "returning";
   const childName = state.child.name || "your child";
@@ -71,7 +89,16 @@ export function VisitCompleteScreen() {
 
   return (
     <PhoneFrame>
-      <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-8 pt-10">
+      <div className="flex items-center gap-1.5 px-6 pt-4">
+        <button type="button" onClick={onBack} aria-label="Back to visit summary" className="cursor-pointer text-lg text-teal">
+          ←
+        </button>
+        <button type="button" onClick={onBack} className="cursor-pointer text-sm font-medium text-teal">
+          Today&apos;s Visit
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-8 pt-6">
         {/* Grouped as one flex-1 block instead of just the hero, so
             dismissing the Passport card ("Maybe later") re-centers what's
             left in the available space rather than stranding a tall empty
@@ -160,6 +187,8 @@ export function VisitCompleteScreen() {
           </div>
         ) : null}
       </div>
+
+      <DemoScenarioSwitcher onSwitch={onSwitchScenario} />
     </PhoneFrame>
   );
 }
