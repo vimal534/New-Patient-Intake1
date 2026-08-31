@@ -85,6 +85,64 @@ export function mockScanMedicationLabel(): { name: string; dose: string; frequen
   ];
 }
 
+// A small local medication directory for the "Search for a medication"
+// picker in Health History — same shape the /intake build's own
+// searchMedications() (app/intake/lib/data-source/mockMedications.ts)
+// returns (id/name/detail/doses/frequencies), but a standalone copy
+// scoped to what this prototype actually needs, not a reach into that
+// other build.
+//
+// tap-intake previously imported /intake's mockMedications.ts directly.
+// That resolved fine on a local machine (the folder is still present on
+// disk) but broke every single Vercel build from the moment it landed:
+// app/intake/ is intentionally never committed to git — it's the
+// held-back, PHI/security-sensitive build — so the file simply doesn't
+// exist when Vercel clones the repo, and "vercel build" failed with
+// Module not found on every deploy since. This directly caused the live
+// URL staleness diagnosed earlier in the session.
+export type MedicationEntry = {
+  id: string;
+  name: string;
+  detail: string;
+  doses: string[];
+  frequencies: string[];
+};
+
+const MEDICATION_DIRECTORY: MedicationEntry[] = [
+  { id: "amoxicillin", name: "Amoxicillin", detail: "Amoxicillin oral suspension", doses: ["125mg/5mL", "250mg/5mL", "400mg/5mL"], frequencies: ["Twice daily", "Three times daily"] },
+  { id: "albuterol", name: "Albuterol inhaler", detail: "Albuterol HFA 90mcg inhaler", doses: ["90mcg"], frequencies: ["As needed", "Every 4-6 hours as needed"] },
+  { id: "azithromycin", name: "Azithromycin (Zithromax)", detail: "Zithromax oral suspension", doses: ["100mg/5mL", "200mg/5mL"], frequencies: ["Once daily", "Once (single dose)"] },
+  { id: "acetaminophen", name: "Acetaminophen (Tylenol)", detail: "Tylenol children's suspension", doses: ["160mg/5mL"], frequencies: ["Every 4-6 hours as needed"] },
+  { id: "ibuprofen", name: "Ibuprofen (Motrin/Advil)", detail: "Motrin children's suspension", doses: ["100mg/5mL"], frequencies: ["Every 6-8 hours as needed"] },
+  { id: "amoxicillin-clav", name: "Amoxicillin-Clavulanate (Augmentin)", detail: "Augmentin oral suspension", doses: ["200mg/5mL", "400mg/5mL"], frequencies: ["Twice daily"] },
+  { id: "cetirizine", name: "Cetirizine (Zyrtec)", detail: "Zyrtec children's syrup", doses: ["5mg", "10mg"], frequencies: ["Once daily"] },
+  { id: "montelukast", name: "Montelukast (Singulair)", detail: "Singulair chewable tablet", doses: ["4mg", "5mg"], frequencies: ["Once daily, in the evening"] },
+  { id: "prednisolone", name: "Prednisolone", detail: "Prednisolone oral solution", doses: ["15mg/5mL"], frequencies: ["Once daily", "Twice daily"] },
+  { id: "insulin", name: "Insulin (Humalog)", detail: "Humalog injection", doses: ["As directed"], frequencies: ["With meals"] },
+  { id: "metformin", name: "Metformin", detail: "Metformin tablet", doses: ["500mg", "850mg", "1000mg"], frequencies: ["Once daily", "Twice daily"] },
+  { id: "fluticasone", name: "Fluticasone (Flonase)", detail: "Flonase nasal spray", doses: ["50mcg/spray"], frequencies: ["Once daily", "Twice daily"] },
+  { id: "omeprazole", name: "Omeprazole (Prilosec)", detail: "Prilosec oral suspension", doses: ["2mg/mL"], frequencies: ["Once daily"] },
+  { id: "melatonin", name: "Melatonin", detail: "Melatonin chewable", doses: ["1mg", "3mg", "5mg"], frequencies: ["Once daily, at bedtime"] },
+];
+
+// Case-insensitive, starts-with-ranked-above-contains — deliberately
+// simpler than /intake's own ranking (no recentIds/isCommon boosting):
+// this picker doesn't track recency, so there was nothing for that
+// machinery to do here.
+export function searchMedications(query: string, opts?: { limit?: number }): MedicationEntry[] {
+  const limit = opts?.limit ?? 6;
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return [];
+  const starts: MedicationEntry[] = [];
+  const contains: MedicationEntry[] = [];
+  for (const entry of MEDICATION_DIRECTORY) {
+    const name = entry.name.toLowerCase();
+    if (name.startsWith(trimmed)) starts.push(entry);
+    else if (name.includes(trimmed)) contains.push(entry);
+  }
+  return [...starts, ...contains].slice(0, limit);
+}
+
 export function hasOnFileCondition(name: string) {
   return ON_FILE_RECORD.medicalHistory.conditions.some((c) => c.toLowerCase().includes(name.toLowerCase()));
 }

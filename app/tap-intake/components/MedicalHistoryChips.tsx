@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { searchMedications } from "@/app/intake/lib/data-source/mockMedications";
-import { mockScanMedicationLabel } from "../mockData";
+import { mockScanMedicationLabel, searchMedications } from "../mockData";
 import { Chip } from "./ui";
 
 type MedEntry = { id: string; name: string; dose: string; frequency: string; uncertain: boolean };
@@ -18,13 +17,14 @@ function nextId() {
 }
 
 // The "Medications" category's own chip-list input — replaces the old
-// fixed-option chip picker with search-to-add (against the same coded
-// medication list the schema-driven /intake build uses —
-// app/intake/lib/data-source/mockMedications.ts, reused directly rather
-// than duplicated, since it's just a static reference list, no PHI) plus
-// a mock "scan the label" shortcut that bulk-adds from a photographed
-// bottle. No real camera/OCR call — this repo's mock-data convention
-// explicitly rules that out (see mockData.ts's own header comment).
+// fixed-option chip picker with search-to-add (against mockData.ts's own
+// small MEDICATION_DIRECTORY — this used to import /intake's own
+// mockMedications.ts directly, which broke every Vercel build since
+// app/intake/ is never committed to git; see mockData.ts's comment on
+// searchMedications for the full story) plus a mock "scan the label"
+// shortcut that bulk-adds from a photographed bottle. No real camera/OCR
+// call — this repo's mock-data convention explicitly rules that out (see
+// mockData.ts's own header comment).
 // Clicking the camera button simulates a short scan delay then adds a
 // fixed demo pair, one flagged as uncertain, so the "something needs a
 // second look" UX is exercisable without a real photo.
