@@ -1,9 +1,10 @@
 "use client";
 
-import { KeyboardEvent, useRef, useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useVisit } from "../state";
 import { ON_FILE_RECORD } from "../mockData";
-import { OptionTile, PrimaryButton, QuestionBlock, StepHeader, TextField, TextLink } from "./ui";
+import { OptionTile, PrimaryButton, QuestionBlock, TextField, TextLink } from "./ui";
+import { useActiveStepHeader } from "./StepHeaderSlot";
 
 // --- Formatting helpers -----------------------------------------------
 // Card number: digits only, capped at 16, grouped into 4s as the parent
@@ -47,6 +48,7 @@ export function PaymentSection({ onDone }: { onDone: () => void }) {
   const expDigits = p.newCard.exp.replace(/\D/g, "");
   const zipDigits = p.newCard.zip.replace(/\D/g, "");
 
+  const nameValid = p.newCard.name.trim().length > 0;
   const cardValid = cardDigits.length === 16;
   const expValid = expDigits.length === 4 && expiryMonthValid(expDigits);
   const zipValid = zipDigits.length === 5;
@@ -115,12 +117,41 @@ export function PaymentSection({ onDone }: { onDone: () => void }) {
     onDone();
   }
 
+  // Auto-populate the cardholder name from the guardian's own name —
+  // already collected in Guardian Details earlier this same visit, for
+  // both patient types (new patients enter it fresh there; returning
+  // patients confirm/edit it) — rather than asking a second time. A real
+  // dispatch into reducer state, not just a display fallback: without
+  // this, the field would visually show the guardian's name (if this were
+  // instead just a `value={p.newCard.name || state.guardian.name}` read
+  // fallback) but silently save an empty string unless the guardian
+  // happened to edit it — a real data-loss risk, not just a cosmetic
+  // shortcut. Runs once on mount; guarded so it never overwrites a name
+  // the guardian has already set or deliberately cleared to type someone
+  // else's.
+  useEffect(() => {
+    if (!p.newCard.name && state.guardian.name) {
+      dispatch({ type: "SET_NEW_CARD_FIELD", field: "name", value: state.guardian.name });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // One hook call, unconditionally, computed off the current step — see
+  // StepHeaderSlot.tsx's header comment for why this reports the header up
+  // to a shared top-of-screen slot instead of each branch below rendering
+  // its own <StepHeader> inline.
+  useActiveStepHeader({
+    eyebrow: "Payment",
+    stepLabel: step === "select" ? "Step 1 of 3" : step === "newCard" ? "Step 2 of 3" : "Step 3 of 3",
+    progressPercent: step === "select" ? 33 : step === "newCard" ? 66 : 100,
+    onBack:
+      step === "select" ? onDone : step === "newCard" ? () => setStep("select") : () => setStep(p.method === "new_card" ? "newCard" : "select"),
+  });
+
   if (step === "select") {
     const canContinue = p.method === "on_file" || p.method === "new_card";
     return (
       <>
-        <StepHeader eyebrow="Payment" stepLabel="Step 1 of 3" progressPercent={33} onBack={onDone} />
-
         <QuestionBlock
           eyebrow="Copay / payment"
           prompt={`How would you like to pay ${copayAmount ? `today's ${copayAmount}` : "today's copay"}?`}
@@ -165,13 +196,18 @@ export function PaymentSection({ onDone }: { onDone: () => void }) {
   if (step === "newCard") {
     return (
       <>
-        <StepHeader eyebrow="Payment" stepLabel="Step 2 of 3" progressPercent={66} onBack={() => setStep("select")} />
-
         <h2 className="mt-1 text-lg font-bold text-ink">
           Add a new card{copayAmount ? ` for today's ${copayAmount}` : ""}
         </h2>
 
         <div className="grid gap-3">
+          <TextField
+            label="Name on card"
+            value={p.newCard.name}
+            onChange={(v) => dispatch({ type: "SET_NEW_CARD_FIELD", field: "name", value: v })}
+            placeholder="e.g. Elena Marquez"
+            autoComplete="cc-name"
+          />
           <TextField
             label="Card number"
             value={p.newCard.number}
@@ -225,7 +261,7 @@ export function PaymentSection({ onDone }: { onDone: () => void }) {
           prototype.
         </div>
 
-        <PrimaryButton disabled={!(cardValid && expValid && zipValid)} onClick={() => setStep("confirm")}>
+        <PrimaryButton disabled={!(nameValid && cardValid && expValid && zipValid)} onClick={() => setStep("confirm")}>
           Save card and continue
         </PrimaryButton>
       </>
@@ -244,13 +280,6 @@ export function PaymentSection({ onDone }: { onDone: () => void }) {
 
   return (
     <>
-      <StepHeader
-        eyebrow="Payment"
-        stepLabel="Step 3 of 3"
-        progressPercent={100}
-        onBack={() => setStep(p.method === "new_card" ? "newCard" : "select")}
-      />
-
       <h2 className="mt-1 text-xl font-bold text-ink">Your copay.</h2>
       <p className="text-sm text-muted">
         {p.method === "at_visit"

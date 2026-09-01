@@ -19,6 +19,7 @@ import { VisitSummaryPanel } from "./components/VisitSummaryPanel";
 import { ProgressSummary } from "./components/ProgressSummary";
 import { PhoneFrame } from "./components/PhoneFrame";
 import { SectionShell } from "./components/ui";
+import { ActiveStepHeaderSlot, StepHeaderProvider, useStepHeaderSlotActive } from "./components/StepHeaderSlot";
 
 export default function TapIntakePage() {
   const [state, dispatch] = useVisitReducer();
@@ -124,35 +125,48 @@ function Shell() {
   }
 
   return (
-    <PhoneFrame>
-      {/* Directly under the status bar, outside the scrollable area — so
-          it's always visible, not just sticky-while-scrolling, and reads
-          as part of the app chrome rather than page content. */}
-      {!allReady ? <ProgressSummary /> : null}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <header className="mb-6">
-          <h1 className="text-lg font-bold text-[var(--color-ink)]">Brightline Pediatrics — Check-in</h1>
-        </header>
+    <StepHeaderProvider>
+      <PhoneFrame>
+        {/* Directly under the status bar, outside the scrollable area — so
+            it's always visible, not just sticky-while-scrolling, and reads
+            as part of the app chrome rather than page content. Whichever
+            of these two is active is mutually exclusive: a section's own
+            step header (Coverage's capture, Payment's steps, Health
+            History's gate) takes this slot over from ProgressSummary while
+            it's active, and ProgressSummary returns the moment that
+            sub-flow finishes or the guardian backs out of it. */}
+        <TopSlot allReady={allReady} />
+        <div className="flex-1 overflow-y-auto px-4 py-6">
+          <header className="mb-6">
+            <h1 className="text-lg font-bold text-[var(--color-ink)]">Brightline Pediatrics — Check-in</h1>
+          </header>
 
-        {allReady ? (
-          <VisitSummaryPanel mode="full" onSend={() => setReviewingSummary(false)} />
-        ) : (
-          <>
-            <div className="space-y-3">
-              {order
-                .filter((key) => state.sectionStatus[key] === "ready" || key === state.activeSection)
-                .map((key) => (
-                  <SectionRenderer key={key} sectionKey={key} />
-                ))}
-            </div>
-            <LockedSectionsList order={order} />
-          </>
-        )}
-      </div>
+          {allReady ? (
+            <VisitSummaryPanel mode="full" onSend={() => setReviewingSummary(false)} />
+          ) : (
+            <>
+              <div className="space-y-3">
+                {order
+                  .filter((key) => state.sectionStatus[key] === "ready" || key === state.activeSection)
+                  .map((key) => (
+                    <SectionRenderer key={key} sectionKey={key} />
+                  ))}
+              </div>
+              <LockedSectionsList order={order} />
+            </>
+          )}
+        </div>
 
-      <DemoScenarioSwitcher onSwitch={switchScenario} />
-    </PhoneFrame>
+        <DemoScenarioSwitcher onSwitch={switchScenario} />
+      </PhoneFrame>
+    </StepHeaderProvider>
   );
+}
+
+function TopSlot({ allReady }: { allReady: boolean }) {
+  const stepHeaderActive = useStepHeaderSlotActive();
+  if (stepHeaderActive) return <ActiveStepHeaderSlot />;
+  return !allReady ? <ProgressSummary /> : null;
 }
 
 // Renders every not-yet-reached section as one merged, compact block

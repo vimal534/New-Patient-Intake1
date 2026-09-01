@@ -35,7 +35,7 @@ export const initialVisitState: VisitState = {
     reviewed: false,
     changed: false,
   },
-  payment: { method: null, cardLast4: "", newCard: { number: "", exp: "", zip: "" } },
+  payment: { method: null, cardLast4: "", newCard: { name: "", number: "", exp: "", zip: "" } },
   consents: { signedBy: "", items: CONSENT_ITEMS.map((c) => ({ id: c.id, label: c.label, acknowledged: false })) },
   sectionStatus: Object.fromEntries(SECTION_KEYS.map((k) => [k, "not_started"])) as VisitState["sectionStatus"],
   activeSection: null,
@@ -74,7 +74,7 @@ export type Action =
   | { type: "CONFIRM_COVERAGE_NO_CHANGE" }
   | { type: "FLAG_COVERAGE_CHANGED" }
   | { type: "SET_PAYMENT_METHOD"; method: "on_file" | "new_card" | "at_visit" }
-  | { type: "SET_NEW_CARD_FIELD"; field: "number" | "exp" | "zip"; value: string }
+  | { type: "SET_NEW_CARD_FIELD"; field: "name" | "number" | "exp" | "zip"; value: string }
   | { type: "TOGGLE_CONSENT"; id: string }
   | { type: "MARK_SECTION_READY"; key: SectionKey }
   | { type: "REOPEN_SECTION"; key: SectionKey }
@@ -360,7 +360,7 @@ export function visitReducer(state: VisitState, action: Action): VisitState {
           reviewed: false,
           changed: false,
         },
-        payment: { method: null, cardLast4: "4242", newCard: { number: "", exp: "", zip: "" } },
+        payment: { method: null, cardLast4: "4242", newCard: { name: "", number: "", exp: "", zip: "" } },
       };
 
     case "RESTART":

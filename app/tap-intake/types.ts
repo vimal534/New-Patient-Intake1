@@ -126,7 +126,12 @@ export type CoverageState = {
 export type PaymentState = {
   method: "on_file" | "new_card" | "at_visit" | null;
   cardLast4: string;
-  newCard: { number: string; exp: string; zip: string };
+  // `name` starts auto-populated from the guardian's own name (already
+  // collected earlier this same visit, for both patient types — see
+  // PaymentSection's own comment) rather than blank, so the guardian isn't
+  // re-typing their name a second time; still a plain editable field, not
+  // read-only, for the real "someone else's card" case.
+  newCard: { name: string; number: string; exp: string; zip: string };
 };
 
 export type ConsentItemState = { id: string; label: string; acknowledged: boolean };

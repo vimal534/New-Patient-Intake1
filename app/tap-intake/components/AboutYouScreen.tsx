@@ -84,9 +84,13 @@ export function AboutYouScreen({
 
   return (
     <PhoneFrame>
+      {/* Outside the scrollable div below, directly under the status bar —
+          same non-scrolling top-slot treatment as the main flow's
+          ProgressSummary/step-header slot (see StepHeaderSlot.tsx). No
+          shared context needed here since this screen has nothing else
+          competing for that slot. */}
+      <StepHeader eyebrow="About you" stepLabel="Step 1 of 1" progressPercent={100} onBack={onBack} />
       <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-6 pt-6">
-        <StepHeader eyebrow="About you" stepLabel="Step 1 of 1" progressPercent={100} onBack={onBack} />
-
         <h1 className="mt-4 text-[22px] font-bold leading-tight text-ink">Let&apos;s confirm a few things.</h1>
         <p className="mt-1.5 text-sm text-muted">
           {isReturning

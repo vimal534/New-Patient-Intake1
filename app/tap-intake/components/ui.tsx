@@ -292,33 +292,32 @@ export function SectionShell({
   );
 }
 
-// The back-chevron + "EYEBROW · STEP X OF Y" + teal progress bar used by
-// any multi-step sub-flow within a section (Coverage's card capture,
-// Confirm Details, Health History's "still accurate?" gate). Was three
-// near-identical hand-rolled copies before this — extracted once a third
-// screen needed the exact same markup.
-//
-// Sticky to the top of the section's own card (not the whole viewport —
-// it's contained by SectionShell's bordered box, so it can never float
-// over a different section's card): the active section can sit well down
-// the page, below every already-completed section's collapsed row, so
-// without this the guardian could scroll past the header entirely while
-// filling in the fields below it. The negative margins cancel the card's
-// own padding so the sticky bar spans edge-to-edge instead of leaving a
-// gap the card's border shows through.
-export function StepHeader({
-  eyebrow,
-  stepLabel,
-  progressPercent,
-  onBack,
-}: {
+export type StepHeaderInfo = {
   eyebrow: string;
   stepLabel: string;
   progressPercent: number;
   onBack: () => void;
-}) {
+};
+
+// The back-chevron + "EYEBROW · STEP X OF Y" + teal progress bar used by
+// any multi-step sub-flow (Coverage's card capture, Payment's steps,
+// Health History's "still accurate?" gate, AboutYouScreen). Was three
+// near-identical hand-rolled copies before this got extracted; then lived
+// briefly as a `sticky`-within-its-own-card element before THAT was
+// replaced too — see StepHeaderSlot.tsx's header comment for why sticky
+// wasn't enough (it only ever pinned to the top of its own card, not the
+// phone's actual top edge, which a reference screenshot showed it should).
+//
+// This component itself is now a plain, non-sticky block — matching
+// ProgressSummary's own `px-4 py-3` exactly, since the two now share the
+// same non-scrolling slot directly under the status bar (main flow, via
+// StepHeaderSlot.tsx) or the same role on their own dedicated screen
+// (AboutYouScreen, which places it outside its own scroll container
+// directly, no shared slot needed there since nothing else competes for
+// that spot on that screen).
+export function StepHeader({ eyebrow, stepLabel, progressPercent, onBack }: StepHeaderInfo) {
   return (
-    <div className="sticky top-0 z-10 -mx-5 -mt-5 border-b border-[var(--color-line)] bg-white px-5 pb-3 pt-5">
+    <div className="shrink-0 border-b border-[var(--color-line)] bg-white px-4 py-3">
       <div className="flex items-center gap-3">
         <button type="button" onClick={onBack} aria-label="Back" className="cursor-pointer text-lg text-[var(--color-teal)]">
           ←

@@ -5,8 +5,9 @@ import { useVisit } from "../state";
 import { MEDICAL_CATEGORY_LABELS, MEDICAL_CATEGORY_OPTIONS } from "../questionBank";
 import { MedicalCategoryKey, MEDICAL_CATEGORY_KEYS } from "../types";
 import { ON_FILE_RECORD, structureHealthHistoryText } from "../mockData";
-import { Chip, PrimaryButton, QuestionBlock, StepHeader } from "./ui";
+import { Chip, PrimaryButton, QuestionBlock } from "./ui";
 import { MedicationChipInput, SimpleChipInput } from "./MedicalHistoryChips";
+import { useActiveStepHeader } from "./StepHeaderSlot";
 
 // One combined "Health History" section — was two (Medical History +
 // Family History) until a reference design showed them merged into a
@@ -105,10 +106,19 @@ export function MedicalHistorySection({ onDone }: { onDone: () => void }) {
       ].join(" · ")
     : "";
 
+  // Only the "gate" step claims the shared top-slot header — the editor
+  // step that follows (or that new patients land on immediately) doesn't
+  // use a step header at all, so it passes null and the slot falls back
+  // to ProgressSummary. See StepHeaderSlot.tsx's useActiveStepHeader for
+  // why a null header is how a section opts out of the slot for a given
+  // step rather than needing a second, conditionally-called hook.
+  useActiveStepHeader(
+    step === "gate" ? { eyebrow: "Your health", stepLabel: "Step 1 of 2", progressPercent: 50, onBack: onDone } : null
+  );
+
   if (step === "gate") {
     return (
       <>
-        <StepHeader eyebrow="Your health" stepLabel="Step 1 of 2" progressPercent={50} onBack={onDone} />
         <h2 className="mt-4 text-xl font-bold text-ink">Still accurate?</h2>
         <p className="mt-1 text-sm text-muted">
           Here&apos;s what&apos;s on file for {state.child.name || "your child"} — let us know if anything&apos;s

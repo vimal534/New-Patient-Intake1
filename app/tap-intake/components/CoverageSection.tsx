@@ -12,10 +12,10 @@ import {
   PrimaryButton,
   QuestionBlock,
   SecondaryButton,
-  StepHeader,
   TextField,
   TextLink,
 } from "./ui";
+import { useActiveStepHeader } from "./StepHeaderSlot";
 
 export function CoverageSection({ onDone }: { onDone: () => void }) {
   const { state } = useVisit();
@@ -208,15 +208,15 @@ function CardCaptureSteps({
 
   const progress = side === "front" ? 50 : 85;
 
+  useActiveStepHeader({
+    eyebrow: "Coverage",
+    stepLabel: `Step ${side === "front" ? 1 : 2} of 2`,
+    progressPercent: progress,
+    onBack: () => (side === "back" ? setSide("front") : onBack()),
+  });
+
   return (
     <div>
-      <StepHeader
-        eyebrow="Coverage"
-        stepLabel={`Step ${side === "front" ? 1 : 2} of 2`}
-        progressPercent={progress}
-        onBack={() => (side === "back" ? setSide("front") : onBack())}
-      />
-
       {side === "front" ? (
         <>
           <h2 className="mt-4 text-xl font-bold text-ink">Snap your insurance card.</h2>
