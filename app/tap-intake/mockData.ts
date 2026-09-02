@@ -9,6 +9,23 @@
 import { FREE_TEXT_TAGS } from "./questionBank";
 import { MedicalCategoryKey } from "./types";
 
+// What a NEW patient's appointment booking already captured, before the
+// tap-intake link was ever sent — a scheduling widget (or a front-desk
+// call) needs at minimum the child's name and DOB to create the
+// appointment, and the guardian's own phone to confirm/remind them. This
+// is deliberately a separate, smaller record from ON_FILE_RECORD below:
+// a brand-new patient has no chart yet, but they still aren't a total
+// stranger to the practice by the time they open this link. Everything
+// else (legal last name, sex, address, emergency contact) genuinely
+// isn't captured at booking, so AboutYouScreen leaves those blank for new
+// patients rather than inventing data that wouldn't really exist yet.
+export const MOCK_BOOKING_INFO = {
+  childFirstName: "Noah",
+  childDob: "2021-11-02",
+  guardianName: "Sarah Bennett",
+  guardianPhone: "(512) 555-0177",
+};
+
 export const ON_FILE_RECORD = {
   // legalLastName matches the guardian ("Elena Marquez") and emergency
   // contact ("Carlos Marquez") below — one consistent family surname.

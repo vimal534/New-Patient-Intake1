@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useVisit } from "../state";
-import { ON_FILE_RECORD } from "../mockData";
+import { ON_FILE_RECORD, MOCK_BOOKING_INFO } from "../mockData";
 import { PhoneFrame } from "./PhoneFrame";
 import { Chip, PrimaryButton, QuestionBlock, SectionShell, StepHeader, TextField } from "./ui";
 
@@ -29,13 +29,16 @@ const STEP_TITLES: Record<Step, string> = { identity: "Identity", contact: "Cont
 // main flow already uses for not-yet-reached sections) rather than sitting
 // open side by side.
 //
-// Now shown to BOTH patient types, not just returning ones — a new patient
-// has no prior booking data, so their fields start blank ("Let's get some
-// basics before we start" instead of "We've pre-filled what we got from
-// your booking"), but the card shape, fields, and progressive reveal are
-// identical either way. This also fully replaces the old inline "Child
-// Details" accordion section new patients used to fill in mid-flow — see
-// the comment on SECTION_KEYS.
+// Now shown to BOTH patient types, not just returning ones. A new patient
+// has no chart yet, but they aren't a total stranger either — scheduling
+// the appointment already captured the child's first name and DOB, and
+// the guardian's own phone (see MOCK_BOOKING_INFO's own comment for why
+// that's a separate, smaller record from ON_FILE_RECORD). Legal last
+// name, sex, address, and emergency contact genuinely weren't collected
+// at booking, so those stay blank for new patients — this pre-fills what
+// a real booking flow would actually already know, not everything. This
+// also fully replaces the old inline "Child Details" accordion section
+// new patients used to fill in mid-flow — see the comment on SECTION_KEYS.
 export function AboutYouScreen({
   onConfirm,
   onBack,
@@ -52,13 +55,35 @@ export function AboutYouScreen({
   // Contact/emergency-contact fields are local-only, exactly like the
   // screen they replace — not part of VisitState, since nothing downstream
   // reads them yet (this is a prototype; a real build would fold these
-  // into GuardianState). Seeded from ON_FILE_RECORD for returning patients,
-  // blank for new ones since there's no booking data to pre-fill from.
-  const [phone, setPhone] = useState(isReturning ? ON_FILE_RECORD.contact.phone : "");
+  // into GuardianState). Phone is the one Contact field a new patient's
+  // booking already has (the guardian's own number); address genuinely
+  // isn't captured at scheduling, so it stays blank same as emergency
+  // contact — see MOCK_BOOKING_INFO's own comment on what's realistic.
+  const [phone, setPhone] = useState(isReturning ? ON_FILE_RECORD.contact.phone : MOCK_BOOKING_INFO.guardianPhone);
   const [address, setAddress] = useState(isReturning ? ON_FILE_RECORD.contact.address : "");
   const [emName, setEmName] = useState(isReturning ? ON_FILE_RECORD.emergencyContact.name : "");
   const [emRelationship, setEmRelationship] = useState(isReturning ? ON_FILE_RECORD.emergencyContact.relationship : "");
   const [emPhone, setEmPhone] = useState(isReturning ? ON_FILE_RECORD.emergencyContact.phone : "");
+
+  // Identity is reducer state (state.child), not local — seeded here via a
+  // real dispatch on mount rather than a display fallback, same reasoning
+  // as PaymentSection's cardholder-name seeding: a value only shown but
+  // never committed would silently save blank if the guardian never
+  // touched an already-correct field. Guarded so it never overwrites a
+  // name/DOB already set (e.g. re-opening this screen after "Edit").
+  useEffect(() => {
+    if (isReturning) return;
+    if (!child.legalFirstName) {
+      dispatch({ type: "SET_CHILD_FIELD", field: "legalFirstName", value: MOCK_BOOKING_INFO.childFirstName });
+      dispatch({ type: "SET_CHILD_FIELD", field: "preferredName", value: MOCK_BOOKING_INFO.childFirstName });
+    }
+    if (!child.dob) {
+      dispatch({ type: "SET_CHILD_FIELD", field: "dob", value: MOCK_BOOKING_INFO.childDob });
+      const age = ageFromDob(MOCK_BOOKING_INFO.childDob);
+      if (age !== null) dispatch({ type: "SET_CHILD_AGE", age });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const identityValid = child.legalFirstName.trim().length > 0 && child.dob.trim().length > 0 && !!child.sex;
   const contactValid = phone.trim().length > 0 && address.trim().length > 0;
@@ -95,7 +120,7 @@ export function AboutYouScreen({
         <p className="mt-1.5 text-sm text-muted">
           {isReturning
             ? "We've pre-filled what we got from your booking. Confirm or correct each one."
-            : "Let's get some basics before we start."}
+            : "We've filled in what we got when you booked — check it over and fill in the rest."}
         </p>
 
         <div className="mt-4 space-y-3">
