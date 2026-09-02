@@ -65,7 +65,7 @@ export const ON_FILE_RECORD = {
   medicalHistory: {
     allergies: ["Penicillin"],
     medications: ["Albuterol inhaler"],
-    conditions: ["Asthma (mild)"],
+    conditions: ["Diabetes", "High blood pressure", "Asthma"],
     surgeries: ["Ear tubes (2024)"],
     hospitalizations: [] as string[],
   },
