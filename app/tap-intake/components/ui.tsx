@@ -322,7 +322,11 @@ export function StepHeader({ eyebrow, stepLabel, progressPercent, onBack }: Step
         <button type="button" onClick={onBack} aria-label="Back" className="cursor-pointer text-lg text-[var(--color-teal)]">
           ←
         </button>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-teal)]">
+        {/* Only the chevron carries the teal accent — the label itself is a
+            quiet muted-gray, per a reference where "YOUR VISIT · STEP 3 OF 5"
+            reads as understated wayfinding text, not a colored headline.
+            Previously the whole eyebrow (chevron + label) was teal. */}
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted-2)]">
           {eyebrow} · {stepLabel}
         </div>
       </div>
