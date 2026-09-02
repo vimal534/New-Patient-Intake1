@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useVisit } from "../state";
 import { ON_FILE_RECORD, MOCK_BOOKING_INFO } from "../mockData";
 import { PhoneFrame } from "./PhoneFrame";
-import { Chip, PrimaryButton, QuestionBlock, SectionShell, StepHeader, TextField } from "./ui";
+import { Chip, PrimaryButton, QuestionBlock, SectionShell, StepHeader, TextField, TextLink } from "./ui";
 
 function ageFromDob(dob: string): number | null {
   const d = new Date(dob);
@@ -13,32 +13,31 @@ function ageFromDob(dob: string): number | null {
   return Math.max(0, Math.floor(diff / (365.25 * 24 * 3600 * 1000)));
 }
 
-const STEPS = ["identity", "contact", "emergency"] as const;
-type Step = (typeof STEPS)[number];
-const STEP_TITLES: Record<Step, string> = { identity: "Identity", contact: "Contact", emergency: "Emergency contact" };
+type CardState = "confirm" | "edit";
 
 // A one-time gate shown right after Intro (new patients) / ReturningHome
-// (returning patients), before the main section flow begins — same slot
-// the old "Confirm Details" screen occupied, redesigned per a reference the
-// guardian pointed to directly: identity becomes its own editable card
-// (previously just a read-only "Ana · 2020-03-14 · Female" summary line —
-// see the old rationale, now superseded, in ON_FILE_RECORD's own comment)
-// with Legal First/Last Name split out from Preferred Name, and Contact /
-// Emergency Contact reveal progressively underneath as locked rows
-// (SectionShell's own "locked" treatment, same merged-block styling the
-// main flow already uses for not-yet-reached sections) rather than sitting
-// open side by side.
+// (returning patients), before the main section flow begins.
 //
-// Now shown to BOTH patient types, not just returning ones. A new patient
-// has no chart yet, but they aren't a total stranger either — scheduling
-// the appointment already captured the child's first name and DOB, and
-// the guardian's own phone (see MOCK_BOOKING_INFO's own comment for why
-// that's a separate, smaller record from ON_FILE_RECORD). Legal last
-// name, sex, address, and emergency contact genuinely weren't collected
-// at booking, so those stay blank for new patients — this pre-fills what
-// a real booking flow would actually already know, not everything. This
-// also fully replaces the old inline "Child Details" accordion section
-// new patients used to fill in mid-flow — see the comment on SECTION_KEYS.
+// UX direction (superseding the earlier 3-step "Looks right" per card
+// version): the patient is already verified — phone + PIN/OTP in the real
+// product (see /intake's Phase 1b security model) — and by this point
+// basic info is already pulled from the patient record (returning:
+// ON_FILE_RECORD) or the appointment booking (new: MOCK_BOOKING_INFO).
+// Re-asking the guardian to individually confirm each already-known field
+// is exactly the "asked twice" friction this app's own Intro screen
+// promises against. So: anything already known renders as a quiet
+// summary + "Edit" link (confirm-don't-reask, the same pattern Guardian/
+// Coverage/Health-History already use for returning patients elsewhere
+// in this app — see ConfirmCard in ui.tsx) instead of a field the
+// guardian has to look at and explicitly bless. Only genuinely MISSING
+// info (new patients: legal last name, sex, address, emergency contact —
+// none of that is captured at booking) is a real input, and there's one
+// Continue at the bottom instead of a "Looks right" gate per card.
+//
+// For a returning patient every card starts already-known, so this
+// screen is a one-glance "here's what's on file, tap Continue" — not a
+// form. This also fully replaces the old inline "Child Details" accordion
+// section new patients used to fill in mid-flow — see SECTION_KEYS.
 export function AboutYouScreen({
   onConfirm,
   onBack,
@@ -49,8 +48,6 @@ export function AboutYouScreen({
   const { state, dispatch } = useVisit();
   const { child } = state;
   const isReturning = state.patientType === "returning";
-
-  const [step, setStep] = useState<Step>("identity");
 
   // Contact/emergency-contact fields are local-only, exactly like the
   // screen they replace — not part of VisitState, since nothing downstream
@@ -85,27 +82,24 @@ export function AboutYouScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Each card starts in "confirm" (quiet summary + Edit) only when EVERY
+  // field it covers is already known; otherwise it starts in "edit" (real
+  // inputs, pre-filled wherever something IS known) since there's
+  // genuinely something the guardian has to type — no separate tap to
+  // "unlock" that, they just see the blank field directly. Computed once
+  // at mount (a patient's known-ness doesn't change mid-screen), not
+  // re-derived every render, so tapping "Edit" on an already-known card
+  // doesn't get silently reverted by its own initial-state logic.
+  const [identityState, setIdentityState] = useState<CardState>(
+    isReturning || (child.legalFirstName && child.legalLastName && child.dob && child.sex) ? "confirm" : "edit"
+  );
+  const [contactState, setContactState] = useState<CardState>(isReturning ? "confirm" : "edit");
+  const [emergencyState, setEmergencyState] = useState<CardState>(isReturning ? "confirm" : "edit");
+
   const identityValid = child.legalFirstName.trim().length > 0 && child.dob.trim().length > 0 && !!child.sex;
   const contactValid = phone.trim().length > 0 && address.trim().length > 0;
   const emergencyValid = emName.trim().length > 0 && emRelationship.trim().length > 0 && emPhone.trim().length > 0;
-
-  const stepIndex = STEPS.indexOf(step);
-  const revealed = STEPS.slice(0, stepIndex + 1);
-  const locked = STEPS.slice(stepIndex + 1);
-
-  function summaryFor(s: Step): string {
-    if (s === "identity") return `${child.preferredName || child.legalFirstName} · ${child.dob} · ${child.sex}`;
-    if (s === "contact") return `${phone} · ${address}`;
-    return `${emName} · ${emRelationship} · ${emPhone}`;
-  }
-
-  function advance() {
-    if (step === "emergency") {
-      onConfirm();
-      return;
-    }
-    setStep(STEPS[stepIndex + 1]);
-  }
+  const canContinue = identityValid && contactValid && emergencyValid;
 
   return (
     <PhoneFrame>
@@ -116,167 +110,109 @@ export function AboutYouScreen({
           competing for that slot. */}
       <StepHeader eyebrow="About you" stepLabel="Step 1 of 1" progressPercent={100} onBack={onBack} />
       <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-6 pt-6">
-        <h1 className="mt-4 text-[22px] font-bold leading-tight text-ink">Let&apos;s confirm a few things.</h1>
+        <h1 className="mt-4 text-[22px] font-bold leading-tight text-ink">You&apos;re verified.</h1>
         <p className="mt-1.5 text-sm text-muted">
           {isReturning
-            ? "We've pre-filled what we got from your booking. Confirm or correct each one."
-            : "We've filled in what we got when you booked — check it over and fill in the rest."}
+            ? "Here's what we have on file — nothing to retype unless something's changed."
+            : "Here's what we already have from your booking — just fill in what's left."}
         </p>
 
         <div className="mt-4 space-y-3">
-          {revealed.map((s, i) => {
-            const status = i === revealed.length - 1 ? "active" : "ready";
-            return (
-              <SectionShell
-                key={s}
-                title={STEP_TITLES[s]}
-                status={status}
-                summaryLine={status === "ready" ? summaryFor(s) : undefined}
-                onReopen={() => setStep(s)}
-              >
-                {status === "active" ? (
-                  <StepBody
-                    step={s}
-                    child={child}
-                    dispatch={dispatch}
-                    phone={phone}
-                    setPhone={setPhone}
-                    address={address}
-                    setAddress={setAddress}
-                    emName={emName}
-                    setEmName={setEmName}
-                    emRelationship={emRelationship}
-                    setEmRelationship={setEmRelationship}
-                    emPhone={emPhone}
-                    setEmPhone={setEmPhone}
-                    canContinue={s === "identity" ? identityValid : s === "contact" ? contactValid : emergencyValid}
-                    onContinue={advance}
+          <SectionShell title="Identity" status="active">
+            {identityState === "confirm" ? (
+              <ConfirmSummary
+                summary={`${child.preferredName || child.legalFirstName} · ${child.dob} · ${child.sex}`}
+                onEdit={() => setIdentityState("edit")}
+              />
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextField
+                    label="Legal first name"
+                    value={child.legalFirstName}
+                    onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalFirstName", value: v })}
                   />
-                ) : null}
-              </SectionShell>
-            );
-          })}
+                  <TextField
+                    label="Legal last name"
+                    value={child.legalLastName}
+                    onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalLastName", value: v })}
+                  />
+                </div>
+                <TextField
+                  label="Preferred name"
+                  value={child.preferredName}
+                  onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "preferredName", value: v })}
+                />
+                <TextField
+                  label="Date of birth"
+                  type="date"
+                  value={child.dob}
+                  onChange={(v) => {
+                    dispatch({ type: "SET_CHILD_FIELD", field: "dob", value: v });
+                    const age = ageFromDob(v);
+                    if (age !== null) dispatch({ type: "SET_CHILD_AGE", age });
+                  }}
+                />
+                <QuestionBlock eyebrow="Sex" prompt="Sex assigned at birth (for growth charts & dosing)">
+                  <div className="flex flex-wrap gap-2">
+                    {["Female", "Male", "Prefer not to say"].map((opt) => (
+                      <Chip
+                        key={opt}
+                        label={opt}
+                        selected={child.sex === opt}
+                        onClick={() => dispatch({ type: "SET_CHILD_FIELD", field: "sex", value: opt })}
+                      />
+                    ))}
+                  </div>
+                </QuestionBlock>
+              </>
+            )}
+          </SectionShell>
+
+          <SectionShell title="Contact" status="active">
+            {contactState === "confirm" ? (
+              <ConfirmSummary summary={`${phone} · ${address}`} onEdit={() => setContactState("edit")} />
+            ) : (
+              <>
+                <TextField label="Phone" value={phone} onChange={setPhone} inputMode="tel" />
+                <TextField label="Address" value={address} onChange={setAddress} />
+              </>
+            )}
+          </SectionShell>
+
+          <SectionShell title="Emergency contact" status="active">
+            {emergencyState === "confirm" ? (
+              <ConfirmSummary summary={`${emName} · ${emRelationship} · ${emPhone}`} onEdit={() => setEmergencyState("edit")} />
+            ) : (
+              <>
+                <TextField label="Name" value={emName} onChange={setEmName} />
+                <TextField label="Relationship" value={emRelationship} onChange={setEmRelationship} />
+                <TextField label="Phone" value={emPhone} onChange={setEmPhone} inputMode="tel" />
+              </>
+            )}
+          </SectionShell>
         </div>
 
-        {locked.length > 0 ? (
-          <div className="mt-3">
-            {locked.map((s, i) => (
-              <SectionShell
-                key={s}
-                title={STEP_TITLES[s]}
-                status="locked"
-                lockedPosition={locked.length === 1 ? "only" : i === 0 ? "first" : i === locked.length - 1 ? "last" : "middle"}
-              />
-            ))}
-          </div>
-        ) : null}
+        <div className="mt-5">
+          <PrimaryButton tone="teal" disabled={!canContinue} onClick={onConfirm}>
+            Continue
+          </PrimaryButton>
+        </div>
       </div>
     </PhoneFrame>
   );
 }
 
-function StepBody({
-  step,
-  child,
-  dispatch,
-  phone,
-  setPhone,
-  address,
-  setAddress,
-  emName,
-  setEmName,
-  emRelationship,
-  setEmRelationship,
-  emPhone,
-  setEmPhone,
-  canContinue,
-  onContinue,
-}: {
-  step: Step;
-  child: ReturnType<typeof useVisit>["state"]["child"];
-  dispatch: ReturnType<typeof useVisit>["dispatch"];
-  phone: string;
-  setPhone: (v: string) => void;
-  address: string;
-  setAddress: (v: string) => void;
-  emName: string;
-  setEmName: (v: string) => void;
-  emRelationship: string;
-  setEmRelationship: (v: string) => void;
-  emPhone: string;
-  setEmPhone: (v: string) => void;
-  canContinue: boolean;
-  onContinue: () => void;
-}) {
-  if (step === "identity") {
-    return (
-      <>
-        <div className="grid grid-cols-2 gap-3">
-          <TextField
-            label="Legal first name"
-            value={child.legalFirstName}
-            onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalFirstName", value: v })}
-          />
-          <TextField
-            label="Legal last name"
-            value={child.legalLastName}
-            onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalLastName", value: v })}
-          />
-        </div>
-        <TextField
-          label="Preferred name"
-          value={child.preferredName}
-          onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "preferredName", value: v })}
-        />
-        <TextField
-          label="Date of birth"
-          type="date"
-          value={child.dob}
-          onChange={(v) => {
-            dispatch({ type: "SET_CHILD_FIELD", field: "dob", value: v });
-            const age = ageFromDob(v);
-            if (age !== null) dispatch({ type: "SET_CHILD_AGE", age });
-          }}
-        />
-        <QuestionBlock eyebrow="Sex" prompt="Sex assigned at birth (for growth charts & dosing)">
-          <div className="flex flex-wrap gap-2">
-            {["Female", "Male", "Prefer not to say"].map((opt) => (
-              <Chip
-                key={opt}
-                label={opt}
-                selected={child.sex === opt}
-                onClick={() => dispatch({ type: "SET_CHILD_FIELD", field: "sex", value: opt })}
-              />
-            ))}
-          </div>
-        </QuestionBlock>
-        <PrimaryButton tone="teal" disabled={!canContinue} onClick={onContinue}>
-          ✓ Looks right
-        </PrimaryButton>
-      </>
-    );
-  }
-
-  if (step === "contact") {
-    return (
-      <>
-        <TextField label="Phone" value={phone} onChange={setPhone} inputMode="tel" />
-        <TextField label="Address" value={address} onChange={setAddress} />
-        <PrimaryButton tone="teal" disabled={!canContinue} onClick={onContinue}>
-          ✓ Looks right
-        </PrimaryButton>
-      </>
-    );
-  }
-
+// A quiet "here's what we already have" line — no confirm tap required
+// (unlike ConfirmCard elsewhere, which asks for an explicit "Nothing
+// changed"/"Something changed" per section): this screen's overall
+// Continue button is the only affirmative action needed. Edit is the only
+// thing to tap, and only if something's actually wrong.
+function ConfirmSummary({ summary, onEdit }: { summary: string; onEdit: () => void }) {
   return (
-    <>
-      <TextField label="Name" value={emName} onChange={setEmName} />
-      <TextField label="Relationship" value={emRelationship} onChange={setEmRelationship} />
-      <TextField label="Phone" value={emPhone} onChange={setEmPhone} inputMode="tel" />
-      <PrimaryButton tone="teal" disabled={!canContinue} onClick={onContinue}>
-        ✓ Looks right
-      </PrimaryButton>
-    </>
+    <div className="flex items-center justify-between gap-3">
+      <div className="text-sm font-medium text-ink">{summary}</div>
+      <TextLink onClick={onEdit}>Edit</TextLink>
+    </div>
   );
 }
