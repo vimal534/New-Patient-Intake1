@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useVisit } from "../state";
-import { ON_FILE_RECORD, MOCK_BOOKING_INFO } from "../mockData";
+import { ON_FILE_RECORD, MOCK_BOOKING_INFO, isFresh, formatUpdatedDate } from "../mockData";
 import { PhoneFrame } from "./PhoneFrame";
 import { Chip, PrimaryButton, QuestionBlock, SectionShell, StepHeader, TextField, TextLink } from "./ui";
 
@@ -96,9 +96,28 @@ export function AboutYouScreen({
   const [contactState, setContactState] = useState<CardState>(isReturning ? "confirm" : "edit");
   const [emergencyState, setEmergencyState] = useState<CardState>(isReturning ? "confirm" : "edit");
 
-  const identityValid = child.legalFirstName.trim().length > 0 && child.dob.trim().length > 0 && !!child.sex;
-  const contactValid = phone.trim().length > 0 && address.trim().length > 0;
-  const emergencyValid = emName.trim().length > 0 && emRelationship.trim().length > 0 && emPhone.trim().length > 0;
+  // "Suppress what's fresh" — a card verified within the last
+  // FRESHNESS_WINDOW_DAYS doesn't render at all, not even as a quiet
+  // confirm summary. Showing it (even without a confirm tap) still trains
+  // the "glance past it" reflex the whole redesign is trying to avoid;
+  // hiding it is the only thing that doesn't also get tapped through
+  // blind. Only meaningful for returning patients — a new patient's
+  // fields either came from THIS SAME booking (too fresh to have a real
+  // verifiedAt yet) or are genuinely blank, neither of which this applies
+  // to. Cards the guardian has already tapped "Edit" on stay visible in
+  // edit mode regardless of freshness — suppression only withholds a card
+  // that was never going to be shown as anything but a summary.
+  const identityFresh = isReturning && identityState === "confirm" && isFresh(ON_FILE_RECORD.verifiedAt.identity);
+  const contactFresh = isReturning && contactState === "confirm" && isFresh(ON_FILE_RECORD.verifiedAt.contact);
+  const emergencyFresh =
+    isReturning && emergencyState === "confirm" && isFresh(ON_FILE_RECORD.verifiedAt.emergencyContact);
+  const suppressedCount = [identityFresh, contactFresh, emergencyFresh].filter(Boolean).length;
+
+  const identityValid =
+    identityFresh || (child.legalFirstName.trim().length > 0 && child.dob.trim().length > 0 && !!child.sex);
+  const contactValid = contactFresh || (phone.trim().length > 0 && address.trim().length > 0);
+  const emergencyValid =
+    emergencyFresh || (emName.trim().length > 0 && emRelationship.trim().length > 0 && emPhone.trim().length > 0);
   const canContinue = identityValid && contactValid && emergencyValid;
 
   return (
@@ -116,81 +135,103 @@ export function AboutYouScreen({
             ? "Here's what we have on file — nothing to retype unless something's changed."
             : "Here's what we already have from your booking — just fill in what's left."}
         </p>
+        {suppressedCount > 0 ? (
+          <p className="mt-1 text-xs text-muted">
+            {suppressedCount === 1
+              ? "One thing was verified too recently to ask about again."
+              : `${suppressedCount} things were verified too recently to ask about again.`}
+          </p>
+        ) : null}
 
         <div className="mt-4 space-y-3">
-          <SectionShell title="Identity" status="active">
-            {identityState === "confirm" ? (
-              <ConfirmSummary
-                summary={`${child.preferredName || child.legalFirstName} · ${child.dob} · ${child.sex}`}
-                onEdit={() => setIdentityState("edit")}
-              />
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <TextField
-                    label="Legal first name"
-                    value={child.legalFirstName}
-                    onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalFirstName", value: v })}
-                  />
-                  <TextField
-                    label="Legal last name"
-                    value={child.legalLastName}
-                    onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalLastName", value: v })}
-                  />
-                </div>
-                <TextField
-                  label="Preferred name"
-                  value={child.preferredName}
-                  onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "preferredName", value: v })}
+          {!identityFresh ? (
+            <SectionShell title="Identity" status="active">
+              {identityState === "confirm" ? (
+                <ConfirmSummary
+                  summary={`${child.preferredName || child.legalFirstName} · ${child.dob} · ${child.sex}`}
+                  updatedLabel={isReturning ? formatUpdatedDate(ON_FILE_RECORD.verifiedAt.identity) : undefined}
+                  onEdit={() => setIdentityState("edit")}
                 />
-                <TextField
-                  label="Date of birth"
-                  type="date"
-                  value={child.dob}
-                  onChange={(v) => {
-                    dispatch({ type: "SET_CHILD_FIELD", field: "dob", value: v });
-                    const age = ageFromDob(v);
-                    if (age !== null) dispatch({ type: "SET_CHILD_AGE", age });
-                  }}
-                />
-                <QuestionBlock eyebrow="Sex" prompt="Sex assigned at birth (for growth charts & dosing)">
-                  <div className="flex flex-wrap gap-2">
-                    {["Female", "Male", "Prefer not to say"].map((opt) => (
-                      <Chip
-                        key={opt}
-                        label={opt}
-                        selected={child.sex === opt}
-                        onClick={() => dispatch({ type: "SET_CHILD_FIELD", field: "sex", value: opt })}
-                      />
-                    ))}
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <TextField
+                      label="Legal first name"
+                      value={child.legalFirstName}
+                      onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalFirstName", value: v })}
+                    />
+                    <TextField
+                      label="Legal last name"
+                      value={child.legalLastName}
+                      onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "legalLastName", value: v })}
+                    />
                   </div>
-                </QuestionBlock>
-              </>
-            )}
-          </SectionShell>
+                  <TextField
+                    label="Preferred name"
+                    value={child.preferredName}
+                    onChange={(v) => dispatch({ type: "SET_CHILD_FIELD", field: "preferredName", value: v })}
+                  />
+                  <TextField
+                    label="Date of birth"
+                    type="date"
+                    value={child.dob}
+                    onChange={(v) => {
+                      dispatch({ type: "SET_CHILD_FIELD", field: "dob", value: v });
+                      const age = ageFromDob(v);
+                      if (age !== null) dispatch({ type: "SET_CHILD_AGE", age });
+                    }}
+                  />
+                  <QuestionBlock eyebrow="Sex" prompt="Sex assigned at birth (for growth charts & dosing)">
+                    <div className="flex flex-wrap gap-2">
+                      {["Female", "Male", "Prefer not to say"].map((opt) => (
+                        <Chip
+                          key={opt}
+                          label={opt}
+                          selected={child.sex === opt}
+                          onClick={() => dispatch({ type: "SET_CHILD_FIELD", field: "sex", value: opt })}
+                        />
+                      ))}
+                    </div>
+                  </QuestionBlock>
+                </>
+              )}
+            </SectionShell>
+          ) : null}
 
-          <SectionShell title="Contact" status="active">
-            {contactState === "confirm" ? (
-              <ConfirmSummary summary={`${phone} · ${address}`} onEdit={() => setContactState("edit")} />
-            ) : (
-              <>
-                <TextField label="Phone" value={phone} onChange={setPhone} inputMode="tel" />
-                <TextField label="Address" value={address} onChange={setAddress} />
-              </>
-            )}
-          </SectionShell>
+          {!contactFresh ? (
+            <SectionShell title="Contact" status="active">
+              {contactState === "confirm" ? (
+                <ConfirmSummary
+                  summary={`${phone} · ${address}`}
+                  updatedLabel={isReturning ? formatUpdatedDate(ON_FILE_RECORD.verifiedAt.contact) : undefined}
+                  onEdit={() => setContactState("edit")}
+                />
+              ) : (
+                <>
+                  <TextField label="Phone" value={phone} onChange={setPhone} inputMode="tel" />
+                  <TextField label="Address" value={address} onChange={setAddress} />
+                </>
+              )}
+            </SectionShell>
+          ) : null}
 
-          <SectionShell title="Emergency contact" status="active">
-            {emergencyState === "confirm" ? (
-              <ConfirmSummary summary={`${emName} · ${emRelationship} · ${emPhone}`} onEdit={() => setEmergencyState("edit")} />
-            ) : (
-              <>
-                <TextField label="Name" value={emName} onChange={setEmName} />
-                <TextField label="Relationship" value={emRelationship} onChange={setEmRelationship} />
-                <TextField label="Phone" value={emPhone} onChange={setEmPhone} inputMode="tel" />
-              </>
-            )}
-          </SectionShell>
+          {!emergencyFresh ? (
+            <SectionShell title="Emergency contact" status="active">
+              {emergencyState === "confirm" ? (
+                <ConfirmSummary
+                  summary={`${emName} · ${emRelationship} · ${emPhone}`}
+                  updatedLabel={isReturning ? formatUpdatedDate(ON_FILE_RECORD.verifiedAt.emergencyContact) : undefined}
+                  onEdit={() => setEmergencyState("edit")}
+                />
+              ) : (
+                <>
+                  <TextField label="Name" value={emName} onChange={setEmName} />
+                  <TextField label="Relationship" value={emRelationship} onChange={setEmRelationship} />
+                  <TextField label="Phone" value={emPhone} onChange={setEmPhone} inputMode="tel" />
+                </>
+              )}
+            </SectionShell>
+          ) : null}
         </div>
 
         <div className="mt-5">
@@ -208,10 +249,27 @@ export function AboutYouScreen({
 // changed"/"Something changed" per section): this screen's overall
 // Continue button is the only affirmative action needed. Edit is the only
 // thing to tap, and only if something's actually wrong.
-function ConfirmSummary({ summary, onEdit }: { summary: string; onEdit: () => void }) {
+//
+// "Updated {Month Year}" ("show the age") is what gives this a real
+// reason to be looked at rather than trusted blind — every card that
+// reaches this component has already survived the freshness check in the
+// parent (a card verified recently enough to be suppressed never renders
+// at all), so anything shown here is, by construction, worth a glance.
+function ConfirmSummary({
+  summary,
+  updatedLabel,
+  onEdit,
+}: {
+  summary: string;
+  updatedLabel?: string;
+  onEdit: () => void;
+}) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="text-sm font-medium text-ink">{summary}</div>
+      <div>
+        <div className="text-sm font-medium text-ink">{summary}</div>
+        {updatedLabel ? <div className="mt-0.5 text-xs text-muted">Updated {updatedLabel}</div> : null}
+      </div>
       <TextLink onClick={onEdit}>Edit</TextLink>
     </div>
   );

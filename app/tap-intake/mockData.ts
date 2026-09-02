@@ -9,6 +9,41 @@
 import { FREE_TEXT_TAGS } from "./questionBank";
 import { MedicalCategoryKey } from "./types";
 
+// Two quality principles applied to on-file data across AboutYouScreen and
+// Health History:
+//
+// 1. "Show the age" — a silent prefill reads as already handled, which is
+//    exactly the wrong signal for something the guardian should actually
+//    glance at. A concrete "Updated {Month Year}" label gives them a real
+//    reason to look, instead of trusting a value they never saw a date on.
+// 2. "Suppress what's fresh" — the flip side: re-asking about something
+//    verified two weeks ago trains guardians to tap through confirmations
+//    without reading them, which is what then makes them miss the
+//    confirmations that actually matter. AboutYouScreen uses `isFresh` to
+//    skip showing a card at all when it's within the window — not just
+//    skip asking, skip showing, since "hidden" is the only thing that
+//    doesn't ALSO get tapped through blind.
+//
+// Deliberately NOT applied to hiding actual clinical facts (Health
+// History's on-file conditions/allergies/etc.) — a diagnosis doesn't stop
+// being true because it was reviewed recently. There, only principle 1
+// applies (see medicalHistoryUpdatedAt on ON_FILE_RECORD); nothing about
+// medical history data is ever suppressed by freshness.
+export const FRESHNESS_WINDOW_DAYS = 14;
+
+export function isFresh(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return false;
+  const diffDays = (Date.now() - date.getTime()) / (24 * 3600 * 1000);
+  return diffDays >= 0 && diffDays <= FRESHNESS_WINDOW_DAYS;
+}
+
+export function formatUpdatedDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
 // What a NEW patient's appointment booking already captured, before the
 // tap-intake link was ever sent — a scheduling widget (or a front-desk
 // call) needs at minimum the child's name and DOB to create the
@@ -46,6 +81,19 @@ export const ON_FILE_RECORD = {
   // /intake build, for a consistent identity across both prototypes.
   contact: { phone: "(512) 555-0148", address: "214 Oakwood Dr, Austin, TX 78701" },
   emergencyContact: { name: "Carlos Marquez", relationship: "Grandparent", phone: "(512) 555-0199" },
+  // When each of AboutYouScreen's three confirm-or-edit cards was last
+  // verified — not one shared date, since a family might update their
+  // phone without touching their legal address. Two deliberately stale
+  // (identity ~10 months old, emergency contact ~5.5 months old) so
+  // "still needs a look" stays exercisable; contact deliberately recent
+  // (8 days before this repo's current-date context) so the
+  // freshness-suppression behavior on AboutYouScreen has something real
+  // to suppress in the demo, not just a hypothetical.
+  verifiedAt: {
+    identity: "2025-11-02",
+    contact: "2026-08-25",
+    emergencyContact: "2026-03-15",
+  },
   nextVisit: {
     date: "Tomorrow",
     time: "10:20 AM",
@@ -69,6 +117,17 @@ export const ON_FILE_RECORD = {
     surgeries: ["Ear tubes (2024)"],
     hospitalizations: [] as string[],
   },
+  // "Show the age" for the on-file list on Health History — a concrete
+  // date gives the guardian a real reason to glance it over, instead of a
+  // silent prefill reading as already handled. Deliberately stale (~3
+  // weeks old): unlike AboutYouScreen's per-card verifiedAt dates, this
+  // one is never used to suppress/hide anything — clinical facts (a
+  // condition, an allergy) stay visible regardless of how recently
+  // they were reviewed; only the confirm-and-reask RITUAL gets
+  // suppressed for fresh data, not the data itself. Health History
+  // already dropped its per-item confirm step entirely in an earlier
+  // pass, so this date is purely informational here.
+  medicalHistoryUpdatedAt: "2026-08-10",
   familyHistory: [{ id: "asthma", label: "Asthma", relative: "mother" }],
   guardian: {
     name: "Elena Marquez",

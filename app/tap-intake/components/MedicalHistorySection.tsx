@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useVisit } from "../state";
 import { MEDICAL_CATEGORY_LABELS, MEDICAL_CATEGORY_OPTIONS } from "../questionBank";
 import { MedicalCategoryKey, MEDICAL_CATEGORY_KEYS } from "../types";
-import { ON_FILE_RECORD } from "../mockData";
+import { ON_FILE_RECORD, formatUpdatedDate } from "../mockData";
 import { Chip, PrimaryButton, TextLink } from "./ui";
 import { MedicationChipInput, SimpleChipInput } from "./MedicalHistoryChips";
 
@@ -120,6 +120,14 @@ export function MedicalHistorySection({ onDone }: { onDone: () => void }) {
             </div>
             <TextLink onClick={() => setEditorOpen((v) => !v)}>Edit</TextLink>
           </div>
+          {/* "Show the age" — a concrete date gives a reason to actually
+              read the list above instead of trusting a silent prefill.
+              Deliberately not used to hide anything here (unlike
+              AboutYouScreen's per-card suppression) — see
+              medicalHistoryUpdatedAt's own comment in mockData.ts for why
+              clinical facts stay visible regardless of how recently
+              they were reviewed. */}
+          <div className="mt-2 text-xs text-muted">Updated {formatUpdatedDate(ON_FILE_RECORD.medicalHistoryUpdatedAt)}</div>
         </div>
       ) : null}
 
