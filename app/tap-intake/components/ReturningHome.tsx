@@ -49,24 +49,22 @@ function ProgressRing({ percent }: { percent: number }) {
 // screen, so a returning guardian sees what's already known before being
 // asked to tell us what's going on today.
 //
-// v2: the previous pass split identity (avatar next to the heading) from
-// visit logistics (a separate status card) into two pieces, dropped the
-// "why this screen" framing the original copy had, and repeated the time
-// estimate twice (subtitle + below the button). This version restores a
-// single, dominant heading with that framing back in the subtitle, folds
-// everything visit-related into ONE card (no redundant name/avatar repeat
-// — the heading already names the patient), and states the time estimate
-// exactly once.
-//
-// v3: the CTA is a sticky footer, not part of the scrolling content and
-// not pushed down by a flex-1 spacer either. IntroScreen's flex-1 approach
-// only anchors the button to the bottom when content is tall enough to
-// reach it — on a real (short) phone viewport with tall content it can
-// still force the button below the fold; letting it flow inline after
-// short content (the v2 fix) leaves it stranded mid-screen with dead
-// space below. A footer that's a fixed flex item below an independently
-// scrolling content area is correct in both directions: always visible,
-// content scrolls under it if it's ever too long to fit.
+// v4 (per a reference screenshot): restructured around a "Welcome · see
+// you {date}" eyebrow + large name (was one dense "How's Ana doing?"
+// headline), the visit card split into two rows — ring + visit-type/time/
+// location on top, a divided PROVIDER row with the status badge below —
+// instead of squeezing all of it into one paragraph next to the ring, and
+// the time estimate moved to sit under the CTA instead of the top
+// subtitle. Two things the reference showed that this deliberately did
+// NOT copy verbatim: an 80% progress ring (this screen is always
+// genuinely 0% — see ProgressRing's own comment — showing a fake
+// completion number just because a reference happened to have one would
+// misrepresent real state) and a "First visit"/fasting-reminder card
+// (neither describes this app's actual data — Ana has seen Dr. Reyes
+// before, and a routine pediatric annual physical doesn't carry a fasting
+// requirement the way the reference's adult well-woman-exam-style visit
+// might). "Good to know" already covers "what's worth knowing before you
+// arrive" with real clinical flags instead.
 export function ReturningHome({ onStart }: { onStart: () => void }) {
   const { child, nextVisit, goodToKnow } = ON_FILE_RECORD;
 
@@ -74,24 +72,39 @@ export function ReturningHome({ onStart }: { onStart: () => void }) {
     <PhoneFrame>
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-6 pt-6">
-          <h1 className="text-[28px] font-bold leading-tight text-ink">How&apos;s {child.name} doing?</h1>
-          <p className="mt-2 text-sm text-muted">
-            Tell us before the visit so {nextVisit.provider} is ready. Takes about two minutes.
-          </p>
+          <div className="flex items-center justify-center gap-2 border-b border-line pb-4">
+            <span className="text-teal">✚</span>
+            <span className="text-lg font-bold text-brand">
+              Health<span className="text-teal">pro</span>
+            </span>
+            <span className="text-lg font-normal text-ink">Clinic</span>
+          </div>
 
-          <div className="mt-5 flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-            <ProgressRing percent={0} />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-ink">
-                {nextVisit.date} · {nextVisit.time}
+          <div className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-muted-2">
+            Welcome · see you {nextVisit.date.toLowerCase()}
+          </div>
+          <h1 className="text-[32px] font-bold leading-tight text-ink">{child.name}</h1>
+
+          <div className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-muted-2">
+            {nextVisit.date}&apos;s visit
+          </div>
+          <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center gap-4 p-4">
+              <ProgressRing percent={0} />
+              <div className="min-w-0 flex-1">
+                <div className="text-base font-bold text-ink">{nextVisit.visitType}</div>
+                <div className="text-sm text-muted">
+                  {nextVisit.date} · {nextVisit.time}
+                </div>
+                <div className="text-xs text-muted-2">{nextVisit.location}</div>
               </div>
-              <div className="text-sm text-muted">
-                {nextVisit.visitType} · {nextVisit.provider}
+            </div>
+            <div className="flex items-center justify-between border-t border-line px-4 py-3">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-2">Provider</div>
+                <div className="text-sm font-bold text-ink">{nextVisit.provider}</div>
               </div>
-              <div className="text-xs text-muted-2">{nextVisit.location}</div>
-              <span className="mt-1.5 inline-block rounded-full bg-brand/15 px-2.5 py-1 text-xs font-semibold text-brand">
-                Not started
-              </span>
+              <span className="rounded-full bg-brand/15 px-2.5 py-1 text-xs font-semibold text-brand">Not started</span>
             </div>
           </div>
 
@@ -114,8 +127,9 @@ export function ReturningHome({ onStart }: { onStart: () => void }) {
 
         <div className="shrink-0 border-t border-line px-6 py-4">
           <PrimaryButton onClick={onStart}>
-            Tell us what&apos;s going on <span aria-hidden="true">→</span>
+            Start check-in <span aria-hidden="true">→</span>
           </PrimaryButton>
+          <p className="mt-2 text-center text-xs text-muted">Takes about two minutes · we save as you go</p>
         </div>
       </div>
     </PhoneFrame>
