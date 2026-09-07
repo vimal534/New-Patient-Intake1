@@ -1,6 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
+import { formatCardExpiry, formatDigits } from "../../format";
 import { ChevronLeftIcon } from "../Icons";
 import { BottomSheet, InputField } from "../ui";
 
@@ -66,7 +67,7 @@ export function AddCardSheet({ ctx }: { ctx: Ctx }) {
               value={state.cardExp}
               placeholder="MM / YY"
               inputMode="numeric"
-              onChange={(v) => update({ cardExp: v })}
+              onChange={(v) => update({ cardExp: formatCardExpiry(v) })}
             />
           </div>
           <div className="flex-1">
@@ -75,7 +76,7 @@ export function AddCardSheet({ ctx }: { ctx: Ctx }) {
               value={state.cardCvc}
               placeholder="123"
               inputMode="numeric"
-              onChange={(v) => update({ cardCvc: v.replace(/\D/g, "").slice(0, 4) })}
+              onChange={(v) => update({ cardCvc: formatDigits(v, 4) })}
             />
           </div>
         </div>

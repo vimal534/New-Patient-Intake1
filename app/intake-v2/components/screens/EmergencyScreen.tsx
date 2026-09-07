@@ -1,6 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
+import { formatPhone } from "../../format";
 import { Card, Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
 
 // Screen 4 — Emergency contact.
@@ -19,8 +20,8 @@ export function EmergencyScreen({ ctx }: { ctx: Ctx }) {
 
       {known ? (
         <Card>
-          <div className="text-[17px] font-semibold text-[var(--iv2-text-primary)]">Sarah Doe</div>
-          <div className="mt-0.5 text-[15px] text-[var(--iv2-text-secondary)]">Spouse</div>
+          <div className="text-[17px] font-semibold text-[var(--iv2-text-primary)]">Linda Doe</div>
+          <div className="mt-0.5 text-[15px] text-[var(--iv2-text-secondary)]">Mother</div>
           <div className="mt-2.5 text-[17px] font-semibold text-[var(--iv2-text-primary)]">(555) 234-8891</div>
         </Card>
       ) : null}
@@ -30,13 +31,13 @@ export function EmergencyScreen({ ctx }: { ctx: Ctx }) {
           <InputField
             label="Full name"
             value={state.emergency.name}
-            placeholder="Sarah Doe"
+            placeholder="Linda Doe"
             onChange={(v) => update((s) => ({ emergency: { ...s.emergency, name: v } }))}
           />
           <InputField
             label="Relationship"
             value={state.emergency.relation}
-            placeholder="Spouse"
+            placeholder="Mother"
             onChange={(v) => update((s) => ({ emergency: { ...s.emergency, relation: v } }))}
           />
           <InputField
@@ -44,7 +45,7 @@ export function EmergencyScreen({ ctx }: { ctx: Ctx }) {
             value={state.emergency.phone}
             placeholder="(555) 234-8891"
             inputMode="tel"
-            onChange={(v) => update((s) => ({ emergency: { ...s.emergency, phone: v } }))}
+            onChange={(v) => update((s) => ({ emergency: { ...s.emergency, phone: formatPhone(v) } }))}
           />
         </div>
       ) : null}

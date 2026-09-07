@@ -13,8 +13,7 @@ export const PCT: Partial<Record<FlowKey, number>> = {
   allergies: 78,
   screener: 84,
   payment: 90,
-  consent: 95,
-  review: 99,
+  consent: 99,
 };
 
 // Returning patients review conditions/medications/surgeries/allergies/
@@ -24,6 +23,7 @@ export const PCT: Partial<Record<FlowKey, number>> = {
 // not their own steps here. New patients still build each up from
 // scratch on its own screen (unchanged).
 export const FLOW_RET: FlowKey[] = [
+  "verifyIntro",
   "otp",
   "welcome",
   "personal",
@@ -34,11 +34,11 @@ export const FLOW_RET: FlowKey[] = [
   "screener",
   "payment",
   "consent",
-  "review",
   "success",
 ];
 
 export const FLOW_NEW: FlowKey[] = [
+  "verifyIntro",
   "otp",
   "welcome",
   "personal",
@@ -52,7 +52,6 @@ export const FLOW_NEW: FlowKey[] = [
   "screener",
   "payment",
   "consent",
-  "review",
   "success",
 ];
 
@@ -154,17 +153,20 @@ export function initialState(scenario: Scenario): IntakeState {
     emergencyUpdating: false,
     emergency: { name: "", relation: "", phone: "" },
 
-    visitConfirmed: false,
+    // Skip the "Is this what you're coming in for?" confirm gate — land
+    // directly on the "A few details" reason-card + symptom question.
+    visitConfirmed: true,
     visitAnswer: null,
 
     coverageChanging: false,
-    coverageEditing: false,
     manualEntry: false,
     carrier: "",
     memberId: "",
+    memberName: "",
     scanning: false,
     groupFixed: false,
     groupValue: "",
+    ocrFieldsEditing: false,
     backScanned: false,
 
     eligibility: "idle",
@@ -220,6 +222,7 @@ export function initialState(scenario: Scenario): IntakeState {
     saveCardChecked: true,
 
     consentFullOpen: false,
+    financialOpen: false,
     agreed: false,
     signed: false,
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { CalendarIcon, InfoIcon, LocationIcon, ClockIcon, StethoscopeIcon, ArrowRightIcon, CardIcon } from "../Icons";
+import { CalendarIcon, InfoIcon, LocationIcon, ClockIcon, ArrowRightIcon, CardIcon, UserIcon } from "../Icons";
 import { ReadinessRing } from "../ReadinessRing";
 import { YosiHealthLogo } from "../YosiHealthLogo";
 
@@ -28,7 +28,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
 
   return (
     <div className="min-h-full bg-[var(--iv2-surface-muted)]">
-      <div className="flex items-start justify-between gap-4 bg-white px-6 pt-[58px] pb-[22px]">
+      <div className="flex items-start justify-between gap-4 bg-white px-6 pt-6 pb-[22px]">
         <div>
           <div className="text-[13px] font-semibold tracking-[0.08em] text-[var(--iv2-text-muted)] uppercase">Good morning</div>
           <div className="mt-1.5 text-[32px] leading-[1.15] font-bold text-[var(--iv2-text-primary)]">Jane</div>
@@ -50,18 +50,29 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex items-center gap-2.5">
-                <StethoscopeIcon size={16} />
-                <div className="text-base text-[var(--iv2-text-primary)]">Dr. Sarah Jenkins</div>
-              </div>
-              <div className="mt-2 flex items-center gap-2.5">
-                <CalendarIcon />
-                <div className="text-base text-[var(--iv2-text-primary)]">11 June 2026</div>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
+                  <UserIcon size={20} color="var(--iv2-brand)" />
+                </div>
+                <div>
+                  <div className="text-base font-semibold text-[var(--iv2-text-primary)]">Dr. Sarah Jenkins</div>
+                  <div className="text-[15px] text-[var(--iv2-text-secondary)]">Primary Care</div>
+                </div>
               </div>
             </div>
             <div className="shrink-0 text-center">
               <ReadinessRing percent={readiness} />
               <div className="mt-2.5 text-[11px] font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Readiness</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 border-t border-[var(--iv2-border-subtle)] p-4">
+            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface-muted)]" style={{ height: 38, width: 38 }}>
+              <CalendarIcon />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Date</div>
+              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">11 June 2026</div>
             </div>
           </div>
 
