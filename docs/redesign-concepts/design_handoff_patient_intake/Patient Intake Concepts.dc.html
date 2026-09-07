@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#F1F3F5;font-family:'Manrope',-apple-system,system-ui,sans-serif;}
+    a{color:#0E7C74;text-decoration:none;}
+    a:hover{color:#0B6359;}
+    button{-webkit-tap-highlight-color:transparent;}
+  </style>
+</helmet>
+<div style="min-height:100vh;background:#F1F3F5;padding:56px 32px 80px;box-sizing:border-box;">
+  <div style="max-width:1440px;margin:0 auto;">
+    <div style="margin-bottom:44px;max-width:680px;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:0.08em;color:#0E7C74;text-transform:uppercase;margin-bottom:10px;">Patient intake redesign — exploration</div>
+      <h1 style="font-size:34px;font-weight:800;color:#10182B;margin:0 0 10px;line-height:1.15;">Three concept directions</h1>
+      <p style="font-size:16px;color:#5B6577;margin:0;line-height:1.55;">Same requirements and information architecture, three different interaction models. Each phone is fully clickable — tap through to compare how the flows feel end to end.</p>
+    </div>
+
+    <div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start;justify-content:center;">
+
+      <sc-if value="{{ showA }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:18px;width:402px;" data-screen-label="Concept A — Guided">
+          <div style="text-align:center;">
+            <div style="display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.04em;color:#0E7C74;background:#E3F3F1;padding:4px 10px;border-radius:100px;margin-bottom:8px;">CONCEPT A</div>
+            <div style="font-size:20px;font-weight:800;color:#10182B;">Guided Step-by-Step</div>
+            <div style="font-size:14px;color:#5B6577;margin-top:2px;">One task per screen · predictable</div>
+          </div>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402,874">
+
+            <sc-if value="{{ a0 }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="flex:1;padding:70px 24px 20px;display:flex;flex-direction:column;justify-content:center;">
+                  <div style="font-size:15px;font-weight:700;color:#5B6577;margin-bottom:6px;">Good morning, Jane</div>
+                  <div style="font-size:28px;font-weight:800;color:#10182B;line-height:1.2;margin-bottom:20px;">Let's get you checked in for tomorrow.</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#F7F8FA;">
+                    <div style="font-size:15px;font-weight:700;color:#10182B;">{{ apptType }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:4px;">{{ apptTime }}</div>
+                    <div style="font-size:14px;color:#5B6577;">{{ apptLoc }}</div>
+                  </div>
+                  <div style="font-size:14px;color:#5B6577;margin-top:16px;">About 2 min left</div>
+                </div>
+                <div style="padding:16px 24px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aNext }}">Start check-in</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ a1 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ aBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:10px 0 8px;">Personal info</div>
+                  <div style="display:flex;gap:4px;">
+                    <sc-for list="{{ aProgress }}" as="seg" hint-placeholder-count="6"><div style="height:4px;flex:1;border-radius:2px;background:{{ seg.bg }};"></div></sc-for>
+                  </div>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:26px;font-weight:800;color:#10182B;margin-bottom:16px;">Is this still you?</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;display:flex;flex-direction:column;gap:12px;">
+                    <div><div style="font-size:13px;color:#5B6577;">Name</div><div style="font-size:16px;font-weight:700;color:#10182B;">{{ patientName }}</div></div>
+                    <div><div style="font-size:13px;color:#5B6577;">Mobile</div><div style="font-size:16px;font-weight:700;color:#10182B;">{{ patientPhone }}</div></div>
+                    <div><div style="font-size:13px;color:#5B6577;">Email</div><div style="font-size:16px;font-weight:700;color:#10182B;">{{ patientEmail }}</div></div>
+                    <div><div style="font-size:13px;color:#5B6577;">Date of birth</div><div style="font-size:16px;font-weight:700;color:#10182B;">{{ patientDob }}</div></div>
+                  </div>
+                  <sc-if value="{{ aEditOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#F7F8FA;margin-top:12px;">
+                      <div style="font-size:14px;color:#5B6577;margin-bottom:10px;">Update any field, then save.</div>
+                      <div style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#10182B;margin-bottom:8px;">{{ patientPhone }}</div>
+                      <div style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#10182B;">{{ patientEmail }}</div>
+                      <button style="width:100%;height:44px;border:none;border-radius:10px;background:#10182B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px;" onClick="{{ aToggleEdit }}">Save changes</button>
+                    </div>
+                  </sc-if>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;padding:10px 0;" onClick="{{ aToggleEdit }}">Edit information</button>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aNext }}">Everything looks correct</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ a2 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ aBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:10px 0 8px;">Insurance</div>
+                  <div style="display:flex;gap:4px;">
+                    <sc-for list="{{ aProgress }}" as="seg" hint-placeholder-count="6"><div style="height:4px;flex:1;border-radius:2px;background:{{ seg.bg }};"></div></sc-for>
+                  </div>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:26px;font-weight:800;color:#10182B;margin-bottom:16px;">Is this your insurance?</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;">
+                    <div style="font-size:17px;font-weight:700;color:#10182B;">{{ insCarrier }} {{ insPlan }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:4px;">Member ID {{ insMemberId }}</div>
+                    <div style="font-size:13px;color:#5B6577;margin-top:8px;">Last confirmed {{ insConfirmed }}</div>
+                  </div>
+                  <sc-if value="{{ aInsChanged }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:16px;">
+                      <div style="font-size:15px;font-weight:700;color:#10182B;margin-bottom:10px;">Scan your insurance card</div>
+                      <button style="width:100%;height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;" onClick="{{ aNext }}">Scan card</button>
+                      <button style="width:100%;height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;" onClick="{{ aNext }}">Enter details manually</button>
+                      <button style="width:100%;height:44px;border:none;background:none;color:#5B6577;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" onClick="{{ aNext }}">Do this later</button>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ aInsChanged }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                    <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aInsNo }}">Actually, it's still correct</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ aInsChangedNot }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                    <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aNext }}">Yes, still correct</button>
+                    <button style="width:100%;height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px;" onClick="{{ aInsYes }}">My insurance changed</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ a3 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ aBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:10px 0 8px;">Health history</div>
+                  <div style="display:flex;gap:4px;">
+                    <sc-for list="{{ aProgress }}" as="seg" hint-placeholder-count="6"><div style="height:4px;flex:1;border-radius:2px;background:{{ seg.bg }};"></div></sc-for>
+                  </div>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:26px;font-weight:800;color:#10182B;margin-bottom:6px;">Do you have any of these conditions?</div>
+                  <div style="font-size:14px;color:#5B6577;margin-bottom:16px;">Select all that apply.</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    <sc-for list="{{ aCondItems }}" as="item" hint-placeholder-count="3">
+                      <button style="padding:10px 14px;border-radius:10px;border:1px solid {{ item.border }};background:{{ item.bg }};color:{{ item.color }};font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" onClick="{{ item.toggle }}">{{ item.name }}</button>
+                    </sc-for>
+                    <button style="padding:10px 14px;border-radius:10px;border:1px solid {{ aNoneBorder }};background:{{ aNoneBg }};color:{{ aNoneColor }};font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" onClick="{{ aToggleNone }}">None of these</button>
+                  </div>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aNext }}">Continue</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ a4 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ aBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:10px 0 8px;">Payment</div>
+                  <div style="display:flex;gap:4px;">
+                    <sc-for list="{{ aProgress }}" as="seg" hint-placeholder-count="6"><div style="height:4px;flex:1;border-radius:2px;background:{{ seg.bg }};"></div></sc-for>
+                  </div>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:4px;">Your copay</div>
+                  <div style="font-size:40px;font-weight:800;color:#10182B;margin-bottom:2px;">${{ copay }}</div>
+                  <div style="font-size:14px;color:#5B6577;margin-bottom:20px;">Due today</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;">
+                    <div style="font-size:15px;font-weight:700;color:#10182B;">{{ apptType }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:2px;">{{ apptTime }}</div>
+                    <div style="font-size:14px;color:#5B6577;">{{ apptLoc }}</div>
+                    <div style="height:1px;background:#E4E7EC;margin:12px 0;"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <div style="font-size:15px;color:#10182B;font-weight:600;">Visa •••• 4242</div>
+                      <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">Change</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aNext }}">Pay ${{ copay }}</button>
+                  <button style="width:100%;height:44px;border:none;background:none;color:#5B6577;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;" onClick="{{ aNext }}">Pay at the visit</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ a5 }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ aCompleted }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;height:100%;align-items:center;justify-content:center;padding:0 32px;text-align:center;">
+                  <div style="width:64px;height:64px;border-radius:100%;background:#16794F;color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;">✓</div>
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:8px;">You're all set for tomorrow.</div>
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:24px;">{{ doctor }} has everything needed for your visit.</div>
+                  <div style="font-size:14px;font-weight:700;color:#10182B;">{{ apptTime }} · {{ apptLoc }}</div>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:24px;" onClick="{{ aRestart }}">▸ Replay demo</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ aCompletedNot }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;height:100%;">
+                  <div style="padding:60px 20px 8px;">
+                    <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ aBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                    <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:10px 0 8px;">Review</div>
+                    <div style="display:flex;gap:4px;">
+                      <sc-for list="{{ aProgress }}" as="seg" hint-placeholder-count="6"><div style="height:4px;flex:1;border-radius:2px;background:{{ seg.bg }};"></div></sc-for>
+                    </div>
+                  </div>
+                  <div style="flex:1;padding:12px 20px;overflow:auto;">
+                    <div style="font-size:26px;font-weight:800;color:#10182B;margin-bottom:16px;">Ready to submit</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                      <sc-for list="{{ reviewItems }}" as="it" hint-placeholder-count="6">
+                        <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E7EC;">
+                          <div style="width:22px;height:22px;border-radius:100%;background:#E7F6EE;color:#16794F;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</div>
+                          <div style="font-size:15px;font-weight:600;color:#10182B;">{{ it.label }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                    <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ aComplete }}">Complete check-in</button>
+                  </div>
+                </div>
+              </sc-if>
+            </sc-if>
+
+          </x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showB }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:18px;width:402px;" data-screen-label="Concept B — Smart Review">
+          <div style="text-align:center;">
+            <div style="display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.04em;color:#0E7C74;background:#E3F3F1;padding:4px 10px;border-radius:100px;margin-bottom:8px;">CONCEPT B</div>
+            <div style="font-size:20px;font-weight:800;color:#10182B;">Smart Review / Confirm</div>
+            <div style="font-size:14px;color:#5B6577;margin-top:2px;">Confirm what's on file, not re-enter it</div>
+          </div>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402,874">
+
+            <sc-if value="{{ b0 }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="flex:1;padding:70px 24px 20px;display:flex;flex-direction:column;justify-content:center;">
+                  <div style="font-size:15px;font-weight:700;color:#5B6577;margin-bottom:6px;">Good morning, Jane</div>
+                  <div style="font-size:28px;font-weight:800;color:#10182B;line-height:1.2;margin-bottom:10px;">Let's make sure everything is current.</div>
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:20px;">We've pre-filled everything from your last visit. Just confirm what's changed.</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#F7F8FA;">
+                    <div style="font-size:15px;font-weight:700;color:#10182B;">{{ apptType }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:4px;">{{ apptTime }}</div>
+                    <div style="font-size:14px;color:#5B6577;">{{ apptLoc }}</div>
+                  </div>
+                </div>
+                <div style="padding:16px 24px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ bNext }}">Start review</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b1 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 12px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ bBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:22px;font-weight:800;color:#10182B;margin-top:10px;">Personal information</div>
+                </div>
+                <div style="flex:1;padding:0 20px;overflow:auto;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                    <div style="font-size:18px;font-weight:800;color:#10182B;">{{ patientName }}</div>
+                    <div style="font-size:12px;font-weight:800;color:#16794F;background:#E7F6EE;padding:4px 10px;border-radius:100px;">Up to date</div>
+                  </div>
+                  <div style="font-size:13px;color:#5B6577;margin-bottom:16px;">Last confirmed {{ personalConfirmed }}</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;background:#fff;overflow:hidden;">
+                    <div style="padding:14px 16px;border-bottom:1px solid #E4E7EC;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:13px;color:#5B6577;">Mobile</div><div style="font-size:15px;font-weight:700;color:#10182B;">{{ patientPhone }}</div></div><div style="font-size:12px;font-weight:700;color:#16794F;">Verified</div></div>
+                    <div style="padding:14px 16px;border-bottom:1px solid #E4E7EC;"><div style="font-size:13px;color:#5B6577;">Email</div><div style="font-size:15px;font-weight:700;color:#10182B;">{{ patientEmail }}</div></div>
+                    <div style="padding:14px 16px;"><div style="font-size:13px;color:#5B6577;">Date of birth</div><div style="font-size:15px;font-weight:700;color:#10182B;">{{ patientDob }}</div></div>
+                  </div>
+                  <sc-if value="{{ bEditOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#F7F8FA;margin-top:12px;">
+                      <div style="font-size:14px;color:#5B6577;margin-bottom:10px;">What changed?</div>
+                      <div style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#10182B;margin-bottom:8px;">{{ patientPhone }}</div>
+                      <div style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#10182B;">{{ patientEmail }}</div>
+                      <button style="width:100%;height:44px;border:none;border-radius:10px;background:#10182B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px;" onClick="{{ bToggleEdit }}">Save changes</button>
+                    </div>
+                  </sc-if>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;padding:10px 0;" onClick="{{ bToggleEdit }}">Something's different</button>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ bNext }}">Everything looks correct</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b2 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 12px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ bBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:22px;font-weight:800;color:#10182B;margin-top:10px;">Your insurance</div>
+                  <div style="font-size:14px;color:#5B6577;margin-top:4px;">We have this coverage on file.</div>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;">
+                    <div style="font-size:17px;font-weight:700;color:#10182B;">{{ insCarrier }} {{ insPlan }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:4px;">Member ID {{ insMemberId }}</div>
+                    <div style="font-size:13px;color:#5B6577;margin-top:8px;">Last confirmed {{ insConfirmed }}</div>
+                  </div>
+                  <div style="font-size:16px;font-weight:700;color:#10182B;margin-top:20px;">Is this still your insurance?</div>
+                  <sc-if value="{{ bInsChanged }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:12px;">
+                      <button style="width:100%;height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;" onClick="{{ bNext }}">Scan card</button>
+                      <button style="width:100%;height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;" onClick="{{ bNext }}">Enter details manually</button>
+                      <button style="border:none;background:none;color:#5B6577;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" onClick="{{ bInsNo }}">Actually, it's still correct</button>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ bInsChangedNot }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                    <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ bNext }}">Yes, still correct</button>
+                    <button style="width:100%;height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px;" onClick="{{ bInsYes }}">My insurance changed</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b3 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 12px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ bBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  <div style="font-size:22px;font-weight:800;color:#10182B;margin-top:10px;">Still accurate?</div>
+                </div>
+                <div style="flex:1;padding:0 20px;overflow:auto;">
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:12px 0 8px;">Conditions</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                    <sc-for list="{{ bConditions }}" as="it" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:6px;padding:8px 10px 8px 14px;border-radius:10px;background:#F7F8FA;border:1px solid #E4E7EC;font-size:14px;font-weight:600;color:#10182B;">{{ it.name }}<button style="border:none;background:none;color:#5B6577;font-size:15px;cursor:pointer;padding:0 2px;font-weight:700;" onClick="{{ it.remove }}">×</button></div>
+                    </sc-for>
+                  </div>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;padding:4px 0 12px;" onClick="{{ bAddCondition }}">+ Add a condition</button>
+
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#5B6577;text-transform:uppercase;margin:8px 0 8px;">Medications</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+                    <sc-for list="{{ bMedications }}" as="it" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:#F7F8FA;border:1px solid #E4E7EC;"><div style="font-size:14px;font-weight:600;color:#10182B;">{{ it.label }}</div><button style="border:none;background:none;color:#5B6577;font-size:15px;cursor:pointer;font-weight:700;" onClick="{{ it.remove }}">×</button></div>
+                    </sc-for>
+                  </div>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;padding:4px 0 12px;" onClick="{{ bAddMedication }}">+ Add medication</button>
+
+                  <div style="font-size:12px;font-weight:800;letter-spacing:0.06em;color:#B4560A;text-transform:uppercase;margin:8px 0 8px;">Allergies — we flag these</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+                    <sc-for list="{{ bAllergies }}" as="it" hint-placeholder-count="1">
+                      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:#FDF0E4;border:1px solid #F3D8B8;"><div style="font-size:14px;font-weight:700;color:#B4560A;">{{ it.label }}</div><button style="border:none;background:none;color:#B4560A;font-size:15px;cursor:pointer;font-weight:700;" onClick="{{ it.remove }}">×</button></div>
+                    </sc-for>
+                  </div>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;padding:4px 0 12px;" onClick="{{ bAddAllergy }}">+ Add allergy</button>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ bNext }}">Yes, still accurate</button>
+                  <button style="width:100%;height:44px;border:none;background:none;color:#5B6577;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;" onClick="{{ bNext }}">Something changed</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b4 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 12px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ bBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                </div>
+                <div style="flex:1;padding:0 20px;overflow:auto;">
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:4px;">Your copay</div>
+                  <div style="font-size:40px;font-weight:800;color:#10182B;margin-bottom:2px;">${{ copay }}</div>
+                  <div style="font-size:14px;color:#5B6577;margin-bottom:20px;">Due today</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;">
+                    <div style="font-size:15px;font-weight:700;color:#10182B;">{{ apptType }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:2px;">{{ apptTime }}</div>
+                    <div style="font-size:14px;color:#5B6577;">{{ apptLoc }}</div>
+                    <div style="height:1px;background:#E4E7EC;margin:12px 0;"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <div style="font-size:15px;color:#10182B;font-weight:600;">Visa •••• 4242</div>
+                      <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">Change</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ bNext }}">Pay ${{ copay }}</button>
+                  <button style="width:100%;height:44px;border:none;background:none;color:#5B6577;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;" onClick="{{ bNext }}">Pay at the visit</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ b5 }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ bCompleted }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;height:100%;align-items:center;justify-content:center;padding:0 32px;text-align:center;">
+                  <div style="width:64px;height:64px;border-radius:100%;background:#16794F;color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;">✓</div>
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:8px;">You're all set for tomorrow.</div>
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:24px;">{{ doctor }} has everything needed for your visit.</div>
+                  <div style="font-size:14px;font-weight:700;color:#10182B;">{{ apptTime }} · {{ apptLoc }}</div>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:24px;" onClick="{{ bRestart }}">▸ Replay demo</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ bCompletedNot }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;height:100%;">
+                  <div style="padding:60px 20px 12px;">
+                    <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ bBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                    <div style="font-size:22px;font-weight:800;color:#10182B;margin-top:10px;">Review</div>
+                  </div>
+                  <div style="flex:1;padding:0 20px;overflow:auto;">
+                    <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:16px;">
+                      <sc-for list="{{ bQuietItems }}" as="it" hint-placeholder-count="7">
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+                          <div style="width:20px;height:20px;border-radius:100%;background:#E7F6EE;color:#16794F;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</div>
+                          <div style="font-size:14px;font-weight:600;color:#5B6577;">{{ it.label }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="font-size:13px;font-weight:800;letter-spacing:0.04em;color:#B4560A;text-transform:uppercase;margin-bottom:8px;">1 item needs review</div>
+                    <button style="width:100%;text-align:left;border:1px solid #F3D8B8;background:#FDF0E4;border-radius:12px;padding:14px 16px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onClick="{{ bBack }}"><span style="font-size:15px;font-weight:700;color:#B4560A;">Claims address</span><span style="font-size:14px;color:#B4560A;">Needs review →</span></button>
+                  </div>
+                  <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                    <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ bComplete }}">Complete check-in</button>
+                  </div>
+                </div>
+              </sc-if>
+            </sc-if>
+
+          </x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showC }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:18px;width:402px;" data-screen-label="Concept C — Adaptive">
+          <div style="text-align:center;">
+            <div style="display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.04em;color:#0E7C74;background:#E3F3F1;padding:4px 10px;border-radius:100px;margin-bottom:8px;">CONCEPT C</div>
+            <div style="font-size:20px;font-weight:800;color:#10182B;">Adaptive Conversational</div>
+            <div style="font-size:14px;color:#5B6577;margin-top:2px;">One contextual question at a time</div>
+          </div>
+          <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402,874">
+
+            <sc-if value="{{ c0 }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="flex:1;padding:70px 24px 20px;display:flex;flex-direction:column;justify-content:center;">
+                  <div style="font-size:28px;font-weight:800;color:#10182B;line-height:1.2;margin-bottom:10px;">Hey Jane, ready for tomorrow's visit?</div>
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:20px;">We'll ask a few quick questions and reuse what we already know.</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#F7F8FA;">
+                    <div style="font-size:15px;font-weight:700;color:#10182B;">{{ apptType }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:4px;">{{ apptTime }}</div>
+                    <div style="font-size:14px;color:#5B6577;">{{ apptLoc }}</div>
+                  </div>
+                </div>
+                <div style="padding:16px 24px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Let's go</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ c1 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ cBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:16px;line-height:1.3;">We have your info from last time. Still the same?</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;margin-bottom:14px;">
+                    <div style="font-size:15px;font-weight:700;color:#10182B;">{{ patientName }}</div>
+                    <div style="font-size:14px;color:#5B6577;margin-top:4px;">{{ patientPhone }} · {{ patientEmail }}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    <button style="height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;padding:0 16px;" onClick="{{ cNext }}">Yes, still the same</button>
+                    <button style="height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;padding:0 16px;" onClick="{{ cToggleEdit }}">Something changed</button>
+                  </div>
+                  <sc-if value="{{ cEditOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#F7F8FA;margin-top:12px;">
+                      <div style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#10182B;margin-bottom:8px;">{{ patientPhone }}</div>
+                      <div style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#10182B;">{{ patientEmail }}</div>
+                      <button style="width:100%;height:44px;border:none;border-radius:10px;background:#10182B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px;" onClick="{{ cToggleEdit }}">Save</button>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Continue</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ c2 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ cBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:16px;line-height:1.3;">Still using {{ insCarrier }} {{ insPlan }}?</div>
+                  <div style="display:flex;gap:8px;margin-bottom:14px;">
+                    <button style="flex:1;height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;color:#10182B;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cInsNo }}">Yes</button>
+                    <button style="flex:1;height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;color:#10182B;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cInsYes }}">No, it changed</button>
+                  </div>
+                  <sc-if value="{{ cInsChanged }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #E4E7EC;border-radius:14px;padding:14px;background:#F7F8FA;display:flex;flex-direction:column;gap:8px;">
+                      <button style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;color:#10182B;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Scan new card</button>
+                      <button style="height:44px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;color:#10182B;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Enter manually</button>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Continue</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ c3 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ cBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:16px;line-height:1.3;">Has anything changed since your last visit?</div>
+                  <sc-if value="{{ cChangedUnset }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <button style="height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;padding:0 16px;" onClick="{{ cChangedNo }}">No, everything is the same</button>
+                      <button style="height:48px;border:1px solid #E4E7EC;border-radius:12px;background:#fff;color:#10182B;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;padding:0 16px;" onClick="{{ cChangedYes }}">Yes, something changed</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ cChangedTrue }}" hint-placeholder-val="{{ false }}">
+                    <div>
+                      <div style="font-size:15px;font-weight:700;color:#10182B;margin-bottom:10px;">What changed?</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+                        <sc-for list="{{ cCategories }}" as="cat" hint-placeholder-count="4">
+                          <button style="padding:10px 14px;border-radius:10px;border:1px solid {{ cat.border }};background:{{ cat.bg }};color:{{ cat.color }};font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;" onClick="{{ cat.toggle }}">{{ cat.key }}</button>
+                        </sc-for>
+                      </div>
+                      <sc-for list="{{ cExpanded }}" as="cat" hint-placeholder-count="0">
+                        <div style="border:1px solid #E4E7EC;border-radius:12px;padding:12px 14px;background:#F7F8FA;margin-bottom:8px;">
+                          <div style="font-size:13px;color:#5B6577;margin-bottom:8px;">Tell us about your {{ cat.key }}</div>
+                          <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="flex:1;height:40px;border:1px solid #E4E7EC;border-radius:10px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:14px;color:{{ listeningColor }};">{{ listeningText }}</div>
+                            <button style="width:40px;height:40px;border-radius:10px;border:1px solid #E4E7EC;background:#fff;font-size:16px;cursor:pointer;" onClick="{{ micClick }}">🎙</button>
+                          </div>
+                          <button style="border:none;background:none;color:#0E7C74;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;padding:8px 0 0;" onClick="{{ cat.toggle }}">Done</button>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Continue</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ c4 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;height:100%;">
+                <div style="padding:60px 20px 8px;">
+                  <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ cBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                </div>
+                <div style="flex:1;padding:12px 20px;overflow:auto;">
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:16px;line-height:1.3;">Your copay today is ${{ copay }}. Want to pay now?</div>
+                  <div style="border:1px solid #E4E7EC;border-radius:14px;padding:16px;background:#fff;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <div style="font-size:15px;color:#10182B;font-weight:600;">Visa •••• 4242</div>
+                      <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">Change</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                  <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cNext }}">Pay ${{ copay }}</button>
+                  <button style="width:100%;height:44px;border:none;background:none;color:#5B6577;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;" onClick="{{ cNext }}">Pay at the visit</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ c5 }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ cCompleted }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;height:100%;align-items:center;justify-content:center;padding:0 32px;text-align:center;">
+                  <div style="width:64px;height:64px;border-radius:100%;background:#16794F;color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;">✓</div>
+                  <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:8px;">You're all set for tomorrow.</div>
+                  <div style="font-size:15px;color:#5B6577;margin-bottom:24px;">{{ doctor }} has everything needed for your visit.</div>
+                  <div style="font-size:14px;font-weight:700;color:#10182B;">{{ apptTime }} · {{ apptLoc }}</div>
+                  <button style="border:none;background:none;color:#0E7C74;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:24px;" onClick="{{ cRestart }}">▸ Replay demo</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ cCompletedNot }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;height:100%;">
+                  <div style="padding:60px 20px 8px;">
+                    <button style="border:none;background:none;padding:0;cursor:pointer;" onClick="{{ cBack }}"><span style="font-size:20px;color:#5B6577;">‹</span></button>
+                  </div>
+                  <div style="flex:1;padding:12px 20px;overflow:auto;">
+                    <div style="font-size:24px;font-weight:800;color:#10182B;margin-bottom:16px;">Here's what we've got.</div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                      <sc-for list="{{ bQuietItems }}" as="it" hint-placeholder-count="7">
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+                          <div style="width:20px;height:20px;border-radius:100%;background:#E7F6EE;color:#16794F;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</div>
+                          <div style="font-size:14px;font-weight:600;color:#5B6577;">{{ it.label }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="padding:16px 20px 24px;border-top:1px solid #E4E7EC;">
+                    <button style="width:100%;height:52px;border:none;border-radius:12px;background:#0E7C74;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;" onClick="{{ cComplete }}">Complete check-in</button>
+                  </div>
+                </div>
+              </sc-if>
+            </sc-if>
+
+          </x-import>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <sc-if value="{{ showComparison }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top:72px;border-top:1px solid #E4E7EC;padding-top:48px;">
+        <h2 style="font-size:26px;font-weight:800;color:#10182B;margin:0 0 24px;">Which direction?</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+          <div style="border:1px solid #E4E7EC;border-radius:16px;padding:24px;background:#fff;">
+            <div style="font-size:12px;font-weight:800;letter-spacing:0.04em;color:#0E7C74;margin-bottom:8px;">CONCEPT A</div>
+            <div style="font-size:18px;font-weight:800;color:#10182B;margin-bottom:16px;">Guided Step-by-Step</div>
+            <div style="font-size:13px;font-weight:700;color:#5B6577;text-transform:uppercase;margin-bottom:4px;">Best for</div>
+            <div style="font-size:15px;color:#10182B;margin-bottom:14px;">Predictability and accessibility</div>
+            <div style="font-size:13px;font-weight:700;color:#5B6577;text-transform:uppercase;margin-bottom:4px;">Tradeoff</div>
+            <div style="font-size:15px;color:#10182B;">Can feel more like a traditional form</div>
+          </div>
+          <div style="border:1px solid #E4E7EC;border-radius:16px;padding:24px;background:#fff;">
+            <div style="font-size:12px;font-weight:800;letter-spacing:0.04em;color:#0E7C74;margin-bottom:8px;">CONCEPT B</div>
+            <div style="font-size:18px;font-weight:800;color:#10182B;margin-bottom:16px;">Smart Review / Confirm</div>
+            <div style="font-size:13px;font-weight:700;color:#5B6577;text-transform:uppercase;margin-bottom:4px;">Best for</div>
+            <div style="font-size:15px;color:#10182B;margin-bottom:14px;">Returning patients and fastest perceived completion</div>
+            <div style="font-size:13px;font-weight:700;color:#5B6577;text-transform:uppercase;margin-bottom:4px;">Tradeoff</div>
+            <div style="font-size:15px;color:#10182B;">Requires reliable existing patient data</div>
+          </div>
+          <div style="border:1px solid #E4E7EC;border-radius:16px;padding:24px;background:#fff;">
+            <div style="font-size:12px;font-weight:800;letter-spacing:0.04em;color:#0E7C74;margin-bottom:8px;">CONCEPT C</div>
+            <div style="font-size:18px;font-weight:800;color:#10182B;margin-bottom:16px;">Adaptive Conversational</div>
+            <div style="font-size:13px;font-weight:700;color:#5B6577;text-transform:uppercase;margin-bottom:4px;">Best for</div>
+            <div style="font-size:15px;color:#10182B;margin-bottom:14px;">Adaptive questioning and complex health history</div>
+            <div style="font-size:13px;font-weight:700;color:#5B6577;text-transform:uppercase;margin-bottom:4px;">Tradeoff</div>
+            <div style="font-size:15px;color:#10182B;">Requires more sophisticated logic and clinical guardrails</div>
+          </div>
+        </div>
+        <p style="font-size:15px;color:#5B6577;margin-top:28px;max-width:640px;line-height:1.5;">Reply with A, B, C, or describe a hybrid direction — we'll use it to build out the complete clickable intake prototype.</p>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 1400},
+  &quot;focusConcept&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;All&quot;, &quot;options&quot;: [&quot;All&quot;, &quot;A&quot;, &quot;B&quot;, &quot;C&quot;], &quot;tsType&quot;: &quot;string&quot;},
+  &quot;showComparison&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;}
+}">
+const CONDITIONS = ['Type 2 Diabetes', 'Hypertension', 'Hyperlipidemia'];
+const MEDICATIONS = [
+  { name: 'Metformin', dose: '1000 mg', freq: 'Twice daily' },
+  { name: 'Lisinopril', dose: '10 mg', freq: 'Once daily' },
+];
+const ALLERGIES = [{ name: 'Penicillin', severity: 'Severe' }];
+const TEAL = '#0E7C74', TEAL_SOFT = '#E3F3F1', NAVY = '#10182B', BORDER = '#E4E7EC';
+
+class Component extends DCLogic {
+  state = {
+    A: { screen: 0, editOpen: false, insChanged: false, selCond: [], completed: false },
+    B: { screen: 0, editOpen: false, insChanged: false, conditions: [...CONDITIONS], medications: [...MEDICATIONS], allergies: [...ALLERGIES], completed: false },
+    C: { screen: 0, editOpen: false, insChanged: false, changed: null, selCats: [], listening: false, completed: false },
+  };
+
+  update(concept, patch) { this.setState(s => ({ ...s, [concept]: { ...s[concept], ...patch } })); }
+  next(concept) { this.setState(s => ({ ...s, [concept]: { ...s[concept], screen: Math.min(s[concept].screen + 1, 5) } })); }
+  back(concept) { this.setState(s => ({ ...s, [concept]: { ...s[concept], screen: Math.max(s[concept].screen - 1, 0) } })); }
+  toggleEdit(concept) { this.update(concept, { editOpen: !this.state[concept].editOpen }); }
+  setIns(concept, v) { this.update(concept, { insChanged: v }); }
+  complete(concept) { this.update(concept, { completed: true }); }
+
+  restartA() { this.update('A', { screen: 0, editOpen: false, insChanged: false, selCond: [], completed: false }); }
+  restartB() { this.update('B', { screen: 0, editOpen: false, insChanged: false, conditions: [...CONDITIONS], medications: [...MEDICATIONS], allergies: [...ALLERGIES], completed: false }); }
+  restartC() { this.update('C', { screen: 0, editOpen: false, insChanged: false, changed: null, selCats: [], listening: false, completed: false }); }
+
+  toggleACond(name) {
+    const cur = this.state.A.selCond;
+    if (name === 'None') { this.update('A', { selCond: cur.includes('None') ? [] : ['None'] }); return; }
+    let next = cur.filter(c => c !== 'None');
+    next = next.includes(name) ? next.filter(c => c !== name) : [...next, name];
+    this.update('A', { selCond: next });
+  }
+
+  removeB(listKey, idx) { this.setState(s => ({ ...s, B: { ...s.B, [listKey]: s.B[listKey].filter((_, i) => i !== idx) } })); }
+  addB(listKey) {
+    const samples = { conditions: 'Asthma', medications: { name: 'Atorvastatin', dose: '20 mg', freq: 'Once daily' }, allergies: { name: 'Latex', severity: 'Mild' } };
+    this.setState(s => ({ ...s, B: { ...s.B, [listKey]: [...s.B[listKey], samples[listKey]] } }));
+  }
+
+  toggleCat(cat) {
+    const cur = this.state.C.selCats;
+    this.update('C', { selCats: cur.includes(cat) ? cur.filter(c => c !== cat) : [...cur, cat] });
+  }
+  setChanged(v) { this.update('C', { changed: v }); if (v === false) this.next('C'); }
+  micClick() { this.update('C', { listening: true }); setTimeout(() => this.update('C', { listening: false }), 1200); }
+
+  renderVals() {
+    const focus = this.props.focusConcept || 'All';
+    const showComparison = this.props.showComparison !== false;
+    const { A, B, C } = this.state;
+
+    const chip = (name, selected) => ({
+      name, key: name,
+      border: selected ? TEAL : BORDER,
+      bg: selected ? TEAL_SOFT : '#fff',
+      color: selected ? TEAL : NAVY,
+    });
+
+    const progress = (screen) => [0, 1, 2, 3, 4, 5].map(i => ({ bg: i <= screen ? TEAL : BORDER }));
+
+    const reviewItems = [
+      { label: 'Personal info' }, { label: 'Visit details' }, { label: 'Insurance' },
+      { label: 'Health history' }, { label: 'Medications' }, { label: 'Allergies' },
+      { label: 'Payment' },
+    ];
+
+    return {
+      showA: focus === 'All' || focus === 'A',
+      showB: focus === 'All' || focus === 'B',
+      showC: focus === 'All' || focus === 'C',
+      showComparison,
+
+      patientName: 'Jane Doe', patientPhone: '(555) 123-4567', patientEmail: 'jane.doe@email.com', patientDob: 'Aug 14, 1991',
+      personalConfirmed: 'Aug 18, 2026',
+      insCarrier: 'Blue Shield', insPlan: 'PPO', insMemberId: '••••8213', insConfirmed: 'Mar 2026',
+      apptType: 'Follow-up visit', apptTime: 'Tomorrow · 8:00 AM', apptLoc: 'Oakwood Primary Care', doctor: 'Dr. Reyes',
+      copay: 40,
+      reviewItems, bQuietItems: reviewItems,
+
+      // Concept A
+      a0: A.screen === 0, a1: A.screen === 1, a2: A.screen === 2, a3: A.screen === 3, a4: A.screen === 4, a5: A.screen === 5,
+      aNext: () => this.next('A'), aBack: () => this.back('A'),
+      aProgress: progress(A.screen),
+      aEditOpen: A.editOpen, aToggleEdit: () => this.toggleEdit('A'),
+      aInsChanged: A.insChanged, aInsChangedNot: !A.insChanged,
+      aInsYes: () => this.setIns('A', true), aInsNo: () => this.setIns('A', false),
+      aCondItems: CONDITIONS.map(name => ({ ...chip(name, A.selCond.includes(name)), toggle: () => this.toggleACond(name) })),
+      aNoneBorder: A.selCond.includes('None') ? TEAL : BORDER,
+      aNoneBg: A.selCond.includes('None') ? TEAL_SOFT : '#fff',
+      aNoneColor: A.selCond.includes('None') ? TEAL : NAVY,
+      aToggleNone: () => this.toggleACond('None'),
+      aCompleted: A.completed, aCompletedNot: !A.completed,
+      aComplete: () => this.complete('A'), aRestart: () => this.restartA(),
+
+      // Concept B
+      b0: B.screen === 0, b1: B.screen === 1, b2: B.screen === 2, b3: B.screen === 3, b4: B.screen === 4, b5: B.screen === 5,
+      bNext: () => this.next('B'), bBack: () => this.back('B'),
+      bEditOpen: B.editOpen, bToggleEdit: () => this.toggleEdit('B'),
+      bInsChanged: B.insChanged, bInsChangedNot: !B.insChanged,
+      bInsYes: () => this.setIns('B', true), bInsNo: () => this.setIns('B', false),
+      bConditions: B.conditions.map((name, i) => ({ name, remove: () => this.removeB('conditions', i) })),
+      bMedications: B.medications.map((m, i) => ({ label: `${m.name} · ${m.dose} · ${m.freq}`, remove: () => this.removeB('medications', i) })),
+      bAllergies: B.allergies.map((a, i) => ({ label: `${a.name} · ${a.severity}`, remove: () => this.removeB('allergies', i) })),
+      bAddCondition: () => this.addB('conditions'), bAddMedication: () => this.addB('medications'), bAddAllergy: () => this.addB('allergies'),
+      bCompleted: B.completed, bCompletedNot: !B.completed,
+      bComplete: () => this.complete('B'), bRestart: () => this.restartB(),
+
+      // Concept C
+      c0: C.screen === 0, c1: C.screen === 1, c2: C.screen === 2, c3: C.screen === 3, c4: C.screen === 4, c5: C.screen === 5,
+      cNext: () => this.next('C'), cBack: () => this.back('C'),
+      cEditOpen: C.editOpen, cToggleEdit: () => this.toggleEdit('C'),
+      cInsChanged: C.insChanged, cInsYes: () => this.setIns('C', true), cInsNo: () => this.setIns('C', false),
+      cChangedUnset: C.changed === null, cChangedTrue: C.changed === true,
+      cChangedYes: () => this.setChanged(true), cChangedNo: () => this.setChanged(false),
+      cCategories: ['Conditions', 'Medications', 'Allergies', 'Surgeries'].map(k => ({ ...chip(k, C.selCats.includes(k)), key: k, toggle: () => this.toggleCat(k) })),
+      cExpanded: ['Conditions', 'Medications', 'Allergies', 'Surgeries'].filter(k => C.selCats.includes(k)).map(k => ({ key: k, toggle: () => this.toggleCat(k) })),
+      listening: C.listening, listeningText: C.listening ? 'Listening…' : 'Type or tell us what changed', listeningColor: C.listening ? TEAL : '#5B6577',
+      micClick: () => this.micClick(),
+      cCompleted: C.completed, cCompletedNot: !C.completed,
+      cComplete: () => this.complete('C'), cRestart: () => this.restartC(),
+    };
+  }
+}
+</script>
+</body>
+</html>
