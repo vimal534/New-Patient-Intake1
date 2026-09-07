@@ -29,3 +29,133 @@ body {
   color: var(--foreground);
   font-family: var(--font-body), Arial, Helvetica, sans-serif;
 }
+
+/* Wrong-PIN feedback on the /intake PIN pad. */
+@keyframes intake-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+/* /intake-v2 — "Smart Review & Confirm" redesign tokens, ported from
+   docs/redesign-concepts/design_handoff_patient_intake/README.md. A
+   distinct --iv2-* prefix (own white-label brand blue, not the
+   --color-brand family above) so this route's own component kit never
+   collides with /tap-intake's or /intake's tokens — all three visual
+   languages coexist in this codebase on purpose, see that README's
+   "About the Design Files" section. */
+:root {
+  --iv2-brand: #1677e8;
+  --iv2-brand-hover: #1257c4;
+  --iv2-brand-tint: #eaf2fe;
+  --iv2-brand-surface: #f5f9ff;
+  --iv2-brand-gradient: linear-gradient(135deg, #1a56b0, #1677e8);
+  --iv2-text-primary: #101828;
+  --iv2-text-secondary: #667085;
+  --iv2-text-muted: #98a2b3;
+  --iv2-border: #e4e7ec;
+  --iv2-border-subtle: #f2f4f7;
+  --iv2-border-strong: #d0d5dd;
+  --iv2-surface: #ffffff;
+  --iv2-surface-muted: #f7f8fa;
+  --iv2-success: #067647;
+  --iv2-success-surface: #ecfdf3;
+  --iv2-success-border: #abefc6;
+  --iv2-warning: #b54708;
+  --iv2-warning-surface: #fffaeb;
+  --iv2-warning-border: #fedf89;
+  --iv2-warning-border-strong: #fec84b;
+  --iv2-danger: #b42318;
+  --iv2-disabled-bg: #eaecf0;
+  --iv2-disabled-fg: #98a2b3;
+  --iv2-scan-bg: #eff7fe;
+  --iv2-scan-border: #a9d3f5;
+  --iv2-scan-sub: #5a9bd8;
+  --iv2-card-gradient: linear-gradient(135deg, #0e5f63, #127c74);
+  /* Yosi Health's own wordmark teal (YosiHealthLogo.tsx) — deliberately
+     separate from --iv2-brand's blue; the practice-mark logo keeps its
+     own brand color even though the rest of this route is white-label
+     blue. */
+  --iv2-yosi-teal: #0e9f8a;
+}
+
+/* /intake-v2's readiness ring (ReadinessRing.tsx) — sweeps its
+   stroke-dashoffset in on mount. README: "Respect prefers-reduced-motion
+   in production" — the reduced-motion query drops straight to the final
+   value instead of animating toward it. */
+.readiness-ring-arc {
+  transition: stroke-dashoffset 900ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .readiness-ring-arc {
+    transition: none;
+  }
+}
+
+/* /intake-v2 hover feedback — scoped under .iv2-root (the route's own
+   outer wrapper) rather than a bare `button` selector, so it never
+   bleeds into /tap-intake or /intake's own button styling. Every button
+   gets a quiet color/border transition on top of whatever hover:*
+   Tailwind classes it already carries; the Health History summary's
+   CategoryCard additionally gets a lift + brand-colored border via
+   .iv2-hover-card, since that's the specific "click me" affordance a
+   whole draggable-feeling card benefits from that a plain text link or
+   filled CTA doesn't. */
+.iv2-root button {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.iv2-hover-card {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+@media (hover: hover) {
+  .iv2-hover-card:hover {
+    border-color: var(--iv2-brand);
+    box-shadow: 0 6px 20px rgba(22, 119, 232, 0.14);
+    transform: translateY(-2px);
+  }
+  .iv2-hover-card:active {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .iv2-root button,
+  .iv2-hover-card {
+    transition: none;
+  }
+  .iv2-hover-card:hover {
+    transform: none;
+  }
+}
+
+/* /intake-v2's bottom confirmation toast (Toast.tsx) — plays once per
+   mount, and page.tsx remounts it (`key={toastId}`) on every
+   ctx.showToast() call so back-to-back identical messages still replay
+   the entrance. */
+@keyframes iv2-toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.iv2-toast-pop {
+  animation: iv2-toast-pop 220ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .iv2-toast-pop {
+    animation: none;
+  }
+}

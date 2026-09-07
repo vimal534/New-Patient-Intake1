@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Caveat:wght@500&amp;display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#F2F4F7;font-family:'Inter',-apple-system,system-ui,sans-serif;}
+    a{color:#1677E8;text-decoration:none;}
+    a:hover{color:#1257C4;}
+    button{-webkit-tap-highlight-color:transparent;transition:background 180ms ease,border-color 180ms ease,color 180ms ease,transform 180ms ease;font-family:inherit;}
+    input,textarea,select,button{font-family:'Inter',-apple-system,system-ui,sans-serif;}
+    *{font-family:'Inter',-apple-system,system-ui,sans-serif;}
+    [style*="Caveat"]{font-family:'Caveat',cursive !important;}
+    input:focus,textarea:focus{outline:2px solid #1677E8;outline-offset:-2px;}
+  </style>
+</helmet>
+<div style="min-height:100vh;background:#F2F4F7;padding:48px 24px 72px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:24px;">
+  <div style="text-align:center;max-width:520px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:0.08em;color:#1677E8;text-transform:uppercase;margin-bottom:8px;">Review &amp; confirm check-in</div>
+    <h1 style="font-size:28px;font-weight:600;color:#101828;margin:0 0 8px;">Patient intake prototype</h1>
+    <p style="font-size:15px;color:#667085;margin:0;line-height:1.5;">Verify, review what's on file, add only what's missing. Use the DEMO button above the phone to switch between the two scenarios.</p>
+  </div>
+
+  <sc-if value="{{ showDemoButton }}" hint-placeholder-val="{{ true }}">
+    <div style="width:402px;display:flex;justify-content:flex-end;">
+      <button style="height:34px;border-radius:100px;border:none;background:#101828;color:#fff;font-size:12px;font-weight:800;letter-spacing:0.08em;padding:0 16px;cursor:pointer;box-shadow:0 4px 14px rgba(16,24,43,0.2);" onClick="{{ openDemo }}">DEMO</button>
+    </div>
+  </sc-if>
+
+  <div style="position:relative;width:402px;">
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402,874">
+
+      <div style="height:100%;display:flex;flex-direction:column;background:#FBFBFC;position:relative;">
+
+        <sc-if value="{{ showProgress }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:58px 24px 16px;background:#fff;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                <button style="border:none;background:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin-left:-6px;" onClick="{{ back }}"><svg width="13" height="22" viewBox="0 0 13 22" fill="none" stroke="#101828" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width: 9px; height: 15px"><path d="M11 2L2 11l9 9"></path></svg></button>
+                <div style="font-size:17px;font-weight:600;color:#101828;white-space:nowrap;">Check-in</div>
+              </div>
+              <button style="width:34px;height:34px;border-radius:100%;border:none;background:#F7F8FA;color:#101828;font-size:15px;font-weight:600;cursor:pointer;" onClick="{{ restart }}">✕</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div style="flex:1;height:4px;border-radius:2px;background:#F2F4F7;overflow:hidden;">
+                <div style="height:4px;border-radius:2px;background:#1677E8;width:{{ percentWidth }};transition:width 240ms ease;"></div>
+              </div>
+              <div style="font-size:15px;font-weight:600;color:#1677E8;">{{ percent }}%</div>
+            </div>
+            <div style="font-size:15px;color:#667085;margin-top:10px;">{{ timeLeft }} · Progress saved</div>
+          </div>
+        </sc-if>
+
+        <div style="flex:1;overflow:auto;">
+
+          <sc-if value="{{ isOtp }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:64px 24px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;" data-screen-label="Verification">
+              
+              <div style="width:64px;height:64px;border-radius:100%;background:#EAF2FE;display:flex;align-items:center;justify-content:center;margin-bottom:24px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"></path><path d="M9 12l2 2 4-4"></path></svg>
+              </div><div style="font-size: 28px; font-weight: 700; color: #101828; line-height: 1.25; margin-bottom: 12px; font-family: Inter">Confirming it's you</div>
+              <div style="font-size: 16px; color: #667085; line-height: 1.55; margin-bottom: 28px; max-width: 300px; font-family: Inter">We texted a code to (•••) •••–0148 and filled it in for you.</div>
+
+              <div style="display:flex;gap:10px;width:100%;">
+                <sc-for list="{{ otpCells }}" as="cell" hint-placeholder-count="6">
+                  <div style="flex: 1; height: 64px; border-radius: 16px; background: #fff; border: 1.5px solid {{ cell.border }}; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; color: #101828; font-family: Inter">{{ cell.digit }}</div>
+                </sc-for>
+              </div>
+
+              <div style="height:26px;display:flex;align-items:center;justify-content:center;margin-top:14px;">
+                <sc-if value="{{ otpVerified }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; color: #067647; font-family: Inter">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"></path></svg>
+                    Verified
+                  </div>
+                </sc-if>
+                <sc-if value="{{ otpFilling }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:15px;color:#98A2B3;">Reading your code…</div>
+                </sc-if>
+              </div>
+
+              <div style="border-radius:16px;background:#EAF2FE;padding:16px;display:flex;gap:12px;text-align:left;margin-top:20px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 11v6M12 7.6v.4"></path></svg>
+                <div style="font-size: 14px; color: #101828; line-height: 1.5; font-family: Inter">Every check-in link opens this way. Nothing on the record loads until the phone it belongs to answers.</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#F7F8FA;min-height:100%;" data-screen-label="Appointment hub">
+              <div style="background:#fff;padding:58px 24px 22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+                <div>
+                  <div style="font-size:13px;font-weight:600;letter-spacing:0.08em;color:#98A2B3;text-transform:uppercase;">Good morning</div>
+                  <div style="font-size:32px;font-weight:700;color:#101828;line-height:1.15;margin-top:6px;">Jane</div>
+                </div>
+                <div style="width:52px;height:52px;border-radius:100%;background:#fff;border:1px solid #E4E7EC;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6a5 5 0 0010 0V3"></path><path d="M12 14v3a4 4 0 108 0v-1"></path></svg>
+                </div>
+              </div>
+
+              <div style="padding:22px 20px 28px;">
+                <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:#98A2B3;text-transform:uppercase;margin-bottom:10px;">Your visit</div>
+
+                <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);overflow:hidden;">
+                  <div style="padding:22px;display:flex;gap:16px;align-items:flex-start;">
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:24px;font-weight:700;color:#101828;line-height:1.2;">Annual Physical</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+                        <sc-for list="{{ hubChips }}" as="chip" hint-placeholder-count="2">
+                          <div style="font-size:13px;font-weight:600;color:{{ chip.color }};background:{{ chip.bg }};padding:6px 12px;border-radius:100px;">{{ chip.label }}</div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:9px;margin-top:16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M4.5 20c0-3.6 3.4-5.6 7.5-5.6s7.5 2 7.5 5.6"></path></svg>
+                        <div style="font-size:16px;color:#101828;">Dr. Sarah Jenkins</div>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:9px;margin-top:8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M8 3.5v4M16 3.5v4M3.5 10.5h17"></path></svg>
+                        <div style="font-size:16px;color:#101828;">11 June 2026</div>
+                      </div>
+                    </div>
+                    <div style="text-align:center;flex-shrink:0;">
+                      <div style="width:92px;height:92px;border-radius:100%;background:conic-gradient(#1677E8 {{ readinessTurn }}, #EDF0F3 0);display:flex;align-items:center;justify-content:center;">
+                        <div style="width:66px;height:66px;border-radius:100%;background:#fff;display:flex;align-items:baseline;justify-content:center;gap:1px;">
+                          <span style="font-size:24px;font-weight:700;color:#101828;">{{ readiness }}</span>
+                          <span style="font-size:13px;font-weight:600;color:#667085;">%</span>
+                        </div>
+                      </div>
+                      <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#98A2B3;text-transform:uppercase;margin-top:10px;">Readiness</div>
+                    </div>
+                  </div>
+
+                  <div style="border-top:1px solid #F2F4F7;padding:16px 22px;display:flex;align-items:center;gap:14px;">
+                    <div style="width:38px;height:38px;border-radius:10px;background:#F7F8FA;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"></path><circle cx="12" cy="10" r="2.6"></circle></svg>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;color:#98A2B3;text-transform:uppercase;">Location</div>
+                      <div style="font-size:16px;color:#101828;margin-top:2px;">102 E 30th St, New York, NY 10016</div>
+                    </div>
+                  </div>
+
+                  <div style="border-top:1px solid #F2F4F7;padding:16px 22px;display:flex;align-items:center;gap:14px;">
+                    <div style="width:38px;height:38px;border-radius:10px;background:#F7F8FA;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5V12l3.2 2"></path></svg>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;color:#98A2B3;text-transform:uppercase;">Start time</div>
+                      <div style="font-size:16px;color:#101828;margin-top:2px;">8:00 AM</div>
+                    </div>
+                    <button style="border:1px solid #E4E7EC;background:#fff;border-radius:10px;padding:9px 14px;font-size:15px;font-weight:600;color:#1677E8;cursor:pointer;flex-shrink:0;" onClick="{{ openPrivacy }}">Add</button>
+                  </div>
+
+                  <div style="padding:20px 22px 22px;">
+                    <button style="width:100%;height:56px;border-radius:14px;border:none;background:#1677E8;color:#fff;font-size:17px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onClick="{{ startCheckIn }}">{{ hubCta }}
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:#98A2B3;text-transform:uppercase;margin:26px 0 10px;">What to do</div>
+
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <div style="border-radius:18px;background:#fff;border:1px solid #E4E7EC;padding:16px;display:flex;align-items:center;gap:14px;">
+                    <div style="width:44px;height:44px;border-radius:12px;background:#FFFAEB;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B54708" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"></rect><path d="M2.5 10h19"></path></svg>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:17px;font-weight:600;color:#101828;">Copay due</div>
+                      <div style="font-size:15px;color:#667085;margin-top:1px;">Collected during check-in</div>
+                    </div>
+                    <button style="border:none;background:#B54708;color:#fff;border-radius:10px;padding:11px 16px;font-size:15px;font-weight:600;cursor:pointer;flex-shrink:0;" onClick="{{ startCheckIn }}">Pay $40</button>
+                  </div>
+
+                  <div style="border-radius:18px;background:#fff;border:1px solid #E4E7EC;padding:16px;display:flex;align-items:center;gap:14px;">
+                    <div style="width:44px;height:44px;border-radius:12px;background:#F7F8FA;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"></path><path d="M4 16v3.5h16V16"></path></svg>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:17px;font-weight:600;color:#101828;">ID and insurance</div>
+                      <div style="font-size:15px;color:#667085;margin-top:1px;">{{ hubDocsSub }}</div>
+                    </div>
+                    <button style="border:1px solid #E4E7EC;background:#fff;color:#101828;border-radius:10px;padding:11px 16px;font-size:15px;font-weight:600;cursor:pointer;flex-shrink:0;" onClick="{{ startCheckIn }}">{{ hubDocsAction }}</button>
+                  </div>
+
+                  <div style="border-radius:18px;background:#fff;border:1px solid #E4E7EC;overflow:hidden;">
+                    <div style="padding:16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F2F4F7;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 11v6M12 7.6v.4"></path></svg>
+                      <div style="font-size:17px;font-weight:600;color:#101828;">Before you arrive</div>
+                    </div>
+                    <sc-for list="{{ hubInstructions }}" as="ins" hint-placeholder-count="2">
+                      <div style="padding:16px;display:flex;gap:12px;border-bottom:1px solid #F2F4F7;">
+                        <div style="width:24px;height:24px;border-radius:100%;background:#EAF2FE;color:#1677E8;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ ins.n }}</div>
+                        <div>
+                          <div style="font-size:16px;font-weight:600;color:#101828;">{{ ins.title }}</div>
+                          <div style="font-size:15px;color:#667085;line-height:1.45;margin-top:2px;">{{ ins.body }}</div>
+                        </div>
+                      </div>
+                    </sc-for>
+                    <div style="padding:14px 16px 16px;">
+                      <button style="width:100%;height:50px;border-radius:12px;border:none;background:{{ ackBg }};color:{{ ackColor }};font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" onClick="{{ ackInstructions }}">{{ ackLabel }}</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="font-size:15px;color:#98A2B3;margin-top:22px;">Need to reschedule or cancel?</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isPersonal }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Personal info">
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.2;margin-bottom:8px;">Review your information</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:24px;">{{ personalSubtitle }}</div>
+
+              <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                  <div>
+                    <div style="font-size:17px;font-weight:600;color:#101828;">Jane Doe</div>
+                    <div style="font-size:13px;color:#98A2B3;margin-top:4px;">{{ personalMeta }}</div>
+                  </div>
+                  <sc-if value="{{ isReturning }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#067647;background:#ECFDF3;padding:5px 10px;border-radius:100px;white-space:nowrap;">✓ Up to date</div>
+                  </sc-if>
+                </div>
+
+                <div style="height:1px;background:#F2F4F7;margin:16px 0;"></div>
+
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                  <div>
+                    <div style="font-size:13px;color:#98A2B3;">Mobile</div>
+                    <div style="display:flex;align-items:center;gap:8px;"><div style="font-size:17px;font-weight:600;color:#101828;">(555) 123-4567</div><div style="font-size:12px;font-weight:700;color:#067647;">✓ Verified</div></div>
+                  </div>
+                  <sc-for list="{{ personalFields }}" as="f" hint-placeholder-count="3">
+                    <div>
+                      <div style="font-size:13px;color:#98A2B3;margin-bottom:{{ f.gap }};">{{ f.label }}</div>
+                      <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ false }}">
+                        <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.placeholder }}" aria-label="{{ f.label }}" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#FBFBFC;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                      </sc-if>
+                      <sc-if value="{{ f.isRow }}" hint-placeholder-val="{{ true }}">
+                        <div style="font-size:17px;font-weight:600;color:#101828;white-space:pre-line;">{{ f.value }}</div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <button style="width:100%;margin-top:12px;border:none;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,43,0.06);padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onClick="{{ toggleAdditional }}">
+                <span style="font-size:16px;font-weight:600;color:#101828;">Additional information</span>
+                <span style="font-size:14px;color:#98A2B3;">{{ additionalCaret }}</span>
+              </button>
+              <sc-if value="{{ additionalOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:#fff;box-shadow:0 1px 2px rgba(16,24,43,0.06);padding:16px;margin-top:8px;display:flex;flex-direction:column;gap:14px;">
+                  <div><div style="font-size:13px;color:#98A2B3;">Gender</div><div style="font-size:17px;font-weight:600;color:#101828;">Female</div></div>
+                  <div><div style="font-size:13px;color:#98A2B3;">Preferred language</div><div style="font-size:17px;font-weight:600;color:#101828;">English</div></div>
+                  <div><div style="font-size:13px;color:#98A2B3;">Marital status</div><div style="font-size:17px;font-weight:600;color:#101828;">Married</div></div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isEmergency }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Emergency contact">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:10px;">Emergency contact</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.2;margin-bottom:8px;">{{ emergencyTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:24px;">{{ emergencyCopy }}</div>
+              <sc-if value="{{ emergencyKnown }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;">
+                  <div style="font-size:17px;font-weight:600;color:#101828;">Sarah Doe</div>
+                  <div style="font-size:15px;color:#667085;margin-top:2px;">Spouse</div>
+                  <div style="font-size:17px;font-weight:600;color:#101828;margin-top:10px;">(555) 234-8891</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ emergencyForm }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <sc-for list="{{ emergencyFields }}" as="f" hint-placeholder-count="3">
+                    <div>
+                      <div style="font-size:13px;color:#98A2B3;margin-bottom:6px;">{{ f.label }}</div>
+                      <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.placeholder }}" aria-label="{{ f.label }}" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#fff;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isVisit }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px 24px 24px;" data-screen-label="Today's visit">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:12px;">Today's visit</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.28;margin-bottom:14px;">{{ visitTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.5;margin-bottom:28px;">{{ visitCopy }}</div>
+
+              <div style="border:1px solid #E4E7EC;border-radius:18px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:18px;display:flex;align-items:center;gap:16px;">
+                <div style="width:48px;height:48px;border-radius:100%;background:#EAF2FE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>
+                </div>
+                <div>
+                  <div style="font-size:15px;color:#667085;">Reason for visit</div>
+                  <div style="font-size:18px;font-weight:600;color:#101828;margin-top:2px;">{{ visitReason }}</div>
+                </div>
+              </div>
+
+              <sc-if value="{{ visitFollowUp }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:36px;">
+                  <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:12px;">A few details</div>
+                  <div style="font-size:21px;font-weight:700;color:#101828;line-height:1.35;margin-bottom:20px;">Have you had any new symptoms in the last two weeks?</div>
+                  <div style="display:flex;flex-direction:column;gap:10px;">
+                    <sc-for list="{{ visitOptions }}" as="opt" hint-placeholder-count="4">
+                      <button style="min-height:60px;border-radius:14px;border:1px solid {{ opt.border }};background:{{ opt.bg }};display:flex;align-items:center;gap:14px;text-align:left;padding:0 18px;cursor:pointer;" onClick="{{ opt.pick }}">
+                        <span style="width:24px;height:24px;border-radius:100%;border:1.5px solid {{ opt.dotBorder }};background:{{ opt.dotBg }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ opt.mark }}</span>
+                        <span style="font-size:17px;font-weight:500;color:#101828;">{{ opt.label }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isCoverage }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Coverage">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:14px;">Coverage · step 1 of 2</div>
+              <div style="font-size: 28px; font-weight: 700; color: #101828; line-height: 1.2; margin-bottom: 8px">{{ coverageTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:24px;">{{ coverageCopy }}</div>
+
+              <sc-if value="{{ coverageKnown }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                      <div>
+                        <div style="font-size:20px;font-weight:700;color:#101828;">Blue Shield</div>
+                        <div style="font-size:16px;color:#667085;margin-top:2px;">PPO</div>
+                      </div>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                    </div>
+                    <div style="height:1px;background:#F2F4F7;margin:18px 0;"></div>
+                    <sc-if value="{{ coverageEditing }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-direction:column;gap:14px;">
+                        <div>
+                          <div style="font-size:14px;color:#98A2B3;margin-bottom:6px;">Member ID</div>
+                          <input value="{{ memberIdValue }}" onChange="{{ onMemberId }}" placeholder="VZ48213" aria-label="Member ID" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#FBFBFC;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                        </div>
+                        <div>
+                          <div style="font-size:14px;color:#98A2B3;margin-bottom:6px;">Group number</div>
+                          <input value="{{ groupValue }}" onChange="{{ onGroup }}" placeholder="00921" aria-label="Group number" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#FBFBFC;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                        </div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ coverageNotEditing }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;flex-direction:column;gap:16px;">
+                        <div><div style="font-size:15px;color:#98A2B3;">Member ID</div><div style="font-size:18px;font-weight:600;color:#101828;margin-top:2px;">{{ memberIdDisplay }}</div></div>
+                        <div><div style="font-size:15px;color:#98A2B3;">Last verified</div><div style="font-size:18px;font-weight:600;color:#101828;margin-top:2px;">Aug 18, 2026</div></div>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ coverageNotEditing }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:20px;font-weight:700;color:#101828;margin-top:28px;">Still using this insurance?</div>
+                  </sc-if>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ coverageCapture }}" hint-placeholder-val="{{ true }}">
+                <div>
+                  <button style="width:100%;border-radius:18px;border:1.5px dashed #A9D3F5;background:#EFF7FE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:44px 24px;cursor:pointer;" onClick="{{ startScan }}">
+                    <span style="width:68px;height:68px;border-radius:100%;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="3"></rect><circle cx="9" cy="11" r="2.2"></circle><path d="M6.5 16c.6-1.4 1.5-2.1 2.5-2.1s1.9.7 2.5 2.1M14.5 10h4M14.5 13.5h4"></path></svg>
+                    </span>
+                    <span style="font-size:18px;font-weight:600;color:#1677E8;">{{ scanLabel }}</span>
+                    <span style="font-size:15px;color:#5A9BD8;">Insurance card, business card — anything</span>
+                  </button>
+
+                  <div style="margin-top:20px;border-radius:16px;background:#F4F9FE;padding:16px;display:flex;gap:12px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 11v6M12 7.6v.4"></path></svg>
+                    <div style="font-size:15px;color:#101828;line-height:1.5;">Your front desk makes this check by phone or portal, one patient at a time. We run it the moment the card is captured and write the answer to your chart.</div>
+                  </div>
+
+                  <sc-if value="{{ scanning }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:16px;border-radius:14px;background:#EAF2FE;padding:14px 16px;font-size:15px;font-weight:600;color:#1257C4;">Reading your card…</div>
+                  </sc-if>
+
+                  <div style="font-size:14px;color:#98A2B3;text-align:center;margin-top:20px;">Nothing is stored on your phone.</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isOcr }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="OCR review">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:10px;">Coverage</div>
+              <div style="font-size:13px;color:#98A2B3;margin-bottom:6px;">Step 2 of 2</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.2;margin-bottom:8px;">{{ ocrTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:24px;">{{ ocrCopy }}</div>
+
+              <sc-if value="{{ manualEntry }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;display:flex;flex-direction:column;gap:14px;">
+                  <div>
+                    <div style="font-size:14px;color:#98A2B3;margin-bottom:6px;">Insurance carrier</div>
+                    <input value="{{ carrierValue }}" onChange="{{ onCarrier }}" placeholder="Blue Shield" aria-label="Insurance carrier" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#FBFBFC;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                  </div>
+                  <div>
+                    <div style="font-size:14px;color:#98A2B3;margin-bottom:6px;">Member ID</div>
+                    <input value="{{ memberIdValue }}" onChange="{{ onMemberId }}" placeholder="VZ48213" aria-label="Member ID" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#FBFBFC;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                  </div>
+                  <div>
+                    <div style="font-size:14px;color:#98A2B3;margin-bottom:6px;">Group number</div>
+                    <input value="{{ groupValue }}" onChange="{{ onGroup }}" placeholder="00921" aria-label="Group number" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1.5px solid #E4E7EC;background:#FBFBFC;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ notManual }}" hint-placeholder-val="{{ true }}">
+                <div>
+                  <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:20px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"></path></svg>
+                      <div style="font-size:12px;font-weight:700;letter-spacing:0.07em;color:#067647;text-transform:uppercase;">Card read</div>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:16px;">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+                        <div style="font-size:13px;font-weight:600;letter-spacing:0.05em;color:#98A2B3;text-transform:uppercase;flex-shrink:0;">Carrier</div>
+                        <div style="font-size:17px;font-weight:600;color:#101828;text-align:right;">Blue Shield PPO</div>
+                      </div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+                        <div style="font-size:13px;font-weight:600;letter-spacing:0.05em;color:#98A2B3;text-transform:uppercase;flex-shrink:0;">Member</div>
+                        <div style="font-size:17px;font-weight:600;color:#101828;text-align:right;">Jane Doe</div>
+                      </div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+                        <div style="font-size:13px;font-weight:600;letter-spacing:0.05em;color:#98A2B3;text-transform:uppercase;flex-shrink:0;">Member ID</div>
+                        <div style="font-size:17px;font-weight:600;color:#101828;text-align:right;">VZ48213</div>
+                      </div>
+
+                      <sc-if value="{{ groupFixed }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+                          <div style="font-size:13px;font-weight:600;letter-spacing:0.05em;color:#98A2B3;text-transform:uppercase;flex-shrink:0;">Group</div>
+                          <div style="font-size:17px;font-weight:600;color:#101828;text-align:right;">{{ groupDisplay }}</div>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ groupNeedsReview }}" hint-placeholder-val="{{ true }}">
+                        <div style="border-radius:14px;background:#FFFAEB;border:1px solid #FEDF89;padding:14px;">
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+                            <div style="font-size:13px;font-weight:600;letter-spacing:0.05em;color:#B54708;text-transform:uppercase;">Group — please check</div>
+                            <div style="font-size:13px;color:#B54708;">Blurry on the card</div>
+                          </div>
+                          <input value="{{ groupValue }}" onChange="{{ onGroup }}" placeholder="00921" aria-label="Group number" style="width:100%;box-sizing:border-box;height:50px;border-radius:12px;border:1px solid #FEC84B;background:#fff;padding:0 14px;font-size:17px;font-weight:600;color:#101828;">
+                          <button style="border:none;background:none;color:#B54708;font-size:15px;font-weight:600;cursor:pointer;padding:10px 0 0;" onClick="{{ confirmGroup }}">This is correct</button>
+                        </div>
+                      </sc-if>
+                    </div>
+
+                    <div style="height:1px;background:#F2F4F7;margin:18px 0 14px;"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                      <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:600;cursor:pointer;padding:0;" onClick="{{ rescan }}">Re-scan card</button>
+                      <button style="border:none;background:none;color:#667085;font-size:15px;font-weight:600;cursor:pointer;padding:0;" onClick="{{ scanBack }}">{{ scanBackLabel }}</button>
+                    </div>
+                  </div>
+
+                  <div style="margin-top:12px;border-radius:16px;background:{{ eligBg }};border:1px solid {{ eligBorder }};padding:16px;display:flex;align-items:center;gap:12px;">
+                    <sc-if value="{{ eligibilityDone }}" hint-placeholder-val="{{ false }}">
+                      <div style="width:26px;height:26px;border-radius:100%;background:#067647;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</div>
+                    </sc-if>
+                    <sc-if value="{{ eligibilityPending }}" hint-placeholder-val="{{ true }}">
+                      <div style="width:26px;height:26px;border-radius:100%;border:2.5px solid #E4E7EC;border-top-color:#1677E8;flex-shrink:0;"></div>
+                    </sc-if>
+                    <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:#101828;">{{ eligText }}</div>
+                    <div style="font-size:15px;font-weight:600;color:{{ eligMetaColor }};flex-shrink:0;">{{ eligMeta }}</div>
+                  </div>
+
+                  <div style="margin-top:12px;border-radius:16px;background:#F7F8FA;padding:16px;display:flex;gap:12px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 11v6M12 7.6v.4"></path></svg>
+                    <div style="font-size:15px;color:#667085;line-height:1.5;">Coverage is confirmed before your visit, so there's no surprise self-pay at the desk and no claim denied for an inactive plan.</div>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isHealth }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Health history">
+              <sc-if value="{{ eligibilityPending }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:#fff;box-shadow:0 1px 2px rgba(16,24,43,0.06);padding:14px 16px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">
+                  <div style="width:20px;height:20px;border-radius:100%;border:2px solid #EAF2FE;border-top-color:#1677E8;flex-shrink:0;margin-top:2px;"></div>
+                  <div>
+                    <div style="font-size:15px;font-weight:700;color:#101828;">Checking your coverage…</div>
+                    <div style="font-size:14px;color:#667085;line-height:1.45;margin-top:2px;">You can keep going with your check-in. We'll let you know when it's ready.</div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ eligibilityDone }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:#ECFDF3;padding:12px 16px;margin-bottom:24px;font-size:15px;font-weight:700;color:#067647;">✓ Coverage verified</div>
+              </sc-if>
+
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:10px;">{{ hvEyebrow }}</div>
+              <div style="font-size:28px;font-weight:600;color:#101828;line-height:1.25;margin-bottom:8px;">{{ hvTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:28px;">{{ hvCopy }}</div>
+
+              <sc-if value="{{ hvReview }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                      <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;">Conditions on file</div>
+                      <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:700;cursor:pointer;padding:0;" onClick="{{ hvOpenEdit }}">Edit</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;margin-top:14px;">
+                      <sc-for list="{{ onFile }}" as="c" hint-placeholder-count="2">
+                        <div style="font-size:18px;font-weight:600;color:#101828;">{{ c.name }}</div>
+                      </sc-for>
+                    </div>
+                    <div style="font-size:14px;color:#98A2B3;margin-top:16px;">Last confirmed {{ lastConfirmed }}</div>
+                  </div>
+                  <div style="font-size:20px;font-weight:700;color:#101828;margin-top:28px;">Has anything changed?</div>
+                  <button style="border:none;background:none;color:#1677E8;font-size:16px;font-weight:700;cursor:pointer;padding:14px 0 0;" onClick="{{ hvOpenAdd }}">+ Add a condition</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ hvEmpty }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="font-size:17px;color:#101828;">No conditions are currently on file.</div>
+                  <div style="font-size:14px;color:#98A2B3;margin-top:6px;">Last confirmed {{ lastConfirmed }}</div>
+                  <div style="font-size:20px;font-weight:700;color:#101828;margin-top:28px;">Has anything changed since your last visit?</div>
+                  <button style="width:100%;height:52px;border-radius:14px;border:1.5px solid #E4E7EC;background:#fff;color:#1677E8;font-size:16px;font-weight:700;cursor:pointer;margin-top:16px;" onClick="{{ hvOpenAdd }}">+ Add a condition</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ hvPick }}" hint-placeholder-val="{{ true }}">
+                <div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <sc-for list="{{ condOptions }}" as="opt" hint-placeholder-count="8">
+                      <button style="min-height:64px;border-radius:16px;border:1.5px solid {{ opt.border }};background:{{ opt.bg }};padding:14px;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;" onClick="{{ opt.toggle }}">
+                        <span style="width:22px;height:22px;border-radius:7px;border:1.5px solid {{ opt.boxBorder }};background:{{ opt.boxBg }};color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ opt.mark }}</span>
+                        <span style="font-size:15px;font-weight:600;color:#101828;line-height:1.3;">{{ opt.name }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                  <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:700;cursor:pointer;padding:16px 0 0;text-align:left;width:auto;" onClick="{{ hvToggleMore }}">{{ moreLabel }}</button>
+
+                  <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin:24px 0 10px;">{{ searchHeading }}</div>
+                  <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Type a condition, like migraine" aria-label="Search conditions" style="width:100%;box-sizing:border-box;height:52px;border-radius:14px;border:1.5px solid #E4E7EC;background:#fff;padding:0 14px;font-size:16px;color:#101828;">
+                  <sc-for list="{{ searchResults }}" as="r" hint-placeholder-count="0">
+                    <button style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;border-bottom:1px solid #F2F4F7;padding:14px 2px;cursor:pointer;text-align:left;" onClick="{{ r.add }}">
+                      <span style="font-size:16px;color:#101828;">{{ r.name }}</span>
+                      <span style="font-size:15px;font-weight:700;color:#1677E8;">Add</span>
+                    </button>
+                  </sc-for>
+
+                  <sc-if value="{{ hvShowNone }}" hint-placeholder-val="{{ true }}">
+                    <button style="width:100%;min-height:56px;border-radius:16px;border:1.5px solid {{ noneBorder }};background:{{ noneBg }};padding:14px;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;margin-top:24px;" onClick="{{ toggleNone }}">
+                      <span style="width:22px;height:22px;border-radius:7px;border:1.5px solid {{ noneBoxBorder }};background:{{ noneBoxBg }};color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ noneMark }}</span>
+                      <span style="font-size:16px;font-weight:600;color:#101828;">None of these apply</span>
+                    </button>
+                  </sc-if>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ hvEdit }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);overflow:hidden;">
+                    <sc-for list="{{ onFile }}" as="c" hint-placeholder-count="2">
+                      <div style="padding:16px 18px;border-bottom:1px solid #F2F4F7;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          <span style="color:#067647;font-size:13px;font-weight:800;">✓</span>
+                          <span style="font-size:17px;font-weight:600;color:#101828;">{{ c.name }}</span>
+                        </div>
+                        <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:700;cursor:pointer;" onClick="{{ c.remove }}">Remove</button>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <button style="border:none;background:none;color:#1677E8;font-size:16px;font-weight:700;cursor:pointer;padding:16px 0 0;" onClick="{{ hvOpenAdd }}">+ Add a condition</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isMedications }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px 24px 24px;" data-screen-label="Medications">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:12px;">Medications</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.28;margin-bottom:14px;">{{ medicationsTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.5;margin-bottom:28px;">{{ medicationsCopy }}</div>
+
+              <sc-if value="{{ medicationsHasItems }}" hint-placeholder-val="{{ true }}">
+                <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);overflow:hidden;">
+                  <sc-for list="{{ medicationsItems }}" as="it" hint-placeholder-count="2">
+                    <div style="padding:18px 20px;border-bottom:1px solid #F2F4F7;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                      <div>
+                        <div style="font-size:17px;font-weight:600;color:{{ it.nameColor }};">{{ it.name }}</div>
+                        <div style="font-size:15px;color:#667085;margin-top:2px;">{{ it.detail }}</div>
+                      </div>
+                      <sc-if value="{{ medicationsEditing }}" hint-placeholder-val="{{ false }}">
+                        <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:600;cursor:pointer;" onClick="{{ it.remove }}">Remove</button>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                  <div style="padding:16px 20px;font-size:14px;color:#98A2B3;">Last confirmed {{ lastConfirmed }}</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ medicationsEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:17px;color:#101828;">{{ medicationsEmptyText }}</div>
+              </sc-if>
+
+              <sc-if value="{{ medicationsEditing }}" hint-placeholder-val="{{ false }}">
+                <button style="border:none;background:none;color:#1677E8;font-size:16px;font-weight:600;cursor:pointer;padding:18px 0 0;" onClick="{{ medicationsAdd }}">+ Add a medication</button>
+              </sc-if>
+
+              <sc-if value="{{ medicationsReviewing }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:20px;font-weight:700;color:#101828;margin-top:32px;">Has anything changed?</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isAllergies }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px 24px 24px;" data-screen-label="Allergies">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:12px;">Allergies</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.28;margin-bottom:14px;">{{ allergiesTitle }}</div>
+              <div style="font-size:16px;color:#667085;line-height:1.5;margin-bottom:28px;">{{ allergiesCopy }}</div>
+
+              <sc-if value="{{ allergiesHasItems }}" hint-placeholder-val="{{ true }}">
+                <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);overflow:hidden;">
+                  <sc-for list="{{ allergiesItems }}" as="it" hint-placeholder-count="2">
+                    <div style="padding:18px 20px;border-bottom:1px solid #F2F4F7;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                      <div>
+                        <div style="font-size:17px;font-weight:600;color:{{ it.nameColor }};">{{ it.name }}</div>
+                        <div style="font-size:15px;color:#667085;margin-top:2px;">{{ it.detail }}</div>
+                      </div>
+                      <sc-if value="{{ allergiesEditing }}" hint-placeholder-val="{{ false }}">
+                        <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:600;cursor:pointer;" onClick="{{ it.remove }}">Remove</button>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                  <div style="padding:16px 20px;font-size:14px;color:#98A2B3;">Last confirmed {{ lastConfirmed }}</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ allergiesEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:17px;color:#101828;">{{ allergiesEmptyText }}</div>
+              </sc-if>
+
+              <sc-if value="{{ allergiesEditing }}" hint-placeholder-val="{{ false }}">
+                <button style="border:none;background:none;color:#1677E8;font-size:16px;font-weight:600;cursor:pointer;padding:18px 0 0;" onClick="{{ allergiesAdd }}">+ Add an allergy</button>
+              </sc-if>
+
+              <sc-if value="{{ allergiesReviewing }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:20px;font-weight:700;color:#101828;margin-top:32px;">Has anything changed?</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isScreener }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Screener">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:10px;">Required screening</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:32px;">Your care team has a few questions before your visit.</div>
+              <div style="font-size:13px;color:#98A2B3;margin-bottom:8px;">Question {{ screenerNum }} of 3</div>
+              <div style="font-size:22px;font-weight:700;color:#101828;line-height:1.3;margin-bottom:28px;">{{ screenerQuestion }}</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ screenerOptions }}" as="opt" hint-placeholder-count="4">
+                  <button style="min-height:54px;border-radius:14px;border:1.5px solid {{ opt.border }};background:{{ opt.bg }};color:{{ opt.color }};font-size:16px;font-weight:600;text-align:left;padding:0 16px;cursor:pointer;" onClick="{{ opt.pick }}">{{ opt.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isPayment }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:28px 24px 24px;" data-screen-label="Payment">
+              <div style="font-size:20px;font-weight:700;color:#101828;margin-bottom:12px;">Due today</div>
+
+              <div style="border-radius:16px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:16px;display:flex;align-items:center;gap:14px;">
+                <div style="width:44px;height:44px;border-radius:12px;background:#EAF2FE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1677E8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:17px;font-weight:700;color:#101828;">Annual Physical</div>
+                  <div style="font-size:15px;color:#667085;margin-top:2px;">{{ apptTime }}</div>
+                  <div style="font-size:15px;color:#667085;">Main St. Clinic</div>
+                </div>
+                <div style="font-size:20px;font-weight:700;color:#101828;">$40.00</div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px;">
+                <div style="font-size:18px;font-weight:700;color:#101828;">Payment method</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:14px;color:#667085;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>
+                  Secure payment
+                </div>
+              </div>
+
+              <sc-if value="{{ hasSelectedCard }}" hint-placeholder-val="{{ true }}">
+                <div style="border-radius:16px;background:linear-gradient(135deg,#1A56B0 0%,#1677E8 100%);padding:20px;position:relative;min-height:132px;display:flex;flex-direction:column;justify-content:space-between;">
+                  <div style="font-size:22px;font-weight:800;font-style:italic;color:#fff;letter-spacing:0.02em;">{{ selBrandLabel }}</div>
+                  <div>
+                    <div style="font-size:19px;font-weight:600;color:#fff;letter-spacing:0.14em;">•••• •••• •••• {{ selLast4 }}</div>
+                    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:12px;">
+                      <div style="font-size:15px;color:rgba(255,255,255,0.86);">{{ selExp }}</div>
+                      <div style="width:26px;height:26px;border-radius:100%;background:#fff;color:#1677E8;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;">✓</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noSelectedCard }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:16px;border:1.5px dashed #D0D5DD;padding:24px;text-align:center;font-size:16px;color:#667085;">No payment method selected yet.</div>
+              </sc-if>
+
+              <button style="width:100%;border-radius:14px;border:1px solid #E4E7EC;background:#fff;padding:16px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;" onClick="{{ openMethods }}">
+                <span style="font-size:16px;color:#101828;">Change payment method</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#98A2B3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+              </button>
+
+              <div style="border-radius:14px;background:#F7F8FA;padding:14px 16px;margin-top:12px;display:flex;gap:10px;align-items:flex-start;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#067647" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                <div style="font-size:15px;color:#667085;line-height:1.45;">Your payment information is encrypted and secure.</div>
+              </div>
+
+              <div style="font-size:18px;font-weight:700;color:#101828;margin:26px 0 12px;">Receipt</div>
+              <div style="border-radius:14px;background:#fff;border:1px solid #E4E7EC;padding:16px;display:flex;align-items:center;gap:14px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:#F7F8FA;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"></rect><path d="M3 7l9 6 9-6"></path></svg>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:16px;font-weight:600;color:#101828;">Email receipt</div>
+                  <div style="font-size:15px;color:#667085;margin-top:1px;">jane.doe@email.com</div>
+                </div>
+                <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:600;cursor:pointer;flex-shrink:0;" onClick="{{ openPrivacy }}">Edit</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isConsent }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Consent">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:10px;">Forms</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.2;margin-bottom:20px;">Review &amp; sign</div>
+              <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;">
+                <div style="font-size:16px;color:#101828;line-height:1.6;">You agree to treatment at Main St. Clinic, allow the practice to bill your insurance, and confirm you received the notice of privacy practices.</div>
+                <button style="border:none;background:none;color:#1677E8;font-size:15px;font-weight:600;cursor:pointer;padding:14px 0 0;" onClick="{{ toggleConsentFull }}">Read full consent ›</button>
+              </div>
+              <button style="width:100%;margin-top:16px;border:none;background:none;padding:0;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;" onClick="{{ toggleAgree }}">
+                <span style="width:24px;height:24px;border-radius:7px;border:1.5px solid {{ agreeBorder }};background:{{ agreeBg }};color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ agreeMark }}</span>
+                <span style="font-size:15px;color:#101828;line-height:1.45;">I have read and agree to the terms above.</span>
+              </button>
+              <div style="font-size:13px;color:#98A2B3;margin:24px 0 8px;">Signature</div>
+              <button style="width:100%;height:110px;border-radius:14px;border:1.5px solid {{ signBorder }};background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;" onClick="{{ sign }}">
+                <sc-if value="{{ signed }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-family:'Caveat',cursive;font-size:38px;color:#101828;">Jane Doe</span>
+                </sc-if>
+                <sc-if value="{{ notSigned }}" hint-placeholder-val="{{ true }}">
+                  <span style="font-size:15px;font-weight:600;color:#98A2B3;">Tap to sign</span>
+                </sc-if>
+              </button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:24px;" data-screen-label="Final review">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:12px;">Review</div>
+              <div style="font-size:28px;font-weight:700;color:#101828;line-height:1.28;margin-bottom:14px;">Almost done</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:24px;">{{ reviewCopy }}</div>
+              <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);overflow:hidden;">
+                <sc-for list="{{ reviewSections }}" as="s" hint-placeholder-count="8">
+                  <div style="padding:15px 16px;border-bottom:1px solid #F2F4F7;display:flex;align-items:center;gap:12px;">
+                    <div style="width:22px;height:22px;border-radius:100%;background:{{ s.iconBg }};color:{{ s.iconColor }};font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ s.mark }}</div>
+                    <div style="flex:1;">
+                      <div style="font-size:16px;font-weight:600;color:#101828;">{{ s.label }}</div>
+                      <div style="font-size:13px;color:{{ s.statusColor }};margin-top:1px;">{{ s.status }}</div>
+                    </div>
+                    <button style="border:none;background:none;color:#1677E8;font-size:14px;font-weight:700;cursor:pointer;" onClick="{{ s.edit }}">{{ s.action }}</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isSuccess }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:78px 24px 24px;" data-screen-label="Success">
+              <div style="width:56px;height:56px;border-radius:100%;background:#ECFDF3;color:#067647;font-size:26px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;">✓</div>
+              <div style="font-size:30px;font-weight:700;color:#101828;line-height:1.2;margin-bottom:12px;">You're ready for your visit</div>
+              <div style="font-size:16px;color:#667085;line-height:1.55;margin-bottom:24px;">Your care team has what they need.</div>
+              <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;">
+                <div style="font-size:17px;font-weight:600;color:#101828;">{{ apptTime }}</div>
+                <div style="font-size:15px;color:#667085;margin-top:4px;">Dr. Sarah Jenkins</div>
+                <div style="font-size:15px;color:#667085;">Main St. Clinic</div>
+                <div style="height:1px;background:#F2F4F7;margin:16px 0;"></div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ successItems }}" as="it" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:10px;"><span style="color:#067647;font-size:13px;font-weight:800;">✓</span><span style="font-size:15px;color:#101828;">{{ it.label }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <sc-if value="{{ passportOpen }}" hint-placeholder-val="{{ true }}">
+                <div style="border-radius:20px;background:#fff;border:1px solid #E4E7EC;box-shadow:0 1px 2px rgba(16,24,40,0.04);padding:24px;margin-top:16px;">
+                  <div style="font-size:17px;font-weight:700;color:#101828;margin-bottom:6px;">Save your information for next time</div>
+                  <div style="font-size:15px;color:#667085;line-height:1.5;margin-bottom:14px;">Start future check-ins at this practice with most of your information already completed.</div>
+                  <button style="width:100%;height:50px;border-radius:12px;border:1.5px solid #1677E8;background:#fff;font-size:16px;font-weight:700;color:#1677E8;cursor:pointer;" onClick="{{ savePassport }}">Make it my passport</button>
+                  <button style="width:100%;height:44px;border:none;background:none;font-size:14px;font-weight:600;color:#98A2B3;cursor:pointer;margin-top:4px;" onClick="{{ dismissPassport }}">Maybe later</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ passportSaved }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:14px;background:#ECFDF3;padding:14px 16px;margin-top:16px;font-size:15px;font-weight:700;color:#067647;">✓ Saved for next time</div>
+              </sc-if>
+              <button style="width:100%;height:50px;border-radius:12px;border:none;background:#F2F4F7;font-size:16px;font-weight:700;color:#101828;cursor:pointer;margin-top:16px;" onClick="{{ restart }}">Manage appointment</button>
+            </div>
+          </sc-if>
+
+        </div>
+
+        <sc-if value="{{ hasFooter }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:14px 24px 30px;background:#fff;border-top:1px solid #F2F4F7;">
+            <button style="width: 100%; height: 56px; border-radius: 14px; border: none; background-color: {{ primaryBg }}; color: {{ primaryFg }}; font-size: 16px; font-weight: 700; cursor: {{ primaryCursor }}; font-family: Inter" onClick="{{ primary }}">{{ primaryLabel }}</button>
+            <sc-if value="{{ hasSecondary }}" hint-placeholder-val="{{ false }}">
+              <button style="width:100%;height:52px;border-radius:14px;border:1.5px solid #E4E7EC;background:#fff;color:#101828;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;" onClick="{{ secondary }}">{{ secondaryLabel }}</button>
+            </sc-if>
+            <sc-if value="{{ hasTertiary }}" hint-placeholder-val="{{ false }}">
+              <button style="width:100%;height:44px;border:none;background:none;color:#98A2B3;font-size:15px;font-weight:600;cursor:pointer;margin-top:2px;" onClick="{{ tertiary }}">{{ tertiaryLabel }}</button>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ methodsOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,40,0.4);z-index:72;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:12px 20px 30px;max-height:88%;display:flex;flex-direction:column;">
+              <div style="width:44px;height:5px;border-radius:100px;background:#E4E7EC;margin:0 auto 16px;"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+                <div style="font-size:22px;font-weight:700;color:#101828;">Payment methods</div>
+                <button style="width:32px;height:32px;border-radius:100%;border:none;background:#F7F8FA;color:#101828;font-size:15px;cursor:pointer;" onClick="{{ closeMethods }}">✕</button>
+              </div>
+
+              <div style="overflow:auto;">
+                <button style="width:100%;border-radius:14px;border:1px solid {{ appleBorder }};background:{{ appleBg }};padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;" onClick="{{ pickApple }}">
+                  <span style="width:46px;height:34px;border-radius:8px;background:#101828;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">APPLE</span>
+                  <span style="flex:1;min-width:0;">
+                    <span style="display:block;font-size:17px;font-weight:600;color:#101828;">Apple Pay</span>
+                    <span style="display:block;font-size:15px;color:#667085;margin-top:1px;">Fast, secure and easy.</span>
+                  </span>
+                  <sc-if value="{{ appleSelected }}" hint-placeholder-val="{{ false }}">
+                    <span style="width:26px;height:26px;border-radius:100%;background:#1677E8;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</span>
+                  </sc-if>
+                </button>
+
+                <div style="font-size:18px;font-weight:700;color:#101828;margin:22px 0 12px;">Saved cards</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ methodCards }}" as="c" hint-placeholder-count="2">
+                    <button style="width:100%;border-radius:14px;border:1.5px solid {{ c.border }};background:{{ c.bg }};padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;" onClick="{{ c.select }}">
+                      <span style="width:46px;height:34px;border-radius:8px;background:{{ c.markBg }};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ c.brand }}</span>
+                      <span style="flex:1;min-width:0;">
+                        <span style="display:block;font-size:17px;font-weight:600;color:{{ c.titleColor }};white-space:nowrap;">{{ c.title }}</span>
+                        <span style="display:block;font-size:15px;color:{{ c.subColor }};margin-top:1px;">{{ c.sub }}</span>
+                      </span>
+                      <sc-if value="{{ c.selected }}" hint-placeholder-val="{{ false }}">
+                        <span style="width:26px;height:26px;border-radius:100%;background:#1677E8;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</span>
+                      </sc-if>
+                    </button>
+                  </sc-for>
+                </div>
+
+                <button style="border:none;background:none;color:#1677E8;font-size:16px;font-weight:600;cursor:pointer;padding:16px 2px 4px;display:flex;align-items:center;gap:8px;" onClick="{{ openCardSheet }}">
+                  <span style="font-size:19px;line-height:1;">+</span> Add new card
+                </button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ cardSheetOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,40,0.4);z-index:78;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:12px 20px 28px;max-height:92%;display:flex;flex-direction:column;">
+              <div style="width:44px;height:5px;border-radius:100px;background:#E4E7EC;margin:0 auto 12px;"></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+                <button style="border:none;background:none;padding:0;cursor:pointer;display:flex;align-items:center;" onClick="{{ closeCardSheet }}"><svg width="12" height="20" viewBox="0 0 13 22" fill="none" stroke="#101828" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2L2 11l9 9"></path></svg></button>
+                <div style="flex:1;text-align:center;font-size:19px;font-weight:700;color:#101828;margin-right:12px;">Add new card</div>
+              </div>
+
+              <div style="overflow:auto;">
+                <div style="border-radius:16px;background:linear-gradient(135deg,#0E5F63 0%,#127C74 100%);padding:20px;min-height:126px;display:flex;flex-direction:column;justify-content:space-between;">
+                  <div style="font-size:22px;font-weight:800;font-style:italic;color:#fff;">VISA</div>
+                  <div>
+                    <div style="font-size:19px;font-weight:600;color:#fff;letter-spacing:0.14em;">{{ previewNumber }}</div>
+                    <div style="font-size:13px;color:rgba(255,255,255,0.82);margin-top:12px;letter-spacing:0.04em;">{{ previewExp }}</div>
+                    <div style="font-size:13px;color:rgba(255,255,255,0.82);letter-spacing:0.04em;">{{ previewName }}</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:20px;">
+                  <div style="font-size:15px;font-weight:500;color:#101828;margin-bottom:6px;">Card number</div>
+                  <input value="{{ cardNumber }}" onChange="{{ onCardNumber }}" placeholder="1234 5678 9012 3456" inputmode="numeric" aria-label="Card number" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1px solid #E4E7EC;padding:0 14px;font-size:16px;color:#101828;">
+                </div>
+                <div style="display:flex;gap:12px;margin-top:14px;">
+                  <div style="flex:1;">
+                    <div style="font-size:15px;font-weight:500;color:#101828;margin-bottom:6px;">Expiration date</div>
+                    <input value="{{ cardExp }}" onChange="{{ onCardExp }}" placeholder="MM / YY" inputmode="numeric" aria-label="Expiration date" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1px solid #E4E7EC;padding:0 14px;font-size:16px;color:#101828;">
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:15px;font-weight:500;color:#101828;margin-bottom:6px;">CVV</div>
+                    <input value="{{ cardCvc }}" onChange="{{ onCardCvc }}" placeholder="123" inputmode="numeric" aria-label="CVV" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1px solid #E4E7EC;padding:0 14px;font-size:16px;color:#101828;">
+                  </div>
+                </div>
+                <div style="margin-top:14px;">
+                  <div style="font-size:15px;font-weight:500;color:#101828;margin-bottom:6px;">Cardholder name</div>
+                  <input value="{{ cardName }}" onChange="{{ onCardName }}" placeholder="Jane Doe" aria-label="Cardholder name" style="width:100%;box-sizing:border-box;height:52px;border-radius:12px;border:1px solid #E4E7EC;padding:0 14px;font-size:16px;color:#101828;">
+                </div>
+
+                <button style="width:100%;display:flex;align-items:flex-start;gap:12px;background:none;border:none;padding:18px 0 0;cursor:pointer;text-align:left;" onClick="{{ toggleSaveCard }}">
+                  <span style="width:24px;height:24px;border-radius:7px;border:1.5px solid {{ saveCardBorder }};background:{{ saveCardBg }};color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ saveCardMark }}</span>
+                  <span>
+                    <span style="display:block;font-size:16px;color:#101828;">Save this card for future visits</span>
+                    <span style="display:block;font-size:15px;color:#667085;margin-top:2px;">You can manage your cards anytime.</span>
+                  </span>
+                </button>
+              </div>
+
+              <button style="width:100%;height:56px;border-radius:14px;border:none;background-color:{{ addCardBg }};color:{{ addCardFg }};font-size:16px;font-weight:700;cursor:{{ addCardCursor }};margin-top:20px;flex-shrink:0;" onClick="{{ saveCard }}">Add card</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ consentFullOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,40,0.35);z-index:74;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 34px;">
+              <div style="font-size:20px;font-weight:700;color:#101828;margin-bottom:16px;">Consent to treatment</div>
+              <div style="font-size:15px;color:#667085;line-height:1.65;max-height:280px;overflow:auto;">I authorize the clinicians of Main St. Clinic to provide the medical care I request. Assignment of benefits: I authorize payment of insurance benefits directly to the practice and accept responsibility for amounts not covered by my plan. Privacy: I acknowledge receipt of the notice of privacy practices describing how my health information may be used and disclosed for treatment, payment and health-care operations.</div>
+              <button style="width:100%;height:54px;border-radius:14px;border:1px solid #E4E7EC;background:#fff;color:#101828;font-size:16px;font-weight:600;cursor:pointer;margin-top:20px;" onClick="{{ toggleConsentFull }}">Close</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ privacyOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,40,0.35);z-index:74;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 34px;">
+              <div style="font-size:20px;font-weight:700;color:#101828;margin-bottom:12px;">How your information is used</div>
+              <div style="font-size:15px;color:#667085;line-height:1.65;">Everything you share during check-in goes only to your care team at Main St. Clinic and is stored encrypted. We never sell your health information, and you can ask the practice for a copy or correction at any time.</div>
+              <button style="width:100%;height:54px;border-radius:14px;border:1px solid #E4E7EC;background:#fff;color:#101828;font-size:16px;font-weight:600;cursor:pointer;margin-top:20px;" onClick="{{ closePrivacy }}">Close</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ addSheetOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,40,0.35);z-index:76;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 30px;max-height:86%;display:flex;flex-direction:column;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+                <div style="font-size:20px;font-weight:700;color:#101828;">{{ addSheetTitle }}</div>
+                <button style="width:32px;height:32px;border-radius:100%;border:none;background:#F7F8FA;color:#101828;font-size:14px;cursor:pointer;" onClick="{{ closeAddSheet }}">✕</button>
+              </div>
+              <input value="{{ addQuery }}" onChange="{{ onAddQuery }}" placeholder="{{ addSheetPlaceholder }}" aria-label="Search" style="width:100%;box-sizing:border-box;height:52px;border-radius:14px;border:1px solid #E4E7EC;background:#fff;padding:0 14px;font-size:16px;color:#101828;flex-shrink:0;">
+
+              <div style="flex:1;overflow:auto;margin-top:8px;">
+                <sc-for list="{{ addOptions }}" as="opt" hint-placeholder-count="6">
+                  <button style="width:100%;min-height:56px;display:flex;align-items:center;gap:14px;background:{{ opt.bg }};border:none;border-bottom:1px solid #F2F4F7;padding:12px 4px;cursor:pointer;text-align:left;" onClick="{{ opt.toggle }}">
+                    <span style="width:24px;height:24px;border-radius:7px;border:1.5px solid {{ opt.boxBorder }};background:{{ opt.boxBg }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ opt.mark }}</span>
+                    <span style="font-size:17px;color:#101828;">{{ opt.name }}</span>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ addCustomVisible }}" hint-placeholder-val="{{ false }}">
+                  <button style="width:100%;min-height:56px;display:flex;align-items:center;gap:14px;background:none;border:none;padding:12px 4px;cursor:pointer;text-align:left;" onClick="{{ addCustom }}">
+                    <span style="width:24px;height:24px;border-radius:7px;border:1.5px dashed #D0D5DD;color:#1677E8;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">+</span>
+                    <span style="font-size:17px;color:#1677E8;font-weight:600;">Add “{{ addQuery }}”</span>
+                  </button>
+                </sc-if>
+              </div>
+
+              <sc-if value="{{ addHasSelection }}" hint-placeholder-val="{{ false }}">
+                <div style="flex-shrink:0;padding-top:16px;">
+                  <div style="font-size:13px;font-weight:600;color:#667085;margin-bottom:10px;">{{ addDetailLabel }}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    <sc-for list="{{ addDetailOptions }}" as="d" hint-placeholder-count="4">
+                      <button style="min-height:44px;padding:0 16px;border-radius:100px;border:1px solid {{ d.border }};background:{{ d.bg }};color:{{ d.color }};font-size:15px;font-weight:600;cursor:pointer;" onClick="{{ d.pick }}">{{ d.label }}</button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <button style="width:100%;height:56px;border-radius:14px;border:none;background-color:{{ addSubmitBg }};color:{{ addSubmitFg }};font-size:16px;font-weight:600;cursor:{{ addSubmitCursor }};margin-top:20px;flex-shrink:0;" onClick="{{ submitAddSheet }}">{{ addSubmitLabel }}</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ pendingRemove }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,43,0.35);z-index:75;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 34px;">
+              <div style="font-size:20px;font-weight:700;color:#101828;line-height:1.35;margin-bottom:20px;">Remove {{ pendingRemoveName }} from your current health history?</div>
+              <button style="width:100%;height:54px;border-radius:14px;border:1.5px solid #E4E7EC;background:#fff;color:#101828;font-size:16px;font-weight:700;cursor:pointer;" onClick="{{ keepCond }}">Keep it</button>
+              <button style="width:100%;height:54px;border-radius:14px;border:none;background:#1677E8;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;" onClick="{{ removeCond }}">Remove</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ demoOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(16,24,43,0.35);z-index:80;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 34px;">
+              <div style="font-size:12px;font-weight:600;letter-spacing:0.07em;color:#1677E8;text-transform:uppercase;margin-bottom:14px;">Demo scenario</div>
+              <button style="width:100%;text-align:left;border:1.5px solid {{ newBorder }};background:{{ newBg }};border-radius:14px;padding:16px;cursor:pointer;margin-bottom:10px;" onClick="{{ pickNew }}">
+                <div style="font-size:17px;font-weight:700;color:#101828;">New patient</div>
+                <div style="font-size:14px;color:#667085;margin-top:2px;">First visit — build health history</div>
+              </button>
+              <button style="width:100%;text-align:left;border:1.5px solid {{ retBorder }};background:{{ retBg }};border-radius:14px;padding:16px;cursor:pointer;" onClick="{{ pickReturning }}">
+                <div style="font-size:17px;font-weight:700;color:#101828;">Returning patient</div>
+                <div style="font-size:14px;color:#667085;margin-top:2px;">Review what's already on file</div>
+              </button>
+              <button style="width:100%;height:44px;border:none;background:none;color:#98A2B3;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;" onClick="{{ closeDemo }}">Close</button>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+    </x-import>
+  </div>
+
+  <div style="font-size:13px;color:#98A2B3;">{{ scenarioNote }}</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {&quot;width&quot;: 520, &quot;height&quot;: 1080},
+  &quot;showDemoButton&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;}
+}">
+const TEAL = '#1677E8', TEAL_SOFT = '#EAF2FE', NAVY = '#101828', BORDER = '#E4E7EC';
+const PCT = { welcome: 20, personal: 30, emergency: 38, visit: 46, coverage: 54, ocr: 58, health: 66, medications: 72, allergies: 78, screener: 84, payment: 90, consent: 95, review: 99 };
+const FLOW_RET = ['otp', 'welcome', 'personal', 'emergency', 'visit', 'coverage', 'health', 'medications', 'allergies', 'screener', 'payment', 'consent', 'review', 'success'];
+const FLOW_NEW = ['otp', 'welcome', 'personal', 'emergency', 'visit', 'coverage', 'ocr', 'health', 'medications', 'allergies', 'screener', 'payment', 'consent', 'review', 'success'];
+const MEDS = [{ name: 'Albuterol', detail: 'Inhaler · as needed' }, { name: 'Metformin', detail: '1000 mg · twice daily' }];
+const ALLERGIES = [{ name: 'Penicillin', detail: 'Severe reaction' }];
+const MED_CATALOG = ['Albuterol', 'Atorvastatin', 'Levothyroxine', 'Lisinopril', 'Metformin', 'Omeprazole', 'Sertraline', 'Amlodipine', 'Ibuprofen', 'Vitamin D'];
+const MED_DETAILS = ['Once daily', 'Twice daily', 'As needed', 'Not sure'];
+const ALLERGY_CATALOG = ['Penicillin', 'Sulfa drugs', 'Aspirin', 'Latex', 'Peanuts', 'Shellfish', 'Eggs', 'Pollen', 'Bee stings', 'Iodine contrast'];
+const ALLERGY_DETAILS = ['Mild reaction', 'Moderate reaction', 'Severe reaction', 'Not sure'];
+const COMMON_CONDS = ['High blood pressure', 'Diabetes', 'Asthma', 'Thyroid condition', 'Depression or anxiety', 'PCOS', 'Endometriosis', 'Uterine fibroids'];
+const MORE_CONDS = ['Migraine', 'Arthritis', 'High cholesterol', 'Sleep apnea', 'Acid reflux', 'Anemia', 'Kidney disease', 'Heart disease', 'Epilepsy', 'Chronic pain', 'COPD', 'Eczema'];
+const CHARGES = [
+  { id: 'visit', label: 'Annual physical · copay', amount: 40 },
+  { id: 'lab', label: 'Lab work · Mar 12', amount: 15 },
+];
+const SCREENERS = [
+  { q: 'Over the last two weeks, how often have you felt down, depressed or hopeless?', opts: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'] },
+  { q: 'How often have you had little interest or pleasure in doing things?', opts: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'] },
+  { q: 'Do you feel safe at home?', opts: ['Yes', 'No', 'Prefer not to answer'] },
+];
+
+class Component extends DCLogic {
+  state = {
+    scenario: 'returning', idx: 0, demoOpen: false,
+    otp: '', otpError: false, countdown: 28, acked: false,
+    additionalOpen: false, editingPersonal: false,
+    personal: { dob: '', email: '', address: '' },
+    emergencyUpdating: false, emergency: { name: '', relation: '', phone: '' },
+    visitConfirmed: false, visitAnswer: null,
+    coverageChanging: false, coverageEditing: false, manualEntry: false, carrier: '', memberId: '', scanning: false, groupFixed: false, groupValue: '', backScanned: false,
+    eligibility: 'idle',
+    meds: [...MEDS], allergies: [...ALLERGIES], medsEditing: false, allergiesEditing: false,
+    privacyOpen: false,
+    addSheet: null, addQuery: '', addPicks: [], addDetail: null,
+    hv: 'review', onFileConds: ['High blood pressure', 'Diabetes'], selectedConds: [], noneConds: false,
+    showMore: false, condSearch: '', pendingRemove: null, lastConfirmed: 'Aug 18, 2026',
+    screenerIdx: 0, screenerAnswers: [],
+    cardSheetOpen: false, cardNumber: '', paid: false,
+    chargesOpen: true, charges: { visit: true, lab: false },
+    cards: [
+      { id: 'v1', brand: 'VISA', name: 'Visa •••• 4545', last4: '4545', exp: '03/28', expired: false, isDefault: true },
+    ],
+    selectedCardId: 'v1', pickerOpen: false, authSheetOpen: false, methodsOpen: false,
+    cardExp: '', cardCvc: '', cardName: '', saveCardChecked: true,
+    consentFullOpen: false, agreed: false, signed: false,
+    passport: 'offer',
+  };
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (this.key() === 'otp' && this.state.otp.length < 6) {
+        this.setState(s => ({ otp: '017722'.slice(0, s.otp.length + 1) }));
+      }
+    }, 260);
+  }
+  componentWillUnmount() { clearInterval(this.timer); if (this.tid) clearTimeout(this.tid); }
+
+  flow() {
+    if (this.state.scenario !== 'returning') return FLOW_NEW;
+    if (!this.state.coverageChanging && !this.state.manualEntry) return FLOW_RET;
+    const f = [...FLOW_RET];
+    f.splice(f.indexOf('coverage') + 1, 0, 'ocr');
+    return f;
+  }
+  key() { return this.flow()[this.state.idx]; }
+  isRet() { return this.state.scenario === 'returning'; }
+
+  go(key) { const i = this.flow().indexOf(key); if (i >= 0) this.setState({ idx: i }); }
+  next() {
+    const key = this.key();
+    if (key === 'coverage' && this.state.eligibility === 'idle') this.startEligibility();
+    this.setState(s => ({ idx: Math.min(s.idx + 1, this.flow().length - 1) }));
+  }
+  back() { this.setState(s => ({ idx: Math.max(s.idx - 1, 0) })); }
+
+  toggleCond(name) {
+    this.setState(st => ({
+      noneConds: false,
+      selectedConds: st.selectedConds.includes(name) ? st.selectedConds.filter(c => c !== name) : [...st.selectedConds, name],
+    }));
+  }
+  toggleNoneConds() { this.setState(st => ({ noneConds: !st.noneConds, selectedConds: [] })); }
+  commitConds() {
+    this.setState(st => ({
+      onFileConds: [...st.onFileConds, ...st.selectedConds.filter(c => !st.onFileConds.includes(c))],
+      selectedConds: [], hv: 'review', condSearch: '', showMore: false,
+    }));
+  }
+  confirmRemove() {
+    this.setState(st => ({ onFileConds: st.onFileConds.filter(c => c !== st.pendingRemove), pendingRemove: null }));
+  }
+
+  openAdd(kind) { this.setState({ addSheet: kind, addQuery: '', addPicks: [], addDetail: null }); }
+  closeAdd() { this.setState({ addSheet: null, addQuery: '', addPicks: [], addDetail: null }); }
+  toggleAddPick(name) {
+    this.setState(st => ({ addPicks: st.addPicks.includes(name) ? st.addPicks.filter(p => p !== name) : [...st.addPicks, name] }));
+  }
+  submitAdd() {
+    const { addSheet, addPicks, addDetail } = this.state;
+    if (!addSheet || !addPicks.length) return;
+    const detail = addDetail || (addSheet === 'medications' ? 'Dose not specified' : 'Reaction not specified');
+    const items = addPicks.map(name => ({ name, detail }));
+    if (addSheet === 'medications') this.setState(st => ({ meds: [...st.meds, ...items.filter(i => !st.meds.some(m => m.name === i.name))] }));
+    else this.setState(st => ({ allergies: [...st.allergies, ...items.filter(i => !st.allergies.some(a => a.name === i.name))] }));
+    this.closeAdd();
+  }
+
+  payingNow() { return CHARGES.reduce((t, c) => t + (this.state.charges[c.id] ? c.amount : 0), 0); }
+  remaining() { return CHARGES.reduce((t, c) => t + (this.state.charges[c.id] ? 0 : c.amount), 0); }
+
+  startEligibility() {
+    this.setState({ eligibility: 'pending' });
+    this.tid = setTimeout(() => this.setState({ eligibility: 'done' }), 3200);
+  }
+
+  reset(scenario) {
+    this.setState({
+      scenario, idx: 0, demoOpen: false, otp: '', otpError: false, countdown: 28, acked: false,
+      additionalOpen: false, editingPersonal: false, personal: { dob: '', email: '', address: '' },
+      emergencyUpdating: false, emergency: { name: '', relation: '', phone: '' },
+      visitConfirmed: false, visitAnswer: null, coverageChanging: false, coverageEditing: false, manualEntry: false, carrier: '', memberId: '', scanning: false,
+      groupFixed: false, groupValue: '', backScanned: false, eligibility: 'idle',
+      meds: scenario === 'returning' ? [...MEDS] : [],
+      allergies: scenario === 'returning' ? [...ALLERGIES] : [],
+      medsEditing: scenario !== 'returning', allergiesEditing: scenario !== 'returning', privacyOpen: false,
+      addSheet: null, addQuery: '', addPicks: [], addDetail: null,
+      hv: scenario === 'returning' ? 'review' : 'pick',
+      onFileConds: scenario === 'returning' ? ['High blood pressure', 'Diabetes'] : [],
+      selectedConds: [], noneConds: false, showMore: false, condSearch: '', pendingRemove: null,
+      lastConfirmed: 'Aug 18, 2026',
+      screenerIdx: 0, screenerAnswers: [], cardSheetOpen: false, cardNumber: '',
+      paid: false, chargesOpen: true, charges: { visit: true, lab: false },
+      cards: scenario === 'returning' ? [
+        { id: 'v1', brand: 'VISA', name: 'Visa •••• 4545', last4: '4545', exp: '03/28', expired: false, isDefault: true },
+      ] : [],
+      selectedCardId: scenario === 'returning' ? 'v1' : null, pickerOpen: false, authSheetOpen: false, methodsOpen: false,
+      cardExp: '', cardCvc: '', cardName: '', saveCardChecked: true,
+      consentFullOpen: false, agreed: false, signed: false, passport: 'offer',
+    });
+  }
+
+  onOtp(e) {
+    const v = (e.target.value || '').replace(/\D/g, '').slice(0, 6);
+    this.setState({ otp: v, otpError: false });
+    if (v.length === 6) this.tid = setTimeout(() => this.next(), 500);
+  }
+
+  chip(label, selected, pick) {
+    return { label, border: selected ? TEAL : BORDER, bg: selected ? TEAL_SOFT : '#fff', color: selected ? TEAL : NAVY, pick };
+  }
+
+  field(label, key, value, placeholder, isInput) {
+    return {
+      label, value, placeholder: placeholder || '', isInput: !!isInput, isRow: !isInput, gap: isInput ? '6px' : '0px',
+      onChange: (e) => this.setState(s => ({ personal: { ...s.personal, [key]: e.target.value } })),
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const key = this.key();
+    const ret = this.isRet();
+    const pct = PCT[key] || 0;
+    const screener = SCREENERS[Math.min(s.screenerIdx, 2)];
+    const valid = s.cards.filter(c => !c.expired);
+    const selCard = s.cards.find(c => c.id === s.selectedCardId && !c.expired) || null;
+    const expired = s.cards.filter(c => c.expired);
+
+    // Footer configuration per screen
+    let primaryLabel = 'Continue', primary = () => this.next(), secondaryLabel = null, secondary = null, tertiaryLabel = null, tertiary = null, primaryDisabled = false;
+    if (key === 'otp') {
+      primaryLabel = 'Continue';
+      primaryDisabled = s.otp.length < 6;
+      primary = () => { if (s.otp.length === 6) this.next(); };
+    }
+    else if (key === 'welcome') { primaryLabel = null; primary = null; }
+    else if (key === 'personal') {
+      if (ret) { primaryLabel = 'Everything looks correct'; secondaryLabel = s.editingPersonal ? 'Done editing' : 'Edit information'; secondary = () => this.setState({ editingPersonal: !s.editingPersonal }); }
+      else { primaryLabel = 'Save and continue'; }
+    }
+    else if (key === 'emergency') {
+      if (ret && !s.emergencyUpdating) { primaryLabel = 'Yes, looks correct'; secondaryLabel = 'Update'; secondary = () => this.setState({ emergencyUpdating: true }); }
+      else { primaryLabel = 'Save contact'; }
+    }
+    else if (key === 'visit') {
+      if (!s.visitConfirmed) { primaryLabel = "Yes, that's right"; primary = () => this.setState({ visitConfirmed: true }); secondaryLabel = 'Update reason'; secondary = () => this.setState({ visitConfirmed: true }); }
+      else { primaryLabel = 'Continue'; }
+    }
+    else if (key === 'coverage') {
+      if (ret && s.coverageEditing) { primaryLabel = 'Save coverage details'; primary = () => this.setState({ coverageEditing: false }); secondaryLabel = 'Cancel'; secondary = () => this.setState({ coverageEditing: false }); }
+      else if (ret && !s.coverageChanging) {
+        primaryLabel = 'Yes, continue';
+        secondaryLabel = 'No, I need to update it'; secondary = () => this.setState({ coverageChanging: true });
+        tertiaryLabel = '✎ Edit insurance details'; tertiary = () => this.setState({ coverageEditing: true });
+      }
+      else {
+        primaryLabel = 'Continue';
+        primaryDisabled = true;
+        primary = () => {};
+        secondaryLabel = 'Enter details manually';
+        secondary = () => { this.setState({ manualEntry: true }, () => { const i = this.flow().indexOf('ocr'); this.setState({ idx: i }); }); };
+        tertiaryLabel = "I'll do this later";
+        tertiary = () => { this.startEligibility(); this.setState({ coverageChanging: false, manualEntry: false }, () => this.setState({ idx: this.flow().indexOf('health') })); };
+      }
+    }
+    else if (key === 'ocr') { primaryLabel = s.manualEntry ? 'Save and continue' : 'Looks good, continue'; }
+    else if (key === 'health') {
+      if (s.hv === 'review') {
+        primaryLabel = 'Everything is still correct';
+        primary = () => { this.setState({ lastConfirmed: 'today' }); this.next(); };
+      } else if (s.hv === 'empty') {
+        primaryLabel = 'No, still none'; primary = () => this.next();
+      } else if (s.hv === 'edit') {
+        primaryLabel = 'Save changes';
+        primary = () => this.setState(st => ({ hv: st.onFileConds.length ? 'review' : 'empty' }));
+      } else if (s.hv === 'add') {
+        if (s.selectedConds.length) { primaryLabel = 'Add selected conditions'; primary = () => this.commitConds(); }
+        else { primaryLabel = 'No new conditions'; primary = () => this.setState(st => ({ hv: st.onFileConds.length ? 'review' : 'empty', condSearch: '', showMore: false })); }
+      } else {
+        primaryLabel = 'Continue';
+        primaryDisabled = !(s.selectedConds.length || s.noneConds);
+        primary = () => { if (s.selectedConds.length || s.noneConds) { this.setState(st => ({ onFileConds: [...st.onFileConds, ...st.selectedConds], selectedConds: [] })); this.next(); } };
+      }
+    }
+    else if (key === 'medications') {
+      if (!s.medsEditing) { primaryLabel = 'No changes'; secondaryLabel = 'Update medications'; secondary = () => this.setState({ medsEditing: true }); }
+      else { primaryLabel = s.meds.length ? 'Save and continue' : 'I take no medications'; primary = () => { this.setState({ medsEditing: !ret }); this.next(); }; }
+    }
+    else if (key === 'allergies') {
+      if (!s.allergiesEditing) { primaryLabel = 'No changes'; secondaryLabel = 'Update allergies'; secondary = () => this.setState({ allergiesEditing: true }); }
+      else { primaryLabel = s.allergies.length ? 'Save and continue' : 'I have no known allergies'; primary = () => { this.setState({ allergiesEditing: !ret }); this.next(); }; }
+    }
+    else if (key === 'screener') { primaryLabel = null; primary = null; }
+    else if (key === 'payment') {
+      const usable = s.cards.filter(c => !c.expired);
+      const chosen = s.selectedCardId === 'applepay' || s.cards.some(c => c.id === s.selectedCardId && !c.expired);
+      secondaryLabel = 'Pay at the visit'; secondary = () => this.next();
+      if (!chosen) { primaryLabel = 'Select a payment method'; primaryDisabled = true; primary = () => {}; }
+      else { primaryLabel = 'Pay $40.00'; primary = () => { this.setState({ paid: true }); this.next(); }; }
+    }
+    else if (key === 'consent') { primaryLabel = 'Sign and continue'; primary = () => { if (s.agreed && s.signed) this.next(); else this.setState({ agreed: true, signed: true }); }; }
+    else if (key === 'review') { primaryLabel = 'Complete check-in'; }
+    else if (key === 'success') { primaryLabel = null; primary = null; }
+
+    const reviewSections = [
+      { label: 'Personal information', jump: 'personal' },
+      { label: 'Emergency contact', jump: 'emergency' },
+      { label: "Today's visit", jump: 'visit' },
+      { label: 'Coverage', jump: 'coverage', warn: !ret && !s.groupFixed },
+      { label: 'Health history', jump: 'health' },
+      { label: 'Medications', jump: 'medications' },
+      { label: 'Allergies', jump: 'allergies' },
+      { label: 'Required screening', jump: 'screener' },
+      { label: 'Payment', jump: 'payment' },
+      { label: 'Consent', jump: 'consent' },
+    ].map(x => ({
+      label: x.label,
+      mark: x.warn ? '!' : '✓',
+      iconBg: x.warn ? '#FFFAEB' : '#ECFDF3',
+      iconColor: x.warn ? '#B54708' : '#067647',
+      status: x.warn ? 'Needs review' : 'Confirmed',
+      statusColor: x.warn ? '#B54708' : '#98A2B3',
+      action: x.warn ? 'Review' : 'Edit',
+      edit: () => this.go(x.jump),
+    }));
+
+    const personalFields = ret
+      ? [this.field('Email', 'email', 'jane.doe@email.com'), this.field('Date of birth', 'dob', 'Aug 14, 1991'), this.field('Address', 'address', '123 Main Street\nOakwood, NY 10001')]
+      : [
+        this.field('Email', 'email', s.personal.email, 'jane.doe@email.com', true),
+        this.field('Date of birth', 'dob', s.personal.dob, 'MM / DD / YYYY', true),
+        this.field('Address', 'address', s.personal.address, '123 Main Street, Oakwood NY', true),
+      ];
+    const editableRet = ret && s.editingPersonal
+      ? personalFields.map(f => ({ ...f, isInput: true, isRow: false, gap: '6px', placeholder: f.value }))
+      : personalFields;
+
+    return {
+      // header / chrome
+      showProgress: !['otp', 'welcome', 'success'].includes(key),
+      percent: pct, percentWidth: pct + '%',
+      timeLeft: ret ? 'About 2 min left' : 'About 4–5 min left',
+      back: () => this.back(),
+      apptTime: 'Tomorrow · 8:00 AM',
+      scenarioNote: ret ? 'Scenario: returning patient — most information already on file.' : 'Scenario: new patient — first visit, full intake.',
+      showDemoButton: this.props.showDemoButton !== false,
+
+      // screens
+      isOtp: key === 'otp', isWelcome: key === 'welcome',
+      isPersonal: key === 'personal', isEmergency: key === 'emergency', isVisit: key === 'visit',
+      isCoverage: key === 'coverage', isOcr: key === 'ocr', isHealth: key === 'health',
+      isMedications: key === 'medications', isAllergies: key === 'allergies', isScreener: key === 'screener', isPayment: key === 'payment', isConsent: key === 'consent',
+      isReview: key === 'review', isSuccess: key === 'success',
+      isReturning: ret,
+
+      // otp
+      otp: s.otp, otpError: s.otpError, countdown: s.countdown,
+      otpCells: [0, 1, 2, 3, 4, 5].map(i => ({ digit: s.otp[i] || '', border: s.otp[i] ? '#1677E8' : '#E4E7EC' })),
+      otpVerified: s.otp.length === 6, otpFilling: s.otp.length < 6,
+
+      // appointment hub
+      readiness: ret ? 80 : 35,
+      readinessTurn: (ret ? 0.8 : 0.35) + 'turn',
+      hubChips: (ret
+        ? [{ label: 'Confirmed', color: '#1677E8', bg: '#EAF2FE' }, { label: 'Most info on file', color: '#067647', bg: '#ECFDF3' }]
+        : [{ label: 'Confirmed', color: '#1677E8', bg: '#EAF2FE' }, { label: 'Complete intake', color: '#B54708', bg: '#FFFAEB' }]),
+      hubCta: ret ? 'Resume check-in' : 'Start check-in',
+      hubDocsSub: ret ? 'On file from your last visit' : 'Photo ID and insurance card',
+      hubDocsAction: ret ? 'Review' : 'Add',
+      hubInstructions: [
+        { n: 1, title: 'Arrive 10 minutes early', body: 'Give yourself time to park and find the suite.' },
+        { n: 2, title: 'Bring your ID', body: 'We confirm identity at the front desk before your visit.' },
+      ],
+      ackInstructions: () => this.setState({ acked: true }),
+      ackLabel: s.acked ? '✓ Got it' : 'Got it — I understand',
+      ackBg: s.acked ? '#ECFDF3' : '#EAF2FE',
+      ackColor: s.acked ? '#067647' : '#1677E8',
+      startCheckIn: () => this.next(),
+
+      // personal
+      personalSubtitle: ret ? "Confirm what's on file. Update only what changed." : 'Add the information we need for your visit.',
+      personalMeta: ret ? 'Last confirmed Aug 18, 2026' : 'From your appointment booking',
+      personalFields: editableRet,
+      additionalOpen: s.additionalOpen, additionalCaret: s.additionalOpen ? '−' : '+',
+      toggleAdditional: () => this.setState({ additionalOpen: !s.additionalOpen }),
+
+      // emergency
+      emergencyTitle: ret && !s.emergencyUpdating ? 'Is this still your emergency contact?' : 'Who should we contact?',
+      emergencyCopy: ret && !s.emergencyUpdating ? 'We have this contact on file.' : 'One person we can reach in an emergency.',
+      emergencyKnown: ret && !s.emergencyUpdating,
+      emergencyForm: !ret || s.emergencyUpdating,
+      emergencyFields: [
+        { label: 'Full name', value: s.emergency.name, placeholder: 'Sarah Doe', onChange: (e) => this.setState(st => ({ emergency: { ...st.emergency, name: e.target.value } })) },
+        { label: 'Relationship', value: s.emergency.relation, placeholder: 'Spouse', onChange: (e) => this.setState(st => ({ emergency: { ...st.emergency, relation: e.target.value } })) },
+        { label: 'Mobile', value: s.emergency.phone, placeholder: '(555) 234-8891', onChange: (e) => this.setState(st => ({ emergency: { ...st.emergency, phone: e.target.value } })) },
+      ],
+
+      // visit
+      visitTitle: s.visitConfirmed ? 'A few details' : "Is this what you're coming in for?",
+      visitCopy: s.visitConfirmed ? 'Just a couple quick questions to help us prepare for your visit.' : 'Confirm the reason on file so your care team can prepare.',
+      visitReason: 'Annual physical',
+      visitFollowUp: s.visitConfirmed,
+      visitOptions: ['No new symptoms', 'Mild cough or congestion', 'Fever', 'Something else'].map(l => {
+        const sel = s.visitAnswer === l;
+        return {
+          label: l, mark: sel ? '✓' : '',
+          border: sel ? '#1677E8' : '#E4E7EC', bg: sel ? '#F5F9FF' : '#fff',
+          dotBorder: sel ? '#1677E8' : '#D0D5DD', dotBg: sel ? '#1677E8' : '#fff',
+          pick: () => this.setState({ visitAnswer: l }),
+        };
+      }),
+
+      // coverage
+      coverageTitle: ret && !s.coverageChanging ? 'Your coverage' : 'Insurance',
+      coverageCopy: ret && !s.coverageChanging ? 'We have this coverage on file.' : 'Photograph the card and we read it, then check the coverage with your payer while the rest of the form is still being filled in.',
+      coverageKnown: ret && !s.coverageChanging,
+      coverageEditing: !!s.coverageEditing, coverageNotEditing: !s.coverageEditing,
+      memberIdDisplay: s.memberId ? s.memberId : '••••8213',
+      memberIdValue: s.memberId || '',
+      onMemberId: (e) => this.setState({ memberId: e.target.value }),
+      coverageCapture: !ret || s.coverageChanging,
+      scanning: s.scanning,
+      scanLabel: s.scanning ? 'Capturing…' : 'Tap to scan a card',
+      startScan: () => { this.setState({ scanning: true }); if (s.eligibility === 'idle') this.startEligibility(); this.tid = setTimeout(() => { this.setState({ scanning: false }); const i = this.flow().indexOf('ocr'); if (i >= 0) this.setState({ idx: i }); else this.next(); }, 1600); },
+
+      // ocr
+      ocrTitle: s.manualEntry ? 'Enter your insurance details' : 'Insurance',
+      ocrCopy: s.manualEntry ? 'Add the details from the front of your card.' : "We read your card and are checking the coverage with your payer while you finish the rest of the form.",
+      groupDisplay: s.groupValue || '00921',
+      eligText: s.eligibility === 'done' ? 'Blue Shield active · $40 office visit' : 'Checking with Blue Shield…',
+      eligMeta: s.eligibility === 'done' ? 'Verified' : 'A few seconds',
+      eligMetaColor: s.eligibility === 'done' ? '#067647' : '#98A2B3',
+      eligBg: s.eligibility === 'done' ? '#ECFDF3' : '#fff',
+      eligBorder: s.eligibility === 'done' ? '#ABEFC6' : '#E4E7EC',
+      manualEntry: !!s.manualEntry, notManual: !s.manualEntry,
+      backCardDisplay: s.manualEntry ? 'none' : 'block',
+      carrierValue: s.carrier || '', onCarrier: (e) => this.setState({ carrier: e.target.value }),
+      groupFixed: s.groupFixed, groupNeedsReview: !s.groupFixed, groupValue: s.groupValue,
+      onGroup: (e) => this.setState({ groupValue: e.target.value }),
+      confirmGroup: () => this.setState({ groupFixed: true, groupValue: s.groupValue || '00921' }),
+      rescan: () => { const i = this.flow().indexOf('coverage'); this.setState({ idx: i, groupFixed: false }); },
+      scanBack: () => this.setState({ backScanned: true }),
+      scanBackLabel: s.backScanned ? '✓ Back captured' : 'Scan back',
+      skipBack: () => this.setState({ backScanned: false }),
+
+      // eligibility
+      eligibilityPending: s.eligibility === 'pending', eligibilityDone: s.eligibility === 'done',
+
+      // medications + allergies
+      medicationsTitle: s.medsEditing ? (ret ? 'Update your medications' : 'Any medications you take regularly?') : 'Your medications',
+      medicationsCopy: s.medsEditing ? 'Include prescriptions, inhalers and anything over-the-counter.' : "Here's what we currently have on file.",
+      medicationsHasItems: s.meds.length > 0, medicationsEmpty: s.meds.length === 0,
+      medicationsEmptyText: 'No medications on file yet.',
+      medicationsEditing: s.medsEditing, medicationsReviewing: !s.medsEditing,
+      medicationsItems: s.meds.map((m, i) => ({ name: m.name, detail: m.detail, nameColor: '#101828', remove: () => this.setState(st => ({ meds: st.meds.filter((_, j) => j !== i) })) })),
+      medicationsAdd: () => this.openAdd('medications'),
+
+      allergiesTitle: s.allergiesEditing ? (ret ? 'Update your allergies' : 'Do you have any allergies?') : 'Your allergies',
+      allergiesCopy: s.allergiesEditing ? 'Include medication, food and environmental allergies.' : "Here's what we currently have on file.",
+      allergiesHasItems: s.allergies.length > 0, allergiesEmpty: s.allergies.length === 0,
+      allergiesEmptyText: 'No known allergies on file.',
+      allergiesEditing: s.allergiesEditing, allergiesReviewing: !s.allergiesEditing,
+      allergiesItems: s.allergies.map((a, i) => ({ name: a.name, detail: a.detail, nameColor: '#B54708', remove: () => this.setState(st => ({ allergies: st.allergies.filter((_, j) => j !== i) })) })),
+      allergiesAdd: () => this.openAdd('allergies'),
+
+      addSheetOpen: !!s.addSheet,
+      addSheetTitle: s.addSheet === 'allergies' ? 'Add an allergy' : 'Add a medication',
+      addSheetPlaceholder: s.addSheet === 'allergies' ? 'Search allergies, like latex' : 'Search medications, like metformin',
+      addQuery: s.addQuery,
+      onAddQuery: (e) => this.setState({ addQuery: e.target.value }),
+      addOptions: (() => {
+        const cat = s.addSheet === 'allergies' ? ALLERGY_CATALOG : MED_CATALOG;
+        const have = (s.addSheet === 'allergies' ? s.allergies : s.meds).map(x => x.name);
+        const q = s.addQuery.trim().toLowerCase();
+        return cat
+          .filter(n => !have.includes(n))
+          .filter(n => !q || n.toLowerCase().includes(q))
+          .concat(s.addPicks.filter(p => !cat.includes(p)))
+          .map(name => {
+            const sel = s.addPicks.includes(name);
+            return {
+              name, mark: sel ? '✓' : '', bg: sel ? '#F5F9FF' : 'none',
+              boxBorder: sel ? '#1677E8' : '#D0D5DD', boxBg: sel ? '#1677E8' : '#fff',
+              toggle: () => this.toggleAddPick(name),
+            };
+          });
+      })(),
+      addCustomVisible: (() => {
+        const cat = s.addSheet === 'allergies' ? ALLERGY_CATALOG : MED_CATALOG;
+        const q = s.addQuery.trim();
+        return q.length > 1 && !cat.some(n => n.toLowerCase() === q.toLowerCase()) && !s.addPicks.includes(q);
+      })(),
+      addCustom: () => { const q = s.addQuery.trim(); if (q) this.toggleAddPick(q); },
+      addHasSelection: s.addPicks.length > 0,
+      addDetailLabel: s.addSheet === 'allergies' ? 'How severe is the reaction?' : 'How often do you take it?',
+      addDetailOptions: (s.addSheet === 'allergies' ? ALLERGY_DETAILS : MED_DETAILS).map(label => {
+        const sel = s.addDetail === label;
+        return {
+          label, border: sel ? '#1677E8' : '#E4E7EC', bg: sel ? '#F5F9FF' : '#fff', color: sel ? '#1677E8' : '#101828',
+          pick: () => this.setState({ addDetail: label }),
+        };
+      }),
+      addSubmitLabel: s.addPicks.length > 1 ? 'Add ' + s.addPicks.length + ' items' : (s.addPicks.length === 1 ? 'Add ' + s.addPicks[0] : 'Select to add'),
+      addSubmitBg: s.addPicks.length ? '#1677E8' : '#EAECF0',
+      addSubmitFg: s.addPicks.length ? '#fff' : '#98A2B3',
+      addSubmitCursor: s.addPicks.length ? 'pointer' : 'not-allowed',
+      submitAddSheet: () => this.submitAdd(),
+      closeAddSheet: () => this.closeAdd(),
+
+      privacyOpen: s.privacyOpen,
+      openPrivacy: () => this.setState({ privacyOpen: true }),
+      closePrivacy: () => this.setState({ privacyOpen: false }),
+
+      // health history — conditions
+      hvTitle: (() => {
+        if (s.hv === 'add') return 'Add a condition';
+        if (s.hv === 'edit') return 'Edit conditions';
+        if (s.hv === 'pick') return 'Which conditions have you been diagnosed with?';
+        if (s.hv === 'empty') return 'Your health history';
+        return 'Your health history';
+      })(),
+      hvCopy: (() => {
+        if (s.hv === 'add') return 'Select any new conditions that apply.';
+        if (s.hv === 'edit') return 'Remove anything you are no longer managing.';
+        if (s.hv === 'pick') return 'Select any that apply, now or in the past.';
+        if (s.hv === 'empty') return 'Review what is on file and update anything that has changed.';
+        return "Review what's on file and update anything that has changed.";
+      })(),
+      hvEyebrow: 'Health history',
+      hvReview: s.hv === 'review', hvEmpty: s.hv === 'empty', hvEdit: s.hv === 'edit',
+      hvPick: s.hv === 'pick' || s.hv === 'add',
+      hvShowNone: s.hv === 'pick',
+      lastConfirmed: s.lastConfirmed,
+      onFile: s.onFileConds.map(name => ({ name, remove: () => this.setState({ pendingRemove: name }) })),
+      hvOpenAdd: () => this.setState({ hv: 'add', selectedConds: [], condSearch: '', showMore: false }),
+      hvOpenEdit: () => this.setState({ hv: 'edit' }),
+      condOptions: (s.hv === 'add'
+        ? [...COMMON_CONDS.filter(c => !s.onFileConds.includes(c)), ...(s.showMore ? MORE_CONDS.filter(c => !s.onFileConds.includes(c)) : [])]
+        : [...COMMON_CONDS, ...(s.showMore ? MORE_CONDS : [])]
+      ).map(name => {
+        const sel = s.selectedConds.includes(name);
+        return {
+          name, mark: sel ? '✓' : '',
+          border: sel ? TEAL : '#F2F4F7', bg: sel ? '#F5F9FF' : '#fff',
+          boxBorder: sel ? TEAL : BORDER, boxBg: sel ? TEAL : '#fff',
+          toggle: () => this.toggleCond(name),
+        };
+      }),
+      moreLabel: s.showMore ? 'Show fewer conditions' : 'Show ' + MORE_CONDS.length + ' more conditions',
+      hvToggleMore: () => this.setState({ showMore: !s.showMore }),
+      searchHeading: s.hv === 'add' ? 'Search conditions' : 'Add a condition',
+      search: s.condSearch,
+      onSearch: (e) => this.setState({ condSearch: e.target.value }),
+      searchResults: (s.condSearch.trim().length < 2 ? [] : [...COMMON_CONDS, ...MORE_CONDS]
+        .filter(c => c.toLowerCase().includes(s.condSearch.trim().toLowerCase()))
+        .filter(c => !s.onFileConds.includes(c) && !s.selectedConds.includes(c))
+        .slice(0, 4)
+      ).map(name => ({ name, add: () => this.toggleCond(name) })),
+      noneMark: s.noneConds ? '✓' : '',
+      noneBorder: s.noneConds ? TEAL : '#F2F4F7', noneBg: s.noneConds ? '#F5F9FF' : '#fff',
+      noneBoxBorder: s.noneConds ? TEAL : BORDER, noneBoxBg: s.noneConds ? TEAL : '#fff',
+      toggleNone: () => this.toggleNoneConds(),
+      pendingRemove: !!s.pendingRemove, pendingRemoveName: s.pendingRemove || '',
+      keepCond: () => this.setState({ pendingRemove: null }),
+      removeCond: () => this.confirmRemove(),
+
+      // screener
+      screenerNum: Math.min(s.screenerIdx + 1, 3),
+      screenerProgress: [0, 1, 2].map(i => ({ bg: i <= s.screenerIdx ? TEAL : '#F2F4F7' })),
+      screenerQuestion: screener.q,
+      screenerOptions: screener.opts.map(l => this.chip(l, s.screenerAnswers[s.screenerIdx] === l, () => {
+        const answers = [...s.screenerAnswers]; answers[s.screenerIdx] = l;
+        if (s.screenerIdx < 2) this.setState({ screenerAnswers: answers, screenerIdx: s.screenerIdx + 1 });
+        else { this.setState({ screenerAnswers: answers }); this.next(); }
+      })),
+
+      // payment
+      payingNow: this.payingNow(),
+      remainingText: this.remaining() > 0 ? '$' + this.remaining() + '.00 remaining' : 'Balance paid in full',
+      chargesOpen: s.chargesOpen, chargesLabel: s.chargesOpen ? 'Hide details' : 'View details',
+      toggleCharges: () => this.setState({ chargesOpen: !s.chargesOpen }),
+      hasSelectedCard: !!selCard, noSelectedCard: !selCard,
+      selBrandLabel: selCard ? (selCard.brand === 'MC' ? 'mastercard' : selCard.brand === 'AMEX' ? 'AMEX' : 'VISA') : '',
+      selLast4: selCard ? selCard.last4 : '', selExp: selCard ? selCard.exp : '',
+      methodsOpen: s.methodsOpen,
+      openMethods: () => this.setState({ methodsOpen: true }),
+      closeMethods: () => this.setState({ methodsOpen: false }),
+      appleSelected: s.selectedCardId === 'applepay',
+      appleBorder: s.selectedCardId === 'applepay' ? '#1677E8' : '#E4E7EC',
+      appleBg: s.selectedCardId === 'applepay' ? '#F5F9FF' : '#fff',
+      pickApple: () => this.setState({ selectedCardId: 'applepay', methodsOpen: false }),
+      methodCards: s.cards.map(c => {
+        const isSel = s.selectedCardId === c.id;
+        return {
+          brand: c.brand === 'MC' ? 'MC' : c.brand,
+          markBg: c.brand === 'AMEX' ? '#1677E8' : c.brand === 'MC' ? '#EB5C1E' : '#1A56B0',
+          title: (c.brand === 'VISA' ? 'Visa' : c.brand === 'AMEX' ? 'Amex' : 'Mastercard') + ' •••• ' + c.last4,
+          sub: c.expired ? 'Expired ' + c.exp : 'Expires ' + c.exp,
+          titleColor: c.expired ? '#98A2B3' : '#101828',
+          subColor: c.expired ? '#B42318' : '#667085',
+          selected: isSel,
+          border: isSel ? '#1677E8' : '#E4E7EC',
+          bg: isSel ? '#F5F9FF' : '#fff',
+          select: () => { if (c.expired) this.setState({ cardSheetOpen: true }); else this.setState({ selectedCardId: c.id, methodsOpen: false }); },
+        };
+      }),
+      previewNumber: (() => {
+        const d = s.cardNumber.replace(/\D/g, '').padEnd(16, '•');
+        return (d.slice(0, 4) + ' ' + d.slice(4, 8) + ' ' + d.slice(8, 12) + ' ' + d.slice(12, 16)).replace(/[0-9]/g, m => m);
+      })(),
+      previewExp: s.cardExp || 'MM/YY',
+      previewName: (s.cardName || 'CARDHOLDER NAME').toUpperCase(),
+      cardExp: s.cardExp, onCardExp: (e) => this.setState({ cardExp: e.target.value }),
+      cardCvc: s.cardCvc, onCardCvc: (e) => this.setState({ cardCvc: e.target.value.replace(/\D/g, '').slice(0, 4) }),
+      cardName: s.cardName, onCardName: (e) => this.setState({ cardName: e.target.value }),
+      saveCardChecked: s.saveCardChecked, saveCardMark: s.saveCardChecked ? '✓' : '',
+      saveCardBg: s.saveCardChecked ? '#1677E8' : '#fff', saveCardBorder: s.saveCardChecked ? '#1677E8' : '#D0D5DD',
+      toggleSaveCard: () => this.setState({ saveCardChecked: !s.saveCardChecked }),
+      addCardBg: s.cardNumber.replace(/\D/g, '').length >= 4 ? '#1677E8' : '#EAECF0',
+      addCardFg: s.cardNumber.replace(/\D/g, '').length >= 4 ? '#fff' : '#98A2B3',
+      addCardCursor: s.cardNumber.replace(/\D/g, '').length >= 4 ? 'pointer' : 'not-allowed',
+      expiredCards: expired,
+      hasUnavailable: expired.length > 0 && (s.pickerOpen || valid.length !== 1),
+      selectedCardName: (s.cards.find(c => c.id === s.selectedCardId) || {}).name || 'your card',
+      authSheetOpen: s.authSheetOpen,
+      openAuth: () => this.setState({ authSheetOpen: true }),
+      closeAuth: () => this.setState({ authSheetOpen: false }),
+      cardSheetOpen: s.cardSheetOpen, cardNumber: s.cardNumber,
+      onCardNumber: (e) => this.setState({ cardNumber: e.target.value.replace(/[^0-9 ]/g, '') }),
+      openCardSheet: () => this.setState({ cardSheetOpen: true }),
+      closeCardSheet: () => this.setState({ cardSheetOpen: false }),
+      saveCard: () => {
+        const last4 = s.cardNumber.replace(/\D/g, '').slice(-4) || '4242';
+        const id = 'c' + Date.now();
+        this.setState(st => ({
+          cardSheetOpen: false, methodsOpen: false, cardNumber: '', cardExp: '', cardCvc: '', cardName: '', selectedCardId: id,
+          cards: [...st.cards, { id, brand: 'VISA', name: 'Visa •••• ' + last4, last4, exp: '04/29', expired: false, isDefault: false }],
+        }));
+      },
+
+      // consent
+      consentFullOpen: s.consentFullOpen, consentFullLabel: s.consentFullOpen ? 'Hide full consent' : 'View full consent',
+      toggleConsentFull: () => this.setState({ consentFullOpen: !s.consentFullOpen }),
+      agreed: s.agreed, agreeMark: s.agreed ? '✓' : '', agreeBg: s.agreed ? TEAL : '#fff', agreeBorder: s.agreed ? TEAL : BORDER,
+      toggleAgree: () => this.setState({ agreed: !s.agreed }),
+      signed: s.signed, notSigned: !s.signed, signBorder: s.signed ? TEAL : BORDER,
+      sign: () => this.setState({ signed: !s.signed }),
+
+      // review + success
+      reviewCopy: (() => {
+        const n = reviewSections.filter(x => x.status === 'Needs review').length;
+        if (n === 0) return 'Everything below is confirmed and saved.';
+        return n === 1 ? 'One item still needs your attention.' : n + ' items still need your attention.';
+      })(),
+      reviewSections,
+      successItems: [{ label: 'Check-in complete' }, { label: 'Coverage submitted' }, { label: 'Forms signed' }, { label: s.paid ? 'Payment complete' : 'Payment due at visit' }],
+      passportOpen: s.passport === 'offer', passportSaved: s.passport === 'saved',
+      savePassport: () => this.setState({ passport: 'saved' }),
+      dismissPassport: () => this.setState({ passport: 'dismissed' }),
+      restart: () => this.reset(s.scenario),
+
+      // footer
+      hasFooter: !!primaryLabel, primaryLabel, primary,
+      primaryBg: primaryDisabled ? '#EAECF0' : TEAL,
+      primaryFg: primaryDisabled ? '#98A2B3' : '#fff',
+      primaryCursor: primaryDisabled ? 'not-allowed' : 'pointer',
+      hasSecondary: !!secondaryLabel, secondaryLabel, secondary,
+      hasTertiary: !!tertiaryLabel, tertiaryLabel, tertiary,
+
+      // demo sheet
+      demoOpen: s.demoOpen,
+      openDemo: () => this.setState({ demoOpen: true }),
+      closeDemo: () => this.setState({ demoOpen: false }),
+      pickNew: () => this.reset('new'),
+      pickReturning: () => this.reset('returning'),
+      newBorder: !ret ? TEAL : BORDER, newBg: !ret ? TEAL_SOFT : '#fff',
+      retBorder: ret ? TEAL : BORDER, retBg: ret ? TEAL_SOFT : '#fff',
+    };
+  }
+}
+</script>
+</body>
+</html>
