@@ -174,6 +174,68 @@ export function ChevronRightIcon({ size = 16, color = "#98A2B3" }: IconProps) {
   );
 }
 
+// Solid brand-blue shield with a simple medical-rod glyph — the payer
+// logo placeholder on OcrScreen's card-read view (README: brand marks
+// are text/placeholder icons "to be replaced with the codebase's
+// licensed brand marks").
+export function InsuranceBrandIcon({ size = 44 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
+      <path
+        d="M22 3l15 6v10c0 10-6.4 16-15 21-8.6-5-15-11-15-21V9l15-6z"
+        fill="var(--iv2-brand)"
+      />
+      <path d="M22 13v14M17 16c0 3 2.2 4.6 5 4.6s5-1.6 5-4.6" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Plain document/file glyph — Consent screen's "Consent to treat" row.
+export function DocumentIcon({ size = 19, color = "#1677E8" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M6 3.5h9l3.5 3.5V20a1 1 0 01-1 1H6a1 1 0 01-1-1V4.5a1 1 0 011-1z" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
+      <path d="M15 3.5V7h3.5" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
+      <path d="M8 12h8M8 15.5h8M8 8.5h4" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Verify-intro screen's hero glyph — a shield around a person silhouette
+// (device/identity trust), distinct from ShieldCheckIcon's plain
+// checkmark shield used on the OTP screen itself.
+export function ShieldUserIcon({ size = 40, color = "#1677E8" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10.3" r="2.3" stroke={color} strokeWidth={1.8} />
+      <path d="M8 15.2c.7-1.7 2.2-2.6 4-2.6s3.3.9 4 2.6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function PhoneIcon({ size = 20, color = "#1677E8" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" stroke={color} strokeWidth={1.8} />
+      <path d="M10.5 18h3" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function BoltIcon({ size = 20, color = "#16A34A" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke={color} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function ArrowRightIcon({ size = 17, color = "#fff" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">

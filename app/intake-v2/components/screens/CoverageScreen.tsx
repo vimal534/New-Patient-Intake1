@@ -2,7 +2,7 @@
 
 import { Ctx } from "../../ctx";
 import { ScanCardIcon, ShieldPlainIcon } from "../Icons";
-import { Card, Divider, Eyebrow, InfoNote, InputField, LabelValueRow, ScreenCopy, ScreenTitle } from "../ui";
+import { Card, Divider, Eyebrow, InfoNote, LabelValueRow, ScreenCopy, ScreenTitle } from "../ui";
 
 // Screen 6 — Coverage (step 1 of 2). Known-coverage review for a
 // returning patient who hasn't flagged a change, vs. the scan-capture
@@ -33,31 +33,12 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
               <ShieldPlainIcon />
             </div>
             <Divider className="my-4.5" />
-            {state.coverageEditing ? (
-              <div className="flex flex-col gap-3.5">
-                <InputField
-                  label="Member ID"
-                  value={state.memberId}
-                  placeholder="VZ48213"
-                  onChange={(v) => update({ memberId: v })}
-                />
-                <InputField
-                  label="Group number"
-                  value={state.groupValue}
-                  placeholder="00921"
-                  onChange={(v) => update({ groupValue: v })}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <LabelValueRow label="Member ID" value={state.memberId || "••••8213"} />
-                <LabelValueRow label="Last verified" value="Aug 18, 2026" />
-              </div>
-            )}
+            <div className="flex flex-col gap-4">
+              <LabelValueRow label="Member ID" value={state.memberId || "••••8213"} />
+              <LabelValueRow label="Last verified" value="Aug 18, 2026" />
+            </div>
           </Card>
-          {!state.coverageEditing ? (
-            <div className="mt-7 text-xl font-bold text-[var(--iv2-text-primary)]">Still using this insurance?</div>
-          ) : null}
+          <div className="mt-7 text-xl font-bold text-[var(--iv2-text-primary)]">Still using this insurance?</div>
         </div>
       ) : null}
 

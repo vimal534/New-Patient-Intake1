@@ -7,6 +7,8 @@ import { FlowKey, IntakeState, Patch, Scenario } from "./types";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { OtpScreen } from "./components/screens/OtpScreen";
+import { VerifyIntroScreen } from "./components/screens/VerifyIntroScreen";
+import { PhoneFrame } from "./components/PhoneFrame";
 import { WelcomeScreen } from "./components/screens/WelcomeScreen";
 import { PersonalScreen } from "./components/screens/PersonalScreen";
 import { EmergencyScreen } from "./components/screens/EmergencyScreen";
@@ -18,7 +20,6 @@ import { ListReviewScreen } from "./components/screens/ListReviewScreen";
 import { ScreenerScreen } from "./components/screens/ScreenerScreen";
 import { PaymentScreen } from "./components/screens/PaymentScreen";
 import { ConsentScreen } from "./components/screens/ConsentScreen";
-import { ReviewScreen } from "./components/screens/ReviewScreen";
 import { SuccessScreen } from "./components/screens/SuccessScreen";
 import { PaymentMethodsSheet } from "./components/sheets/PaymentMethodsSheet";
 import { AddCardSheet } from "./components/sheets/AddCardSheet";
@@ -32,6 +33,8 @@ const CONSENT_TEXT =
   "I authorize the clinicians of Main St. Clinic to provide the medical care I request. Assignment of benefits: I authorize payment of insurance benefits directly to the practice and accept responsibility for amounts not covered by my plan. Privacy: I acknowledge receipt of the notice of privacy practices describing how my health information may be used and disclosed for treatment, payment and health-care operations.";
 const PRIVACY_TEXT =
   "Everything you share during check-in goes only to your care team at Main St. Clinic and is stored encrypted. We never sell your health information, and you can ask the practice for a copy or correction at any time.";
+const FINANCIAL_TEXT =
+  "You are responsible for any copay, coinsurance, deductible, or balance not covered by your insurance plan. Payment is expected at the time of service unless other arrangements have been made with the practice. A fee may apply for missed appointments not cancelled at least 24 hours in advance.";
 
 // Given a state's scenario/coverageChanging/manualEntry, which flow array
 // applies — mirrors the prototype's `flow()` method. Pure function (no
@@ -107,18 +110,19 @@ export default function IntakeV2Page() {
   const ctx: Ctx = { state, update, next, back, go, isRet, flow, key, startEligibility, reset, showToast };
 
   const percent = PCT[key] ?? 0;
-  const showHeader = !["otp", "welcome", "success"].includes(key);
+  const showHeader = !["verifyIntro", "otp", "welcome", "success"].includes(key);
 
   // Footer configuration per screen — ported 1:1 from the prototype's
   // renderVals() footer block.
   const footer = footerFor(ctx);
 
   return (
-    <div className="iv2-root relative mx-auto min-h-screen max-w-[430px] overflow-hidden bg-[#FBFBFC] font-[family-name:var(--font-inter)]">
-      <div className="flex min-h-screen flex-col">
+    <PhoneFrame>
+      <div className="flex h-full flex-col">
         {showHeader ? <Header percent={percent} timeLeft={isRet ? "About 2 min left" : "About 4–5 min left"} onBack={back} /> : null}
 
         <div className="flex-1 overflow-auto">
+          {key === "verifyIntro" ? <VerifyIntroScreen ctx={ctx} /> : null}
           {key === "otp" ? <OtpScreen ctx={ctx} /> : null}
           {key === "welcome" ? <WelcomeScreen ctx={ctx} /> : null}
           {key === "personal" ? <PersonalScreen ctx={ctx} /> : null}
@@ -132,7 +136,6 @@ export default function IntakeV2Page() {
           {key === "screener" ? <ScreenerScreen ctx={ctx} /> : null}
           {key === "payment" ? <PaymentScreen ctx={ctx} /> : null}
           {key === "consent" ? <ConsentScreen ctx={ctx} /> : null}
-          {key === "review" ? <ReviewScreen ctx={ctx} /> : null}
           {key === "success" ? <SuccessScreen ctx={ctx} /> : null}
         </div>
 
@@ -144,7 +147,6 @@ export default function IntakeV2Page() {
           onSecondary={footer.secondary}
           tertiaryLabel={footer.tertiaryLabel}
           onTertiary={footer.tertiary}
-          primaryPill={key === "review"}
         />
       </div>
 
@@ -154,12 +156,13 @@ export default function IntakeV2Page() {
       <RemoveConfirmSheet ctx={ctx} />
       <TextSheet open={state.consentFullOpen} title="Consent to treatment" body={CONSENT_TEXT} onClose={() => update({ consentFullOpen: false })} zIndex={74} />
       <TextSheet open={state.privacyOpen} title="How your information is used" body={PRIVACY_TEXT} onClose={() => update({ privacyOpen: false })} zIndex={74} />
-      <DemoButton onOpen={() => update({ demoOpen: true })} />
+      <TextSheet open={state.financialOpen} title="Financial policy" body={FINANCIAL_TEXT} onClose={() => update({ financialOpen: false })} zIndex={74} />
+      {key === "verifyIntro" ? <DemoButton onOpen={() => update({ demoOpen: true })} /> : null}
       <DemoSheet ctx={ctx} />
       {state.toastMessage ? (
         <Toast key={state.toastId} message={state.toastMessage} onDone={() => update({ toastMessage: null })} />
       ) : null}
-    </div>
+    </PhoneFrame>
   );
 }
 
@@ -183,7 +186,7 @@ function footerFor(ctx: Ctx): FooterConfig {
   if (key === "otp") {
     return { primaryLabel: "Continue", primaryDisabled: state.otp.length < 6, primary: next };
   }
-  if (key === "welcome" || key === "screener" || key === "success") {
+  if (key === "verifyIntro" || key === "welcome" || key === "screener" || key === "success") {
     return { primaryLabel: null };
   }
   if (key === "personal") {
@@ -209,33 +212,15 @@ function footerFor(ctx: Ctx): FooterConfig {
     return { primaryLabel: "Save contact", primary: next };
   }
   if (key === "visit") {
-    if (!state.visitConfirmed) {
-      return {
-        primaryLabel: "Yes, that's right",
-        primary: () => update({ visitConfirmed: true }),
-        secondaryLabel: "Update reason",
-        secondary: () => update({ visitConfirmed: true }),
-      };
-    }
     return { primaryLabel: "Continue", primary: next };
   }
   if (key === "coverage") {
-    if (isRet && state.coverageEditing) {
-      return {
-        primaryLabel: "Save coverage details",
-        primary: () => update({ coverageEditing: false }),
-        secondaryLabel: "Cancel",
-        secondary: () => update({ coverageEditing: false }),
-      };
-    }
     if (isRet && !state.coverageChanging) {
       return {
         primaryLabel: "Yes, continue",
         primary: next,
-        secondaryLabel: "No, I need to update it",
+        secondaryLabel: "Update insurance",
         secondary: () => update({ coverageChanging: true }),
-        tertiaryLabel: "✎ Edit insurance details",
-        tertiary: () => update({ coverageEditing: true }),
       };
     }
     return {
@@ -256,7 +241,16 @@ function footerFor(ctx: Ctx): FooterConfig {
     };
   }
   if (key === "ocr") {
-    return { primaryLabel: state.manualEntry ? "Save and continue" : "Looks good, continue", primary: next };
+    // "Update" flips Carrier/Member/Member ID/Group into editable
+    // inputs all at once (OcrScreen's `ocrFieldsEditing`) instead of
+    // skipping the step — "Done editing" flips them back to the
+    // read-only card view.
+    return {
+      primaryLabel: state.manualEntry ? "Save and continue" : "Looks good, continue",
+      primary: next,
+      tertiaryLabel: state.manualEntry ? null : state.ocrFieldsEditing ? "Done editing" : "Update",
+      tertiary: () => update({ ocrFieldsEditing: !state.ocrFieldsEditing }),
+    };
   }
   if (key === "health") {
     if (isRet) {
@@ -334,9 +328,6 @@ function footerFor(ctx: Ctx): FooterConfig {
         else update({ agreed: true, signed: true });
       },
     };
-  }
-  if (key === "review") {
-    return { primaryLabel: "Complete check-in", primary: next };
   }
   return { primaryLabel: "Continue", primary: next };
 }

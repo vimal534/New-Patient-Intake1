@@ -1,6 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
+import { formatDob } from "../../format";
 import { Card, Divider, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
 
 // Screen 3 — Personal information.
@@ -54,7 +55,10 @@ export function PersonalScreen({ ctx }: { ctx: Ctx }) {
                 label={f.label}
                 value={isRet ? f.retValue : state.personal[f.key]}
                 placeholder={isRet ? f.retValue : f.placeholder}
-                onChange={(v) => update((s) => ({ personal: { ...s.personal, [f.key]: v } }))}
+                inputMode={f.key === "dob" ? "numeric" : f.key === "email" ? "email" : "text"}
+                onChange={(v) =>
+                  update((s) => ({ personal: { ...s.personal, [f.key]: f.key === "dob" ? formatDob(v) : v } }))
+                }
               />
             ) : (
               <ValueRow key={f.key} label={f.label} value={f.retValue} />

@@ -7,6 +7,7 @@
 export type Scenario = "new" | "returning";
 
 export type FlowKey =
+  | "verifyIntro"
   | "otp"
   | "welcome"
   | "personal"
@@ -20,7 +21,6 @@ export type FlowKey =
   | "screener"
   | "payment"
   | "consent"
-  | "review"
   | "success";
 
 export type CardBrand = "VISA" | "MC" | "AMEX";
@@ -83,13 +83,21 @@ export type IntakeState = {
   visitAnswer: string | null;
 
   coverageChanging: boolean;
-  coverageEditing: boolean;
   manualEntry: boolean;
   carrier: string;
   memberId: string;
+  memberName: string;
   scanning: boolean;
+  // Once true, Group renders as a plain read-only row (like Member/
+  // Member ID) for the rest of the session — never re-prompts "please
+  // check" on a later visit to this screen. Only "Re-scan card" resets
+  // it back to false.
   groupFixed: boolean;
   groupValue: string;
+  // "Update" on the card-read view (OcrScreen) flips Carrier/Member/
+  // Member ID/Group into editable inputs all at once, instead of only
+  // Group ever being interactive.
+  ocrFieldsEditing: boolean;
   backScanned: boolean;
 
   eligibility: EligibilityState;
@@ -151,6 +159,7 @@ export type IntakeState = {
   saveCardChecked: boolean;
 
   consentFullOpen: boolean;
+  financialOpen: boolean;
   agreed: boolean;
   signed: boolean;
 

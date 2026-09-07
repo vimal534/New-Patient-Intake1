@@ -137,6 +137,20 @@ body {
   }
 }
 
+/* /intake-v2's scrollable areas (main content column, bottom sheets) —
+   scrolling itself still works (touch/wheel/keyboard), the track and
+   thumb are just never drawn, matching a native mobile app rather than
+   a desktop browser pane inside the phone-frame bezel (PhoneFrame.tsx).
+   Firefox via `scrollbar-width: none`, Chromium/WebKit via
+   `::-webkit-scrollbar { display: none }` (no standard property there
+   yet). */
+.iv2-root * {
+  scrollbar-width: none;
+}
+.iv2-root *::-webkit-scrollbar {
+  display: none;
+}
+
 /* /intake-v2's bottom confirmation toast (Toast.tsx) — plays once per
    mount, and page.tsx remounts it (`key={toastId}`) on every
    ctx.showToast() call so back-to-back identical messages still replay
