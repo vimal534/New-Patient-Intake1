@@ -144,7 +144,7 @@ export function OcrScreen({ ctx }: { ctx: Ctx }) {
 
           <div className="mt-3 flex items-start gap-3 rounded-2xl bg-[var(--iv2-surface-muted)] p-4">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand)]">
-              <InfoIcon size={13} color="#fff" />
+              <InfoIcon size={16} color="#fff" />
             </span>
             <div>
               <div className="text-base font-bold text-[var(--iv2-text-primary)]">Good to know</div>

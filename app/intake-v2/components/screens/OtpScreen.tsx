@@ -48,7 +48,7 @@ export function OtpScreen({ ctx }: { ctx: Ctx }) {
 
       <div className="mt-5 w-full">
         <InfoNote>
-          <InfoIcon size={18} />
+          <InfoIcon size={22} />
           <div className="text-sm leading-[1.5] text-[var(--iv2-text-primary)]">
             Every check-in link opens this way. Nothing on the record loads until the phone it belongs to answers.
           </div>

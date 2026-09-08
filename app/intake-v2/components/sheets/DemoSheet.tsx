@@ -17,7 +17,9 @@ export function DemoButton({ onOpen }: { onOpen: () => void }) {
       // centered with a `relative` wrapper (see page.tsx), so this needs
       // to stay pinned to that column's own bottom-right corner rather
       // than the full browser viewport's, which is much wider on desktop.
-      className="absolute right-4 bottom-[104px] z-[80] h-[34px] cursor-pointer rounded-full border-none bg-[var(--iv2-text-primary)] px-4 text-xs font-extrabold tracking-[0.08em] text-white shadow-[0_4px_14px_rgba(16,24,43,0.2)]"
+      // Sits at the true bottom-right corner of the screen, below the
+      // primary CTA, rather than overlapping it.
+      className="absolute right-4 bottom-4 z-[80] h-[34px] cursor-pointer rounded-full border-none bg-[var(--iv2-text-primary)] px-4 text-xs font-extrabold tracking-[0.08em] text-white shadow-[0_4px_14px_rgba(16,24,43,0.2)]"
     >
       DEMO
     </button>

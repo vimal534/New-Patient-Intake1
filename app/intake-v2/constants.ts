@@ -65,7 +65,7 @@ export const SEED_MEDS: CatalogItem[] = [
 // not just the populated rows.
 export const SEED_ALLERGIES: CatalogItem[] = [];
 
-export const SEED_SURGERIES: SurgeryItem[] = [{ name: "Appendectomy", year: "2018" }];
+export const SEED_SURGERIES: SurgeryItem[] = [{ name: "Appendectomy", occurrences: [{ month: "", day: "", year: "2018" }] }];
 
 export const MED_CATALOG = [
   "Albuterol",
@@ -80,6 +80,7 @@ export const MED_CATALOG = [
   "Vitamin D",
 ];
 export const MED_DETAILS = ["Once daily", "Twice daily", "As needed", "Not sure"];
+export const MED_UNITS = ["mg", "mcg", "mL", "g", "tablet", "unit"];
 
 export const ALLERGY_CATALOG = [
   "Penicillin",
@@ -94,6 +95,33 @@ export const ALLERGY_CATALOG = [
   "Iodine contrast",
 ];
 export const ALLERGY_DETAILS = ["Mild reaction", "Moderate reaction", "Severe reaction", "Not sure"];
+export const ALLERGY_REACTIONS = ["Rash", "Hives", "Swelling", "Itching", "Difficulty breathing", "Anaphylaxis", "Nausea or vomiting", "Not sure"];
+
+export const SURGERY_CATALOG = [
+  "Appendectomy",
+  "Tonsillectomy",
+  "Gallbladder removal",
+  "Hernia repair",
+  "Knee replacement",
+  "Hip replacement",
+  "C-section",
+  "Cataract surgery",
+  "Wisdom teeth removal",
+  "Other",
+];
+
+export const FAMILY_RELATIONSHIPS = [
+  "Father",
+  "Mother",
+  "Brother",
+  "Sister",
+  "Son",
+  "Daughter",
+  "Maternal Grandmother",
+  "Maternal Grandfather",
+  "Paternal Grandmother",
+  "Paternal Grandfather",
+];
 
 export const COMMON_CONDS = [
   "High blood pressure",
@@ -146,6 +174,10 @@ export function initialState(scenario: Scenario): IntakeState {
     otp: "",
     acked: false,
 
+    phoneOnFile: "(***) ***-0172",
+    phoneEditOpen: false,
+    phoneDraft: "",
+
     additionalOpen: false,
     editingPersonal: false,
     personal: { dob: "", email: "", address: "" },
@@ -178,14 +210,20 @@ export function initialState(scenario: Scenario): IntakeState {
 
     privacyOpen: false,
 
-    addSheet: null,
     addQuery: "",
-    addPicks: [],
-    addDetail: null,
+    addExpandedName: null,
+    addEditingIndex: null,
+    addCatalogShowMore: false,
+    addDraftName: "",
+    addDraftDose: "",
+    addDraftUnit: "mg",
+    addDraftFrequency: "",
+    addDraftReaction: "",
+    noneMeds: false,
+    noneAllergies: false,
 
     hv: scenario === "returning" ? "review" : "pick",
     onFileConds: scenario === "returning" ? ["High blood pressure", "Diabetes"] : [],
-    selectedConds: [],
     noneConds: false,
     showMore: false,
     condSearch: "",
@@ -196,14 +234,18 @@ export function initialState(scenario: Scenario): IntakeState {
     familyHistory: [],
     hhEditing: null,
     hhConfirmed: { conditions: false, medications: false, surgeries: false, allergies: false, family: false },
-    hhCondAdding: false,
-    medEditingIndex: null,
-    medDraftName: "",
-    medDraftDose: "",
-    medDraftFrequency: "",
+    surgeryQuery: "",
+    surgeryCatalogShowMore: false,
+    surgeryExpandedName: null,
+    surgeryEditingIndex: null,
     surgeryDraftName: "",
-    surgeryDraftYear: "",
-    familyDraft: "",
+    surgeryDraftOccurrences: [{ month: "", day: "", year: "" }],
+    familyQuery: "",
+    familyCatalogShowMore: false,
+    familyExpandedCondition: null,
+    familyEditingIndex: null,
+    familyDraftCondition: "",
+    familyDraftRelations: [],
 
     screenerIdx: 0,
     screenerAnswers: [],

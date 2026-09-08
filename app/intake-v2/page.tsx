@@ -23,7 +23,6 @@ import { ConsentScreen } from "./components/screens/ConsentScreen";
 import { SuccessScreen } from "./components/screens/SuccessScreen";
 import { PaymentMethodsSheet } from "./components/sheets/PaymentMethodsSheet";
 import { AddCardSheet } from "./components/sheets/AddCardSheet";
-import { AddItemSheet } from "./components/sheets/AddItemSheet";
 import { RemoveConfirmSheet } from "./components/sheets/RemoveConfirmSheet";
 import { TextSheet } from "./components/sheets/TextSheet";
 import { DemoButton, DemoSheet } from "./components/sheets/DemoSheet";
@@ -152,7 +151,6 @@ export default function IntakeV2Page() {
 
       <PaymentMethodsSheet ctx={ctx} />
       <AddCardSheet ctx={ctx} />
-      <AddItemSheet ctx={ctx} />
       <RemoveConfirmSheet ctx={ctx} />
       <TextSheet open={state.consentFullOpen} title="Consent to treatment" body={CONSENT_TEXT} onClose={() => update({ consentFullOpen: false })} zIndex={74} />
       <TextSheet open={state.privacyOpen} title="How your information is used" body={PRIVACY_TEXT} onClose={() => update({ privacyOpen: false })} zIndex={74} />
@@ -270,16 +268,13 @@ function footerFor(ctx: Ctx): FooterConfig {
       // been glanced at (or left untouched, if it's recent enough).
       return { primaryLabel: "Continue", primary: next };
     }
-    // New patient — original discover→select→confirm flow, unchanged.
+    // New patient — ConditionAddSection adds straight to onFileConds
+    // (no separate select→confirm buffer), so Continue just checks
+    // there's something there (or "None of these apply").
     return {
       primaryLabel: "Continue",
-      primaryDisabled: !(state.selectedConds.length || state.noneConds),
-      primary: () => {
-        if (state.selectedConds.length || state.noneConds) {
-          update((s) => ({ onFileConds: [...s.onFileConds, ...s.selectedConds], selectedConds: [] }));
-          next();
-        }
-      },
+      primaryDisabled: !(state.onFileConds.length || state.noneConds),
+      primary: next,
     };
   }
   if (key === "medications" || key === "allergies") {
