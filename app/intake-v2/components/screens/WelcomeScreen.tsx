@@ -156,7 +156,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
 
           <div className="overflow-hidden rounded-[18px] border border-[var(--iv2-border)] bg-white">
             <div className="flex items-center gap-2.5 border-b border-[var(--iv2-border-subtle)] p-4">
-              <InfoIcon size={18} />
+              <InfoIcon size={22} />
               <div className="text-[17px] font-semibold text-[var(--iv2-text-primary)]">Before you arrive</div>
             </div>
             {INSTRUCTIONS.map((ins) => (

@@ -22,7 +22,7 @@ export function Header({
   // row, 8px gap, the 4px progress bar, an 8px gap, a 20px "About 2 min
   // left" row, 12px bottom padding.
   return (
-    <div className="bg-white px-6 pt-3 pb-3">
+    <div className="border-b border-[var(--iv2-border-subtle)] bg-white px-6 pt-3 pb-3">
       <div className="mb-2 flex h-9 items-center">
         <button
           type="button"
