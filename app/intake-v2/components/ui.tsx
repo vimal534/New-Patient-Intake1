@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { CheckIcon, PencilIcon, TrashIcon } from "./Icons";
+import { CheckIcon, ChevronDownIcon, PencilIcon, TrashIcon } from "./Icons";
 
 // Shared visual primitives for /intake-v2, built directly against the
 // token table in
@@ -86,6 +86,54 @@ export function InputField({
         }`}
         style={{ height: 52 }}
       />
+    </div>
+  );
+}
+
+// Native <select> styled to match InputField — used by the inline
+// "Add medication" panel (ListReviewScreen) for Unit and Frequency,
+// where the reference is an actual dropdown rather than a pill picker.
+export function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  ariaLabel,
+}: {
+  label?: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+  ariaLabel?: string;
+}) {
+  return (
+    <div>
+      {label ? <div className="mb-1.5 text-sm text-[var(--iv2-text-muted)]">{label}</div> : null}
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={ariaLabel || label}
+          className="h-13 w-full appearance-none rounded-xl border border-[var(--iv2-border)] bg-[#FBFBFC] px-3.5 text-[17px] font-semibold outline-none focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2"
+          style={{ height: 52, color: value ? "var(--iv2-text-primary)" : "var(--iv2-text-muted)" }}
+        >
+          {placeholder ? (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          ) : null}
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2">
+          <ChevronDownIcon size={16} />
+        </span>
+      </div>
     </div>
   );
 }

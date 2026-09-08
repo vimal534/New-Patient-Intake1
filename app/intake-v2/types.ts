@@ -44,7 +44,18 @@ export type SavedCard = {
 // `frequency` directly and recomputes `detail` from them on save.
 export type CatalogItem = { name: string; detail: string; dose?: string; frequency?: string };
 
-export type SurgeryItem = { name: string; year: string };
+// A single occurrence's date, entered with whatever precision the
+// patient actually remembers — any of the three may be blank. `month`/
+// `year` hold display strings ("April"/"2011"), `day` holds a plain
+// number string ("7") — see HealthCategoryEditors.tsx's
+// formatOccurrence/occurrenceHint for how partial dates render.
+export type SurgeryOccurrence = { month: string; day: string; year: string };
+
+// One card per surgery TYPE (not per occurrence) — "C-Section" with
+// three occurrences is one SurgeryItem, not three. Matches the
+// "Saved history" reference: one card, occurrence count badge, numbered
+// dates inside it.
+export type SurgeryItem = { name: string; occurrences: SurgeryOccurrence[] };
 
 // "review"/"edit"/"add"/"empty" are dead for returning patients now that
 // their Health History lives on one merged screen (see HealthCategory
@@ -58,8 +69,6 @@ export type HealthViewMode = "review" | "pick";
 // page is showing in its place.
 export type HealthCategory = "conditions" | "medications" | "surgeries" | "allergies" | "family";
 
-export type AddSheetKind = "medications" | "allergies" | null;
-
 export type EligibilityState = "idle" | "pending" | "done";
 
 export type PassportState = "offer" | "saved" | "dismissed";
@@ -71,6 +80,14 @@ export type IntakeState = {
 
   otp: string;
   acked: boolean;
+
+  // VerifyIntroScreen's own inline state — editing the phone on file
+  // before a code is sent. Phone + OTP is the only verification path
+  // (no DOB/last-name fallback — once OTP succeeds we already know
+  // which appointment to check the patient into).
+  phoneOnFile: string;
+  phoneEditOpen: boolean;
+  phoneDraft: string;
 
   additionalOpen: boolean;
   editingPersonal: boolean;
@@ -109,14 +126,26 @@ export type IntakeState = {
 
   privacyOpen: boolean;
 
-  addSheet: AddSheetKind;
+  // Shared medications/allergies add flow (MedAllergyAddSection.tsx) —
+  // used by both the new-patient ListReviewScreen and the
+  // returning-patient HealthCategoryEditors. A catalog row expands in
+  // place showing Drug name/Dose/Unit/Frequency, one item at a time.
   addQuery: string;
-  addPicks: string[];
-  addDetail: string | null;
+  addExpandedName: string | null;
+  addEditingIndex: number | null;
+  addCatalogShowMore: boolean;
+  addDraftName: string;
+  addDraftDose: string;
+  addDraftUnit: string;
+  addDraftFrequency: string;
+  // Allergies only — the reaction type, kept separate from severity
+  // (addDraftFrequency doubles as severity for allergies).
+  addDraftReaction: string;
+  noneMeds: boolean;
+  noneAllergies: boolean;
 
   hv: HealthViewMode;
   onFileConds: string[];
-  selectedConds: string[];
   noneConds: boolean;
   showMore: boolean;
   condSearch: string;
@@ -133,14 +162,26 @@ export type IntakeState = {
   // untouched-but-populated vs. "✓ Confirmed today" once the patient has
   // actually looked at it this visit).
   hhConfirmed: Record<HealthCategory, boolean>;
-  hhCondAdding: boolean;
-  medEditingIndex: number | null;
-  medDraftName: string;
-  medDraftDose: string;
-  medDraftFrequency: string;
+  // Surgeries — same catalog-search-inline-panel pattern as
+  // MedAllergyAddSection (see HealthCategoryEditors.tsx's
+  // SurgeriesEditor): tap "+" on a catalog/search row to expand its own
+  // panel in place. That panel can hold more than one occurrence (a
+  // patient may have had the same surgery more than once) — each with
+  // its own flexible-precision Month/Day/Year date.
+  surgeryQuery: string;
+  surgeryCatalogShowMore: boolean;
+  surgeryExpandedName: string | null;
+  surgeryEditingIndex: number | null;
   surgeryDraftName: string;
-  surgeryDraftYear: string;
-  familyDraft: string;
+  surgeryDraftOccurrences: SurgeryOccurrence[];
+  // Family history — same pattern; tap "+" on a condition row to
+  // expand its own relationship-checklist panel in place.
+  familyQuery: string;
+  familyCatalogShowMore: boolean;
+  familyExpandedCondition: string | null;
+  familyEditingIndex: number | null;
+  familyDraftCondition: string;
+  familyDraftRelations: string[];
 
   screenerIdx: number;
   screenerAnswers: (string | null)[];

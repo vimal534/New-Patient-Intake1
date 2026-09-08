@@ -1,11 +1,11 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { COMMON_CONDS, MORE_CONDS } from "../../constants";
+import { ConditionAddSection } from "../ConditionAddSection";
 import { HealthCategory } from "../../types";
-import { AllergiesEditor, ConditionsEditor, FamilyEditor, MedicationsEditor, SurgeriesEditor } from "../HealthCategoryEditors";
+import { AllergiesEditor, ConditionsEditor, FamilyEditor, formatSurgeryLine, MedicationsEditor, SurgeriesEditor } from "../HealthCategoryEditors";
 import { ChevronRightIcon } from "../Icons";
-import { Card, ConditionTile, Eyebrow, InputField, ScreenCopy, ScreenTitle, TextAction } from "../ui";
+import { Card, Eyebrow, ScreenCopy, ScreenTitle } from "../ui";
 
 export const CATEGORY_LABEL: Record<HealthCategory, string> = {
   conditions: "Conditions",
@@ -27,86 +27,18 @@ export const CATEGORY_LABEL: Record<HealthCategory, string> = {
 // and footerFor's `key === "health"` branch for the state machine that
 // drives both.
 export function HealthScreen({ ctx }: { ctx: Ctx }) {
-  const { state, isRet, update } = ctx;
+  const { state, isRet } = ctx;
 
   if (isRet) {
     return state.hhEditing ? <CategoryFocusPage ctx={ctx} category={state.hhEditing} /> : <ReturningHealthHistory ctx={ctx} />;
   }
-
-  const toggleCond = (name: string) =>
-    update((s) => ({
-      noneConds: false,
-      selectedConds: s.selectedConds.includes(name)
-        ? s.selectedConds.filter((c) => c !== name)
-        : [...s.selectedConds, name],
-    }));
-
-  const options = [...COMMON_CONDS, ...(state.showMore ? MORE_CONDS : [])];
-
-  const searchResults =
-    state.condSearch.trim().length < 2
-      ? []
-      : [...COMMON_CONDS, ...MORE_CONDS]
-          .filter((c) => c.toLowerCase().includes(state.condSearch.trim().toLowerCase()))
-          .filter((c) => !state.selectedConds.includes(c))
-          .slice(0, 4);
 
   return (
     <div className="px-6 py-6">
       <Eyebrow>Health history</Eyebrow>
       <ScreenTitle className="font-semibold">Which conditions have you been diagnosed with?</ScreenTitle>
       <ScreenCopy className="mb-7">Select any that apply, now or in the past.</ScreenCopy>
-
-      <div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {options.map((name) => (
-            <ConditionTile key={name} label={name} selected={state.selectedConds.includes(name)} onClick={() => toggleCond(name)} />
-          ))}
-        </div>
-        <TextAction onClick={() => update({ showMore: !state.showMore })} className="block pt-4 text-[15px]">
-          {state.showMore ? "Show fewer conditions" : `Show ${MORE_CONDS.length} more conditions`}
-        </TextAction>
-
-        <div className="mt-6 mb-2.5 text-xs font-semibold tracking-[0.07em] text-[var(--iv2-brand)] uppercase">Add a condition</div>
-        <InputField
-          value={state.condSearch}
-          placeholder="Type a condition, like migraine"
-          ariaLabel="Search conditions"
-          onChange={(v) => update({ condSearch: v })}
-        />
-        {searchResults.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => toggleCond(name)}
-            className="flex w-full cursor-pointer items-center justify-between border-none border-b border-[var(--iv2-border-subtle)] bg-transparent py-3.5 text-left"
-          >
-            <span className="text-base text-[var(--iv2-text-primary)]">{name}</span>
-            <span className="text-[15px] font-bold text-[var(--iv2-brand)]">Add</span>
-          </button>
-        ))}
-
-        <button
-          type="button"
-          onClick={() => update((s) => ({ noneConds: !s.noneConds, selectedConds: [] }))}
-          className="mt-6 flex min-h-14 w-full cursor-pointer items-center gap-2.5 rounded-2xl border-[1.5px] p-3.5 text-left"
-          style={{
-            borderColor: state.noneConds ? "var(--iv2-brand)" : "var(--iv2-border-subtle)",
-            backgroundColor: state.noneConds ? "var(--iv2-brand-surface)" : "#fff",
-          }}
-        >
-          <span
-            className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] border-[1.5px] text-[13px] font-extrabold text-white"
-            style={{
-              borderColor: state.noneConds ? "var(--iv2-brand)" : "var(--iv2-border-strong)",
-              backgroundColor: state.noneConds ? "var(--iv2-brand)" : "#fff",
-            }}
-          >
-            {state.noneConds ? "✓" : ""}
-          </span>
-          <span className="text-base font-semibold text-[var(--iv2-text-primary)]">None of these apply</span>
-        </button>
-      </div>
+      <ConditionAddSection ctx={ctx} showNoneOption />
     </div>
   );
 }
@@ -201,7 +133,7 @@ function ReturningHealthHistory({ ctx }: { ctx: Ctx }) {
         />
         <CategoryCard
           category="surgeries"
-          lines={state.surgeries.map((s) => `${s.name} · ${s.year}`)}
+          lines={state.surgeries.map(formatSurgeryLine)}
           emptyText="No surgeries reported."
           hasItems={state.surgeries.length > 0}
           confirmedToday={state.hhConfirmed.surgeries}

@@ -174,6 +174,15 @@ export function ChevronRightIcon({ size = 16, color = "#98A2B3" }: IconProps) {
   );
 }
 
+// Native <select> affordance — SelectField's own dropdown caret (ui.tsx).
+export function ChevronDownIcon({ size = 16, color = "#667085" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M6 9l6 6 6-6" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Solid brand-blue shield with a simple medical-rod glyph — the payer
 // logo placeholder on OcrScreen's card-read view (README: brand marks
 // are text/placeholder icons "to be replaced with the codebase's
