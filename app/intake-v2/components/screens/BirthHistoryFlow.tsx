@@ -1,11 +1,11 @@
 "use client";
 
-import { ReactNode, useRef, useState } from "react";
+import { ReactNode, RefObject, useRef, useState } from "react";
 import { Ctx } from "../../ctx";
 import { formatDigits } from "../../format";
 import { BirthHistory } from "../../types";
 import { ChevronDownIcon, InfoIcon } from "../Icons";
-import { scrollIntoComfortableView } from "../motion";
+import { scrollIntoComfortableView, scrollToReadingPosition } from "../motion";
 import { Eyebrow, InputField, OptionPill, Reveal } from "../ui";
 
 const DELIVERY_TYPES = ["Vaginal", "C-Section", "Unknown"];
@@ -62,16 +62,14 @@ function useBirth(ctx: Ctx) {
   return { birth: state.birth, update };
 }
 
-// Question label + optional hint on the left, a compact Yes/No pill
-// pair on the right — one question per FieldCard (Pregnancy section).
+// Question label + optional hint on top, a compact Yes/No pill pair
+// underneath — one question per FieldCard (Pregnancy section).
 function YesNoInline({ label, hint, value, onChange }: { label: string; hint?: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0 flex-1">
-        <div className="text-base font-bold text-[var(--iv2-text-primary)]">{label}</div>
-        {hint ? <div className="mt-1 text-sm leading-[1.4] text-[var(--iv2-text-muted)]">{hint}</div> : null}
-      </div>
-      <div className="flex shrink-0 gap-2">
+    <div>
+      <div className="text-base font-bold text-[var(--iv2-text-primary)]">{label}</div>
+      {hint ? <div className="mt-1 text-sm leading-[1.4] text-[var(--iv2-text-muted)]">{hint}</div> : null}
+      <div className="mt-3 flex gap-2">
         <OptionPill label="Yes" selected={value === "Yes"} onClick={() => onChange("Yes")} />
         <OptionPill label="No" selected={value === "No"} onClick={() => onChange("No")} />
       </div>
@@ -83,8 +81,12 @@ function YesNoInline({ label, hint, value, onChange }: { label: string; hint?: s
 // section wraps each question in its own card (with a required
 // asterisk + a one-line explainer under the label) instead of sharing
 // one Card with dividers, matching that section's reference design.
-function FieldCard({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl border border-[var(--iv2-border)] bg-white p-4">{children}</div>;
+function FieldCard({ children, fieldRef }: { children: ReactNode; fieldRef?: RefObject<HTMLDivElement | null> }) {
+  return (
+    <div ref={fieldRef} className="rounded-2xl border border-[var(--iv2-border)] bg-white p-4">
+      {children}
+    </div>
+  );
 }
 
 function FieldLabel({ label, required, optional, hint }: { label: string; required?: boolean; optional?: boolean; hint?: string }) {
@@ -332,17 +334,74 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
   const [reviewOpen, setReviewOpen] = useState<Record<number, boolean>>({});
   const toggleReview = (i: number) => setReviewOpen((prev) => ({ ...prev, [i]: !prev[i] }));
 
-  const setAndCheck = (patch: Partial<BirthHistory>, sectionIdx: number) => {
+  // One question per FieldCard within a section (Pregnancy, Delivery,
+  // Newborn) — every one of those questions gets its own ref here so
+  // answering one can guide the patient straight to the next relevant
+  // one, rather than leaving them to find it themselves lower on an
+  // already-fully-rendered section.
+  const illnessRef = useRef<HTMLDivElement | null>(null);
+  const infectionsRef = useRef<HTMLDivElement | null>(null);
+  const medsRef = useRef<HTMLDivElement | null>(null);
+  const medsFollowupRef = useRef<HTMLDivElement | null>(null);
+  const substancesRef = useRef<HTMLDivElement | null>(null);
+  const deliveryComplicationsRef = useRef<HTMLDivElement | null>(null);
+  const deliveryComplicationsFollowupRef = useRef<HTMLDivElement | null>(null);
+  const hospitalizationComplicationsRef = useRef<HTMLDivElement | null>(null);
+  const hospitalizationComplicationsFollowupRef = useRef<HTMLDivElement | null>(null);
+  const jaundiceRef = useRef<HTMLDivElement | null>(null);
+  const hearingTestRef = useRef<HTMLDivElement | null>(null);
+  const heelPrickRef = useRef<HTMLDivElement | null>(null);
+
+  // Which question comes "next" within a still-incomplete section,
+  // keyed by that section's index — searched in this order for the
+  // first one `answered` still calls false on. Free-text fields
+  // (gestational age, hospital, weights, ...) are deliberately absent:
+  // per spec, nothing here should auto-scroll toward a text input or
+  // dropdown before the patient has actually finished it themselves.
+  const fieldOrderBySection: Record<number, { ref: RefObject<HTMLDivElement | null>; answered: (b: BirthHistory) => boolean }[]> = {
+    0: [
+      { ref: illnessRef, answered: (b) => !!b.pregnancyIllness },
+      { ref: infectionsRef, answered: (b) => !!b.pregnancyInfections },
+      { ref: medsRef, answered: (b) => !!b.pregnancyMeds },
+      { ref: substancesRef, answered: (b) => !!b.pregnancySubstances },
+    ],
+    1: [
+      { ref: deliveryComplicationsRef, answered: (b) => !!b.deliveryComplications },
+      { ref: hospitalizationComplicationsRef, answered: (b) => !!b.hospitalizationComplications },
+    ],
+    2: [
+      { ref: jaundiceRef, answered: (b) => !!b.jaundice },
+      { ref: hearingTestRef, answered: (b) => !!b.hearingTest },
+      { ref: heelPrickRef, answered: (b) => !!b.heelPrick },
+    ],
+  };
+
+  // Tap Yes/No → the pill's selected state updates immediately (the
+  // plain `update` call right below runs before any delay) → after a
+  // 300ms hold so that selection stays visible and legible → smoothly
+  // scroll toward whatever's next. A "Yes" that reveals a follow-up
+  // question (the medications list, complications details, ...) takes
+  // priority over the section's next main question — passed in via
+  // `followupRef`. Once every question in the section is answered,
+  // this hands off entirely to the existing section-to-section advance
+  // instead (scrolling to the next SECTION's top), never both.
+  const setAndCheck = (patch: Partial<BirthHistory>, sectionIdx: number, followupRef?: RefObject<HTMLDivElement | null> | null) => {
     const nextBirth = { ...birth, ...patch };
     update({ birth: nextBirth });
     if (sectionIdx !== state.birthSection) return; // editing an earlier, already-passed section in place
-    if (!SECTIONS[sectionIdx].complete(nextBirth)) return;
+    const complete = SECTIONS[sectionIdx].complete(nextBirth);
     window.setTimeout(() => {
-      update({ birthSection: sectionIdx + 1 });
-      window.setTimeout(() => {
-        const nextSection = sectionRefs.current[sectionIdx + 1];
-        if (nextSection) scrollIntoComfortableView(nextSection);
-      }, 60);
+      if (complete) {
+        update({ birthSection: sectionIdx + 1 });
+        window.setTimeout(() => {
+          const nextSection = sectionRefs.current[sectionIdx + 1];
+          if (nextSection) scrollIntoComfortableView(nextSection);
+        }, 60);
+        return;
+      }
+      const order = fieldOrderBySection[sectionIdx];
+      const target = followupRef?.current ?? order?.find((f) => !f.answered(nextBirth))?.ref.current ?? null;
+      if (target) scrollToReadingPosition(target);
     }, 300);
   };
 
@@ -370,7 +429,7 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
           {i === 0 ? (
             <>
             <div className="flex flex-col gap-3.5">
-              <FieldCard>
+              <FieldCard fieldRef={illnessRef}>
                 <YesNoInline
                   label="Any illness during pregnancy?"
                   hint="Examples: high blood pressure, diabetes, thyroid, etc."
@@ -378,7 +437,7 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                   onChange={(v) => setAndCheck({ pregnancyIllness: v }, i)}
                 />
               </FieldCard>
-              <FieldCard>
+              <FieldCard fieldRef={infectionsRef}>
                 <YesNoInline
                   label="Any infections during pregnancy?"
                   hint="Examples: COVID-19, flu, urinary tract infection, etc."
@@ -386,25 +445,27 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                   onChange={(v) => setAndCheck({ pregnancyInfections: v }, i)}
                 />
               </FieldCard>
-              <FieldCard>
+              <FieldCard fieldRef={medsRef}>
                 <YesNoInline
                   label="Any medications taken during pregnancy?"
                   hint="Includes prescription, over-the-counter, vitamins or supplements."
                   value={birth.pregnancyMeds}
-                  onChange={(v) => setAndCheck({ pregnancyMeds: v }, i)}
+                  onChange={(v) => setAndCheck({ pregnancyMeds: v }, i, v === "Yes" ? medsFollowupRef : null)}
                 />
                 {birth.pregnancyMeds === "Yes" ? (
-                  <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
-                    <InputField
-                      label="List medications"
-                      value={birth.pregnancyMedsList}
-                      placeholder="Medication names"
-                      onChange={(v) => update({ birth: { ...birth, pregnancyMedsList: v } })}
-                    />
-                  </Reveal>
+                  <div ref={medsFollowupRef}>
+                    <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
+                      <InputField
+                        label="List medications"
+                        value={birth.pregnancyMedsList}
+                        placeholder="Medication names"
+                        onChange={(v) => update({ birth: { ...birth, pregnancyMedsList: v } })}
+                      />
+                    </Reveal>
+                  </div>
                 ) : null}
               </FieldCard>
-              <FieldCard>
+              <FieldCard fieldRef={substancesRef}>
                 <YesNoInline
                   label="Recreational drugs, alcohol or tobacco use during pregnancy?"
                   hint="Includes marijuana, alcohol, tobacco or other substances."
@@ -447,41 +508,45 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                 <PillOptionRow value={birth.deliveryType} options={DELIVERY_TYPES} onChange={(v) => update({ birth: { ...birth, deliveryType: v } })} />
               </FieldCard>
 
-              <FieldCard>
+              <FieldCard fieldRef={deliveryComplicationsRef}>
                 <FieldLabel label="Complications during delivery" required hint="Were there any complications during the delivery?" />
                 <PillOptionRow
                   value={birth.deliveryComplications}
                   options={YES_NO_UNKNOWN}
-                  onChange={(v) => setAndCheck({ deliveryComplications: v }, i)}
+                  onChange={(v) => setAndCheck({ deliveryComplications: v }, i, v === "Yes" ? deliveryComplicationsFollowupRef : null)}
                 />
                 {birth.deliveryComplications === "Yes" ? (
-                  <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
-                    <FieldLabel label="Tell us about the complications" optional hint="Share any details you know." />
-                    <Textarea
-                      value={birth.deliveryComplicationsDetails}
-                      placeholder="e.g. bleeding, infection, prolonged labor, etc."
-                      onChange={(v) => update({ birth: { ...birth, deliveryComplicationsDetails: v } })}
-                    />
-                  </Reveal>
+                  <div ref={deliveryComplicationsFollowupRef}>
+                    <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
+                      <FieldLabel label="Tell us about the complications" optional hint="Share any details you know." />
+                      <Textarea
+                        value={birth.deliveryComplicationsDetails}
+                        placeholder="e.g. bleeding, infection, prolonged labor, etc."
+                        onChange={(v) => update({ birth: { ...birth, deliveryComplicationsDetails: v } })}
+                      />
+                    </Reveal>
+                  </div>
                 ) : null}
               </FieldCard>
 
-              <FieldCard>
+              <FieldCard fieldRef={hospitalizationComplicationsRef}>
                 <FieldLabel label="Complications during hospitalization" required hint="Were there any complications while your baby was in the hospital?" />
                 <PillOptionRow
                   value={birth.hospitalizationComplications}
                   options={YES_NO_UNKNOWN}
-                  onChange={(v) => setAndCheck({ hospitalizationComplications: v }, i)}
+                  onChange={(v) => setAndCheck({ hospitalizationComplications: v }, i, v === "Yes" ? hospitalizationComplicationsFollowupRef : null)}
                 />
                 {birth.hospitalizationComplications === "Yes" ? (
-                  <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
-                    <FieldLabel label="Tell us about the complications" optional hint="Share any details you know." />
-                    <Textarea
-                      value={birth.hospitalizationComplicationsDetails}
-                      placeholder="e.g. NICU stay, feeding issues, etc."
-                      onChange={(v) => update({ birth: { ...birth, hospitalizationComplicationsDetails: v } })}
-                    />
-                  </Reveal>
+                  <div ref={hospitalizationComplicationsFollowupRef}>
+                    <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
+                      <FieldLabel label="Tell us about the complications" optional hint="Share any details you know." />
+                      <Textarea
+                        value={birth.hospitalizationComplicationsDetails}
+                        placeholder="e.g. NICU stay, feeding issues, etc."
+                        onChange={(v) => update({ birth: { ...birth, hospitalizationComplicationsDetails: v } })}
+                      />
+                    </Reveal>
+                  </div>
                 ) : null}
               </FieldCard>
             </div>
@@ -512,15 +577,15 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                   onChangeOz={(v) => update({ birth: { ...birth, dischargeWeightOz: v } })}
                 />
               </FieldCard>
-              <FieldCard>
+              <FieldCard fieldRef={jaundiceRef}>
                 <FieldLabel label="Jaundice at birth?" required hint="Did your baby have jaundice after birth?" />
                 <YesNoPillRow value={birth.jaundice} onChange={(v) => setAndCheck({ jaundice: v }, i)} />
               </FieldCard>
-              <FieldCard>
+              <FieldCard fieldRef={hearingTestRef}>
                 <FieldLabel label="Passed newborn hearing test?" required hint="Did your baby pass the hearing test in the hospital?" />
                 <YesNoPillRow value={birth.hearingTest} onChange={(v) => setAndCheck({ hearingTest: v }, i)} />
               </FieldCard>
-              <FieldCard>
+              <FieldCard fieldRef={heelPrickRef}>
                 <FieldLabel label="Metabolic / heel-prick screen done?" required hint="Was the newborn metabolic (heel-prick) screening test completed?" />
                 <YesNoPillRow value={birth.heelPrick} onChange={(v) => setAndCheck({ heelPrick: v }, i)} />
               </FieldCard>

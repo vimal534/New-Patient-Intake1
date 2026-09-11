@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local dev tooling (machine-specific paths)
 .claude/
+
+.vercel
+.env*

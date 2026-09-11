@@ -110,6 +110,32 @@ export function scrollIntoComfortableView(target: HTMLElement) {
   });
 }
 
+// Brings `target` to a fixed amount of context below the top of its
+// scroll container — used for guided answer-then-advance flows (Birth
+// History's Yes/No questions) where the patient should keep seeing a
+// little of the question they just answered, not have the next one
+// land flush against the top edge. Distinct from
+// scrollIntoComfortableView above, which centers the target ~30% down
+// a (possibly tall) container — built for chained text-field focus
+// advancement, not for holding a fixed, small amount of prior context
+// in view. Always animates (respecting reduced motion via `dur`) even
+// when only a small adjustment is needed, since the whole point here
+// is a visible, reassuring motion — never an abrupt jump.
+export function scrollToReadingPosition(target: HTMLElement, topContext = 100) {
+  const container = getScrollParent(target);
+  if (!container) return;
+  const containerRect = container.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const currentOffset = targetRect.top - containerRect.top;
+  const delta = currentOffset - topContext;
+  if (Math.abs(delta) < 4) return;
+  gsap.to(container, {
+    duration: dur(SCROLL_DURATION),
+    ease: "power2.out",
+    scrollTo: { y: container.scrollTop + delta },
+  });
+}
+
 // Scrolls `container` smoothly back to its very top — used whenever
 // the patient moves to a new section/screen, so the new title and
 // first question are always what greets them, never wherever the
