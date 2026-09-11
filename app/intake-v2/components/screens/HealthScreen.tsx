@@ -1,6 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
+import { REVIEW_TITLE } from "../../constants";
 import { ConditionAddSection } from "../ConditionAddSection";
 import { HealthCategory } from "../../types";
 import { AllergiesEditor, ConditionsEditor, FamilyEditor, formatSurgeryLine, MedicationsEditor, SurgeriesEditor } from "../HealthCategoryEditors";
@@ -35,9 +36,8 @@ export function HealthScreen({ ctx }: { ctx: Ctx }) {
 
   return (
     <div className="px-6 py-6">
-      <Eyebrow>Health history</Eyebrow>
-      <ScreenTitle className="font-semibold">Which conditions have you been diagnosed with?</ScreenTitle>
-      <ScreenCopy className="mb-7">Select any that apply, now or in the past.</ScreenCopy>
+      <ScreenTitle className="font-semibold">Past Medical Conditions</ScreenTitle>
+      <ScreenCopy className="mb-7">Which conditions have you been diagnosed with? Select any that apply, now or in the past.</ScreenCopy>
       <ConditionAddSection ctx={ctx} showNoneOption />
     </div>
   );
@@ -108,7 +108,7 @@ function ReturningHealthHistory({ ctx }: { ctx: Ctx }) {
 
   return (
     <div className="px-6 py-6">
-      <Eyebrow>Health history</Eyebrow>
+      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.health : "Health history"}</Eyebrow>
       <ScreenTitle>Your health history</ScreenTitle>
       <ScreenCopy className="mb-6">Review what&apos;s on file and update anything that has changed.</ScreenCopy>
 

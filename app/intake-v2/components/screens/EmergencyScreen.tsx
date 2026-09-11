@@ -1,7 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { formatPhone } from "../../format";
+import { PhoneField } from "../SmartField";
 import { Card, Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
 
 // Screen 4 — Emergency contact.
@@ -40,12 +40,11 @@ export function EmergencyScreen({ ctx }: { ctx: Ctx }) {
             placeholder="Mother"
             onChange={(v) => update((s) => ({ emergency: { ...s.emergency, relation: v } }))}
           />
-          <InputField
+          <PhoneField
             label="Mobile"
-            value={state.emergency.phone}
             placeholder="(555) 234-8891"
-            inputMode="tel"
-            onChange={(v) => update((s) => ({ emergency: { ...s.emergency, phone: formatPhone(v) } }))}
+            value={state.emergency.phone}
+            onChange={(v) => update((s) => ({ emergency: { ...s.emergency, phone: v } }))}
           />
         </div>
       ) : null}
