@@ -522,7 +522,7 @@ export const SCENARIO_LABEL: Record<DemoScenarioId, { title: string; subtitle: s
   "new-infant": { title: "Infant, Sick Visit", subtitle: "New patient, 3 months old", built: true },
   "new-adolescent": { title: "Adolescent, 14 (female)", subtitle: "New patient, first visit", built: true },
   "returning-well": { title: "Well Visit, 6yo", subtitle: "Returning patient, office visit", built: true },
-  "returning-sick": { title: "Sick Visit, 9yo", subtitle: "Returning patient", built: true },
+  "returning-sick": { title: "Infant, Sick Visit", subtitle: "Returning patient, 3 months old", built: true },
   "returning-sports": { title: "Sports Physical, 16yo", subtitle: "Returning patient", built: true },
 };
 
@@ -535,6 +535,7 @@ export const SCENARIO_SEEDS: Record<
     phoneOnFile: string;
     guardian1: Guardian;
     patientDob?: string;
+    patientSex?: string;
     patientAddress?: string;
     patientEmail?: string;
     carrier: string;
@@ -553,6 +554,7 @@ export const SCENARIO_SEEDS: Record<
     phoneOnFile: "(***) ***-4471",
     guardian1: { name: "Maria Rodriguez", relationship: "Mother", mobile: "(305) 555-4471", address: "42 Palm Ave, Miami, FL 33131", occupation: "" },
     patientDob: "06/12/2026",
+    patientSex: "Female",
     patientAddress: "42 Palm Ave, Miami, FL 33131",
     patientEmail: "maria.rodriguez@email.com",
     carrier: "Blue Shield PPO",
@@ -570,6 +572,7 @@ export const SCENARIO_SEEDS: Record<
     phoneOnFile: "(***) ***-2290",
     guardian1: { name: "Karen Thompson", relationship: "Mother", mobile: "(305) 555-2290", address: "88 Coral Way, Miami, FL 33134", occupation: "" },
     patientDob: "03/22/2012",
+    patientSex: "Female",
     patientAddress: "88 Coral Way, Miami, FL 33134",
     patientEmail: "ava.thompson@email.com",
     carrier: "Aetna PPO",
@@ -595,15 +598,15 @@ export const SCENARIO_SEEDS: Record<
   },
   "returning-sick": {
     scheduling: {
-      patientName: "Marcus Lee",
-      age: "",
+      patientName: "Leo Lee",
+      age: "3 months old (DOB 07/02/2026)",
       reason: "Sick Visit",
       providerName: "Dr. Sarah Jenkins",
       providerEmail: "s.jenkins@healthproclinic.com",
     },
     phoneOnFile: "(***) ***-7734",
     guardian1: { name: "David Lee", relationship: "Father", mobile: "(555) 774-4901", address: "56 Birchwood Ln, Oakwood, NY 10001", occupation: "Software Engineer" },
-    patientDob: "02/03/2017",
+    patientDob: "07/02/2026",
     patientAddress: "56 Birchwood Ln, Oakwood, NY 10001",
     patientEmail: "david.lee@email.com",
     carrier: "UnitedHealthcare",
@@ -745,7 +748,7 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
     policyholderRelationship: "",
     policyholderAddress: "",
 
-    sexAssignedAtBirth: "",
+    sexAssignedAtBirth: seed.patientSex ?? "",
     race: "",
     ethnicity: "",
     preferredLanguage: "",

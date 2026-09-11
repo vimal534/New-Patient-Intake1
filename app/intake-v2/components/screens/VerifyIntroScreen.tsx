@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
 import { Ctx } from "../../ctx";
-import { ArrowRightIcon, BoltIcon, LockIcon, PhoneIcon, ShieldCheckIcon, SignalWaveIcon } from "../Icons";
-import { prefersReducedMotion } from "../motion";
+import { ArrowRightIcon, BoltIcon, LockIcon, PhoneIcon, ShieldCheckIcon } from "../Icons";
 
 // Screen 0 (new) — Verify intro. Sits before the OTP auto-fill screen —
 // "Text me a code" advances into that existing flow; this screen only
@@ -26,38 +23,10 @@ export function VerifyIntroScreen({ ctx }: { ctx: Ctx }) {
   // Verification — NEW PATIENT variant).
   const firstName = state.scheduling.patientName.split(" ")[0];
 
-  // A slow, quiet breathing pulse on the two "broadcast" wave icons
-  // either side of the shield — purely decorative, so it's skipped
-  // entirely under prefers-reduced-motion rather than just sped up.
-  const wavesRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (prefersReducedMotion() || !wavesRef.current) return;
-    const tween = gsap.to(wavesRef.current.children, {
-      opacity: 0.35,
-      scale: 0.92,
-      duration: 1.1,
-      ease: "sine.inOut",
-      repeat: -1,
-      yoyo: true,
-      stagger: 0.15,
-    });
-    return () => {
-      tween.kill();
-    };
-  }, []);
-
   return (
     <div className="flex min-h-full flex-col px-6 pt-10 pb-6 text-center">
-      <div ref={wavesRef} className="relative mx-auto mb-4 flex h-[110px] w-[110px] items-center justify-center">
-        <span className="absolute top-1/2 -left-4 -translate-y-1/2">
-          <SignalWaveIcon size={28} />
-        </span>
-        <span className="absolute top-1/2 -right-4 -translate-y-1/2" style={{ transform: "translateY(-50%) scaleX(-1)" }}>
-          <SignalWaveIcon size={28} />
-        </span>
-        <div className="flex h-[110px] w-[110px] items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-          <ShieldCheckIcon size={44} />
-        </div>
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
+        <ShieldCheckIcon size={28} strokeWidth={1.4} />
       </div>
 
       {isRet ? <div className="mt-3 mb-1.5 text-lg font-semibold text-[var(--iv2-brand)]">Welcome back, {firstName}</div> : null}

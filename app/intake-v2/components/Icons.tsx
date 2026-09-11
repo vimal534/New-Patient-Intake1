@@ -43,17 +43,17 @@ export function ChevronLeftIcon({ size = 13, color = "#101828", className }: Ico
   );
 }
 
-export function ShieldCheckIcon({ size = 26, color = "#1677E8" }: IconProps) {
+export function ShieldCheckIcon({ size = 26, color = "#1677E8", strokeWidth = 1.8 }: IconProps & { strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path
         d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"
         stroke={color}
-        strokeWidth={1.8}
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M9 12l2 2 4-4" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12l2 2 4-4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
