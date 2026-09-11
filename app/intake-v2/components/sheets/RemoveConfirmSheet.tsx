@@ -26,7 +26,7 @@ export function RemoveConfirmSheet({ ctx }: { ctx: Ctx }) {
         onClick={() =>
           update((s) => ({ onFileConds: s.onFileConds.filter((c) => c !== s.pendingRemove), pendingRemove: null }))
         }
-        className="mt-2 h-[54px] w-full cursor-pointer rounded-2xl border-none bg-[var(--iv2-brand)] text-base font-bold text-white"
+        className="mt-2 h-[54px] w-full cursor-pointer rounded-2xl border-none bg-[var(--iv2-danger)] text-base font-bold text-white"
       >
         Remove
       </button>

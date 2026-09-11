@@ -2,7 +2,7 @@
 
 import { Ctx } from "../../ctx";
 import { CalendarIcon } from "../Icons";
-import { Eyebrow, RadioRow, ScreenCopy, ScreenTitle } from "../ui";
+import { Eyebrow, InputField, RadioRow, ScreenCopy, ScreenTitle } from "../ui";
 
 const SYMPTOM_OPTIONS = ["No new symptoms", "Mild cough or congestion", "Fever", "Something else"];
 
@@ -40,10 +40,21 @@ export function VisitScreen({ ctx }: { ctx: Ctx }) {
               key={opt}
               label={opt}
               selected={state.visitAnswer === opt}
-              onClick={() => update({ visitAnswer: opt })}
+              onClick={() => update({ visitAnswer: opt, visitOtherText: opt === "Something else" ? state.visitOtherText : "" })}
             />
           ))}
         </div>
+
+        {state.visitAnswer === "Something else" ? (
+          <div className="mt-3.5">
+            <InputField
+              label="Tell us a bit more"
+              value={state.visitOtherText}
+              placeholder="Describe what's going on"
+              onChange={(v) => update({ visitOtherText: v })}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

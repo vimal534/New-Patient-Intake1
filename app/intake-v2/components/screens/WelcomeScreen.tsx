@@ -15,7 +15,7 @@ const INSTRUCTIONS = [
 // Every action here enters the check-in flow via ctx.next().
 export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
   const { isRet, state } = ctx;
-  const readiness = isRet ? 80 : 35;
+  const readiness = state.intakeCompleted ? 100 : isRet ? 80 : 35;
   const chips = isRet
     ? [
         { label: "Confirmed", color: "#1677E8", bg: "#EAF2FE" },
@@ -31,7 +31,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
       <div className="flex items-start justify-between gap-4 bg-white px-6 pt-6 pb-[22px]">
         <div>
           <div className="text-[13px] font-semibold tracking-[0.08em] text-[var(--iv2-text-muted)] uppercase">Good morning</div>
-          <div className="mt-1.5 text-[32px] leading-[1.15] font-bold text-[var(--iv2-text-primary)]">Jane</div>
+          <div className="mt-1.5 text-[32px] leading-[1.15] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.patientName.split(" ")[0]}</div>
         </div>
         <YosiHealthLogo className="mt-2" />
       </div>
@@ -42,7 +42,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
         <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-start gap-4 p-5.5">
             <div className="min-w-0 flex-1">
-              <div className="text-2xl leading-[1.2] font-bold text-[var(--iv2-text-primary)]">Annual Physical</div>
+              <div className="text-2xl leading-[1.2] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.reason}</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {chips.map((c) => (
                   <div key={c.label} className="rounded-full px-3 py-1.5 text-[13px] font-semibold" style={{ color: c.color, backgroundColor: c.bg }}>
@@ -55,7 +55,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
                   <UserIcon size={20} color="var(--iv2-brand)" />
                 </div>
                 <div>
-                  <div className="text-base font-semibold text-[var(--iv2-text-primary)]">Dr. Sarah Jenkins</div>
+                  <div className="text-base font-semibold text-[var(--iv2-text-primary)]">{state.scheduling.providerName}</div>
                   <div className="text-[15px] text-[var(--iv2-text-secondary)]">Primary Care</div>
                 </div>
               </div>
@@ -180,7 +180,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
                   color: state.acked ? "var(--iv2-success)" : "var(--iv2-brand)",
                 }}
               >
-                {state.acked ? "✓ Got it" : "Got it — I understand"}
+                {state.acked ? "✓ Got it" : "Got it, I understand"}
               </button>
             </div>
           </div>

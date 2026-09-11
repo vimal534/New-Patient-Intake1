@@ -1,6 +1,7 @@
 "use client";
 
 import { Ctx } from "../../ctx";
+import { POLICYHOLDER_SCENARIOS, REVIEW_TITLE } from "../../constants";
 import { ScanCardIcon, ShieldPlainIcon } from "../Icons";
 import { Card, Divider, Eyebrow, InfoNote, LabelValueRow, ScreenCopy, ScreenTitle } from "../ui";
 
@@ -12,9 +13,30 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
   const known = isRet && !state.coverageChanging;
   const capture = !isRet || state.coverageChanging;
 
+  // The scan always reads cleanly now — Payment sits right after
+  // Insurance in every flow, so a scripted "first attempt always comes
+  // back blurry" demo would mean every patient hits a dead-end retry
+  // screen before ever reaching it. `scanBlurry`/`scanRetried` stay in
+  // state (OcrScreen's "Re-scan card" still resets them) purely so a
+  // future, real "we couldn't read this" failure has somewhere to
+  // land — this flow just never triggers it itself anymore.
+  const startScan = () => {
+    update({ scanning: true, scanBlurry: false });
+    // New-patient minors ask "Is [guardian] the policyholder?" right
+    // after the card is read (OcrScreen.tsx) — eligibility can't be
+    // checked before we know who to check it for, so don't start it
+    // here for those scenarios; OcrScreen starts it once that
+    // question is answered instead.
+    if (!POLICYHOLDER_SCENARIOS.includes(state.demoScenarioId) && state.eligibility === "idle") ctx.startEligibility();
+    window.setTimeout(() => {
+      update({ scanning: false, groupFixed: true });
+      ctx.go("ocr");
+    }, 1600);
+  };
+
   return (
     <div className="px-6 py-6">
-      <Eyebrow>Coverage · step 1 of 2</Eyebrow>
+      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.coverage : "Coverage"}</Eyebrow>
       <ScreenTitle>{known ? "Your coverage" : "Insurance"}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {known
@@ -44,27 +66,37 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
 
       {capture ? (
         <div>
-          <button
-            type="button"
-            onClick={() => {
-              update({ scanning: true });
-              if (state.eligibility === "idle") ctx.startEligibility();
-              window.setTimeout(() => {
-                update({ scanning: false });
-                ctx.go("ocr");
-              }, 1600);
-            }}
-            className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[18px] border-[1.5px] border-dashed p-11 px-6"
-            style={{ borderColor: "var(--iv2-scan-border)", backgroundColor: "var(--iv2-scan-bg)" }}
-          >
-            <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-white" style={{ height: 68, width: 68 }}>
-              <ScanCardIcon />
-            </span>
-            <span className="text-lg font-semibold text-[var(--iv2-brand)]">{state.scanning ? "Capturing…" : "Tap to scan a card"}</span>
-            <span className="text-[15px]" style={{ color: "var(--iv2-scan-sub)" }}>
-              Insurance card, business card — anything
-            </span>
-          </button>
+          {state.scanBlurry ? (
+            <div className="flex w-full flex-col items-center justify-center gap-1.5 rounded-[18px] border-[1.5px] p-11 px-6 text-center" style={{ borderColor: "var(--iv2-warning-border)", backgroundColor: "var(--iv2-warning-surface)" }}>
+              <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-white" style={{ height: 68, width: 68 }}>
+                <ScanCardIcon />
+              </span>
+              <span className="text-lg font-semibold text-[var(--iv2-warning)]">We couldn&apos;t read the Group Number</span>
+              <span className="text-[15px] text-[var(--iv2-warning)]">Please rescan the card before continuing.</span>
+              <button
+                type="button"
+                onClick={startScan}
+                className="mt-3 flex h-12 w-full max-w-[220px] cursor-pointer items-center justify-center rounded-xl border-none bg-[var(--iv2-warning)] text-[15px] font-bold text-white"
+              >
+                Retake photo
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={startScan}
+              className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[18px] border-[1.5px] border-dashed p-11 px-6"
+              style={{ borderColor: "var(--iv2-scan-border)", backgroundColor: "var(--iv2-scan-bg)" }}
+            >
+              <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-white" style={{ height: 68, width: 68 }}>
+                <ScanCardIcon />
+              </span>
+              <span className="text-lg font-semibold text-[var(--iv2-brand)]">{state.scanning ? "Capturing…" : "Tap to scan a card"}</span>
+              <span className="text-[15px]" style={{ color: "var(--iv2-scan-sub)" }}>
+                Insurance card, business card, or anything similar
+              </span>
+            </button>
+          )}
 
           <div className="mt-5">
             <InfoNote tone="quiet">

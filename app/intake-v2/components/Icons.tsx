@@ -5,6 +5,36 @@
 
 type IconProps = { size?: number; color?: string; className?: string };
 
+export function SearchIcon({ size = 18, color = "#98A2B3" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="11" cy="11" r="7" stroke={color} strokeWidth={2} />
+      <path d="M21 21l-4.35-4.35" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Solid red circle + white "!" — the invalid-field marker inside a
+// text input (AddCardSheet's card number/expiry/CVV/name fields), sat
+// where a valid card number instead shows its brand mark.
+export function AlertCircleIcon({ size = 18, color = "var(--iv2-danger)" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" fill={color} />
+      <path d="M12 7v6" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
+      <circle cx="12" cy="16.2" r="1.15" fill="#fff" />
+    </svg>
+  );
+}
+
+export function XIcon({ size = 18, color = "#667085" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M6 6l12 12M18 6L6 18" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function ChevronLeftIcon({ size = 13, color = "#101828", className }: IconProps) {
   return (
     <svg width={size} height={size * (22 / 13)} viewBox="0 0 13 22" fill="none" className={className}>
@@ -228,6 +258,20 @@ export function ShieldUserIcon({ size = 40, color = "#1677E8" }: IconProps) {
   );
 }
 
+// Three nested "broadcast" arcs, opening rightward — VerifyIntroScreen's
+// hero halo (a pair of these, the second mirrored via CSS `scaleX(-1)`,
+// sit just outside the shield circle on each side, echoing "we're
+// sending you something").
+export function SignalWaveIcon({ size = 24, color = "#1677E8" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M1.75 8.97a4.7 4.7 0 010 6.06" stroke={color} strokeWidth={2} strokeLinecap="round" opacity={0.9} />
+      <path d="M3 6.8a8.4 8.4 0 010 10.4" stroke={color} strokeWidth={2} strokeLinecap="round" opacity={0.55} />
+      <path d="M5 3.34a13 13 0 010 17.32" stroke={color} strokeWidth={2} strokeLinecap="round" opacity={0.3} />
+    </svg>
+  );
+}
+
 export function PhoneIcon({ size = 20, color = "#1677E8" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -249,6 +293,22 @@ export function ArrowRightIcon({ size = 17, color = "#fff" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M4 12h15M13 6l6 6-6 6" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Navigation-arrow (paper-plane) — SuccessScreen.tsx's "Get directions"
+// pill.
+export function SendIcon({ size = 15, color = "#1677E8" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path
+        d="M21 3L11 13M21 3l-7 18-4-8-8-4 19-6z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

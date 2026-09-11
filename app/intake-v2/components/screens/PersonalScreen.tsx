@@ -1,8 +1,8 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { formatDob } from "../../format";
-import { Card, Divider, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
+import { AddressField, DobField, EmailField } from "../SmartField";
+import { Card, Divider, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
 
 // Screen 3 — Personal information.
 export function PersonalScreen({ ctx }: { ctx: Ctx }) {
@@ -11,7 +11,7 @@ export function PersonalScreen({ ctx }: { ctx: Ctx }) {
 
   const fields: { key: "email" | "dob" | "address"; label: string; placeholder: string; retValue: string }[] = [
     { key: "email", label: "Email", placeholder: "jane.doe@email.com", retValue: "jane.doe@email.com" },
-    { key: "dob", label: "Date of birth", placeholder: "MM / DD / YYYY", retValue: "Aug 14, 1991" },
+    { key: "dob", label: "Date of birth", placeholder: "MM/DD/YYYY", retValue: "Aug 14, 1991" },
     { key: "address", label: "Address", placeholder: "123 Main Street, Oakwood NY", retValue: "123 Main Street\nOakwood, NY 10001" },
   ];
 
@@ -48,22 +48,14 @@ export function PersonalScreen({ ctx }: { ctx: Ctx }) {
             </div>
           </div>
 
-          {fields.map((f) =>
-            editing ? (
-              <InputField
-                key={f.key}
-                label={f.label}
-                value={isRet ? f.retValue : state.personal[f.key]}
-                placeholder={isRet ? f.retValue : f.placeholder}
-                inputMode={f.key === "dob" ? "numeric" : f.key === "email" ? "email" : "text"}
-                onChange={(v) =>
-                  update((s) => ({ personal: { ...s.personal, [f.key]: f.key === "dob" ? formatDob(v) : v } }))
-                }
-              />
-            ) : (
-              <ValueRow key={f.key} label={f.label} value={f.retValue} />
-            )
-          )}
+          {fields.map((f) => {
+            if (!editing) return <ValueRow key={f.key} label={f.label} value={f.retValue} />;
+            const value = isRet ? f.retValue : state.personal[f.key];
+            const onChange = (v: string) => update((s) => ({ personal: { ...s.personal, [f.key]: v } }));
+            if (f.key === "dob") return <DobField key={f.key} value={value} onChange={onChange} />;
+            if (f.key === "email") return <EmailField key={f.key} value={value} onChange={onChange} />;
+            return <AddressField key={f.key} label={f.label} placeholder={f.placeholder} value={value} onChange={onChange} />;
+          })}
         </div>
       </Card>
 

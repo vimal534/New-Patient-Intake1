@@ -11,10 +11,16 @@ export function Header({
   percent,
   timeLeft,
   onBack,
+  title = "Check-in",
 }: {
   percent: number;
   timeLeft: string;
   onBack: () => void;
+  // Per-step section name (Health history, Coverage, Payment, ...) —
+  // replaces the old static "Check-in" label so the header always
+  // names the page the patient is actually on. Falls back to
+  // "Check-in" for any step without one mapped in HEADER_TITLE.
+  title?: string;
 }) {
   // Compressed further still — no close button to balance against, a
   // smaller back chevron, and tighter padding all around. Target total
@@ -32,7 +38,7 @@ export function Header({
         >
           <ChevronLeftIcon size={9} />
         </button>
-        <div className="ml-2 text-[17px] font-semibold whitespace-nowrap text-[var(--iv2-text-primary)]">Check-in</div>
+        <div className="ml-2 truncate text-[17px] font-semibold text-[var(--iv2-text-primary)]">{title}</div>
       </div>
       <div className="flex items-center gap-3.5">
         <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--iv2-border-subtle)]">
@@ -41,7 +47,7 @@ export function Header({
             style={{ width: `${percent}%` }}
           />
         </div>
-        <div className="text-[15px] leading-none font-semibold text-[var(--iv2-brand)]">{percent}%</div>
+        <div className="text-[15px] leading-none font-semibold text-[var(--iv2-text-muted)]">{percent}%</div>
       </div>
       <div className="mt-2 h-5 text-[15px] leading-5 text-[var(--iv2-text-secondary)]">{timeLeft} · Progress saved</div>
     </div>
