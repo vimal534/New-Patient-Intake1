@@ -298,7 +298,7 @@ export default function IntakeV2Page() {
         ) : null}
 
         <div ref={scrollAreaRef} className="flex-1 overflow-auto">
-        <div ref={contentRef}>
+        <div ref={contentRef} className="h-full">
           {state.identityFallbackOpen ? <IdentityFallbackScreen ctx={ctx} /> : null}
           {!state.identityFallbackOpen && key === "verifyIntro" ? <VerifyIntroScreen ctx={ctx} /> : null}
           {key === "otp" ? <OtpScreen ctx={ctx} /> : null}
