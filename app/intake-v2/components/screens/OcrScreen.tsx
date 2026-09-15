@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { Ctx } from "../../ctx";
-import { POLICYHOLDER_RELATIONSHIPS, POLICYHOLDER_SCENARIOS, REVIEW_TITLE } from "../../constants";
+import { POLICYHOLDER_RELATIONSHIPS, POLICYHOLDER_SCENARIOS } from "../../constants";
 import { formatDob } from "../../format";
 import { InsuranceBrandIcon } from "../Icons";
-import { CheckIcon, Eyebrow, InputField, RadioRow, ScreenCopy, ScreenTitle, SelectField } from "../ui";
+import { CheckIcon, InputField, RadioRow, ScreenCopy, ScreenTitle, SelectField } from "../ui";
 
 // Is the policyholder question (new-patient minors only) answered
 // enough to actually run an eligibility check with? "Yes" needs
@@ -63,8 +63,7 @@ export function OcrScreen({ ctx }: { ctx: Ctx }) {
   }, [manual, needsPolicyholder, readyForEligibility]);
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.ocr : "Coverage"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>{manual ? "Enter your insurance details" : "Insurance"}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {manual
@@ -74,7 +73,7 @@ export function OcrScreen({ ctx }: { ctx: Ctx }) {
 
       {manual ? (
         <div>
-          <div className="flex flex-col gap-3.5 rounded-[20px] border border-[var(--iv2-border)] bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex flex-col gap-3.5 rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <InputField label="Insurance carrier" value={state.carrier} placeholder="Blue Shield" onChange={(v) => update({ carrier: v })} />
             <InputField label="Member ID" value={state.memberId} placeholder="VZ48213" onChange={(v) => update({ memberId: v })} />
             <InputField label="Group number" value={state.groupValue} placeholder="00921" onChange={(v) => update({ groupValue: v })} />
@@ -83,7 +82,7 @@ export function OcrScreen({ ctx }: { ctx: Ctx }) {
         </div>
       ) : (
         <div>
-          <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <div className="p-5">
               <div className="flex items-center gap-3.5">
                 <InsuranceBrandIcon />
@@ -187,7 +186,7 @@ function PolicyholderQuestion({ ctx }: { ctx: Ctx }) {
   const guardianName = state.guardian1.name.trim() || "your guardian";
 
   return (
-    <div className="mt-3 rounded-2xl border border-[var(--iv2-border)] bg-white p-4">
+    <div className="mt-3 rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
       <div className="mb-2.5 text-base font-bold text-[var(--iv2-text-primary)]">Is {guardianName} the policyholder?</div>
       <div className="flex flex-col gap-2.5">
         <RadioRow

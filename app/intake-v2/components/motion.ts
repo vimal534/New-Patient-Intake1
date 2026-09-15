@@ -46,8 +46,8 @@ export const MOTION_EASE = "power2.out";
 // small: this is a healthcare intake form, not a game UI — the goal is
 // "this responded to me," not a visible bounce or lift.
 export const ELEVATE_SCALE = 1.015;
-export const ELEVATE_SHADOW = "0 6px 16px rgba(16,24,40,0.10)";
-export const ELEVATE_REST_SHADOW = "0 1px 2px rgba(16,24,40,0)";
+export const ELEVATE_SHADOW = "0 6px 16px rgba(27,38,36,0.10)";
+export const ELEVATE_REST_SHADOW = "0 1px 2px rgba(27,38,36,0)";
 
 // No hook/helper wraps the actual onFocus/onBlur pair — the
 // react-hooks/refs lint rule flags any function that receives a ref

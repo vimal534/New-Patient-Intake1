@@ -1,12 +1,11 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { REVIEW_TITLE } from "../../constants";
 import { ConditionAddSection } from "../ConditionAddSection";
 import { HealthCategory } from "../../types";
 import { AllergiesEditor, ConditionsEditor, FamilyEditor, formatSurgeryLine, MedicationsEditor, SurgeriesEditor } from "../HealthCategoryEditors";
 import { ChevronRightIcon } from "../Icons";
-import { Card, Eyebrow, ScreenCopy, ScreenTitle } from "../ui";
+import { Card, ScreenCopy, ScreenTitle } from "../ui";
 
 export const CATEGORY_LABEL: Record<HealthCategory, string> = {
   conditions: "Conditions",
@@ -35,7 +34,7 @@ export function HealthScreen({ ctx }: { ctx: Ctx }) {
   }
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="font-semibold">Past Medical Conditions</ScreenTitle>
       <ScreenCopy className="mb-7">Which conditions have you been diagnosed with? Select any that apply, now or in the past.</ScreenCopy>
       <ConditionAddSection ctx={ctx} showNoneOption />
@@ -107,8 +106,7 @@ function ReturningHealthHistory({ ctx }: { ctx: Ctx }) {
   const openCategory = (category: HealthCategory) => update({ hhEditing: category });
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.health : "Health history"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>Your health history</ScreenTitle>
       <ScreenCopy className="mb-6">Review what&apos;s on file and update anything that has changed.</ScreenCopy>
 
@@ -178,12 +176,10 @@ export const CATEGORY_LOWER: Record<HealthCategory, string> = {
 // anything changed?" confirm gate — tapping the card already IS "I want
 // to look at/change this").
 export function CategoryFocusPage({ ctx, category }: { ctx: Ctx; category: HealthCategory }) {
-  const label = CATEGORY_LABEL[category];
   const lower = CATEGORY_LOWER[category];
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{label}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>Update {lower}</ScreenTitle>
       <ScreenCopy className="mb-6">Add, remove, or correct anything below.</ScreenCopy>
       {category === "conditions" ? <ConditionsEditor ctx={ctx} /> : null}

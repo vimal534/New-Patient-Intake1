@@ -29,13 +29,19 @@ export function DemoButton({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-const NEW_PATIENT_IDS: DemoScenarioId[] = ["new-infant", "new-adolescent"];
-const RETURNING_IDS: DemoScenarioId[] = ["returning-well", "returning-sick", "returning-sports"];
+// Trimmed to just the Infant, Sick Visit scenario in each category per
+// product direction — the other seed scenarios (adolescent, well
+// visit, sports physical) stay defined in constants.ts (SCENARIO_SEEDS/
+// SCENARIO_LABEL) in case they're wanted again later, they're just not
+// offered here.
+const NEW_PATIENT_IDS: DemoScenarioId[] = ["new-infant"];
+const RETURNING_IDS: DemoScenarioId[] = ["returning-sick"];
 
 // Two-level picker — README "Intake Flow — Complete Build Spec": New
-// Patient / Returning Patient, each opening a submenu of the 5 named
-// scenarios (2 new, 3 returning). `demoCategoryOpen` holds which
-// category's submenu is showing; `null` shows the top-level choice.
+// Patient / Returning Patient, each opening a submenu that (per
+// product direction) now offers just the one Infant, Sick Visit
+// scenario apiece. `demoCategoryOpen` holds which category's submenu
+// is showing; `null` shows the top-level choice.
 export function DemoSheet({ ctx }: { ctx: Ctx }) {
   const { state, reset, update } = ctx;
 
@@ -113,7 +119,7 @@ export function DemoSheet({ ctx }: { ctx: Ctx }) {
           >
             <div>
               <div className="text-[17px] font-bold text-[var(--iv2-text-primary)]">New patient</div>
-              <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">2 scenarios: first visit, building health history</div>
+              <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">Infant, Sick Visit</div>
             </div>
             <ChevronRightIcon />
           </button>
@@ -128,7 +134,7 @@ export function DemoSheet({ ctx }: { ctx: Ctx }) {
           >
             <div>
               <div className="text-[17px] font-bold text-[var(--iv2-text-primary)]">Returning patient</div>
-              <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">3 scenarios: reviewing what&apos;s already on file</div>
+              <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">Infant, Sick Visit</div>
             </div>
             <ChevronRightIcon />
           </button>

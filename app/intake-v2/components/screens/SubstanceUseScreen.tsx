@@ -3,7 +3,7 @@
 import { Ctx } from "../../ctx";
 import { SubstanceUse } from "../../types";
 import { formatDob } from "../../format";
-import { Eyebrow, InputField, RadioRow, ScreenCopy, ScreenTitle, YesNoRow } from "../ui";
+import { InputField, RadioRow, ScreenCopy, ScreenTitle, YesNoRow } from "../ui";
 
 const ALCOHOL_LEVELS = ["Never", "Rarely", "Occasionally", "Regularly", "Prefer not to answer"];
 
@@ -15,8 +15,7 @@ export function SubstanceUseScreen({ ctx }: { ctx: Ctx }) {
   const substance = state.substance;
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>Substance use</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">A few confidential questions</ScreenTitle>
       <ScreenCopy className="mb-6">Answered privately and used only to guide today&apos;s care.</ScreenCopy>
 

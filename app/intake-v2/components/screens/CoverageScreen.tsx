@@ -1,9 +1,9 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { POLICYHOLDER_SCENARIOS, REVIEW_TITLE } from "../../constants";
+import { POLICYHOLDER_SCENARIOS } from "../../constants";
 import { ScanCardIcon, ShieldPlainIcon } from "../Icons";
-import { Card, Divider, Eyebrow, InfoNote, LabelValueRow, ScreenCopy, ScreenTitle } from "../ui";
+import { Card, Divider, InfoNote, LabelValueRow, ScreenCopy, ScreenTitle } from "../ui";
 
 // Screen 6 — Coverage (step 1 of 2). Known-coverage review for a
 // returning patient who hasn't flagged a change, vs. the scan-capture
@@ -35,8 +35,7 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
   };
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.coverage : "Coverage"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>{known ? "Your coverage" : "Insurance"}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {known
@@ -68,7 +67,7 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
         <div>
           {state.scanBlurry ? (
             <div className="flex w-full flex-col items-center justify-center gap-1.5 rounded-[18px] border-[1.5px] p-11 px-6 text-center" style={{ borderColor: "var(--iv2-warning-border)", backgroundColor: "var(--iv2-warning-surface)" }}>
-              <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-white" style={{ height: 68, width: 68 }}>
+              <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-[var(--iv2-surface)]" style={{ height: 68, width: 68 }}>
                 <ScanCardIcon />
               </span>
               <span className="text-lg font-semibold text-[var(--iv2-warning)]">We couldn&apos;t read the Group Number</span>
@@ -88,7 +87,7 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
               className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[18px] border-[1.5px] border-dashed p-11 px-6"
               style={{ borderColor: "var(--iv2-scan-border)", backgroundColor: "var(--iv2-scan-bg)" }}
             >
-              <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-white" style={{ height: 68, width: 68 }}>
+              <span className="mb-3 flex h-17 w-17 items-center justify-center rounded-full bg-[var(--iv2-surface)]" style={{ height: 68, width: 68 }}>
                 <ScanCardIcon />
               </span>
               <span className="text-lg font-semibold text-[var(--iv2-brand)]">{state.scanning ? "Capturing…" : "Tap to scan a card"}</span>
@@ -101,8 +100,8 @@ export function CoverageScreen({ ctx }: { ctx: Ctx }) {
           <div className="mt-5">
             <InfoNote tone="quiet">
               <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0">
-                <circle cx="12" cy="12" r="9.5" stroke="#667085" strokeWidth={1.8} />
-                <path d="M12 11v6M12 7.6v.4" stroke="#667085" strokeWidth={1.8} strokeLinecap="round" />
+                <circle cx="12" cy="12" r="9.5" stroke="var(--iv2-text-secondary)" strokeWidth={1.8} />
+                <path d="M12 11v6M12 7.6v.4" stroke="var(--iv2-text-secondary)" strokeWidth={1.8} strokeLinecap="round" />
               </svg>
               <div className="text-[15px] leading-[1.5] text-[var(--iv2-text-primary)]">
                 Your front desk makes this check by phone or portal, one patient at a time. We run it the moment the

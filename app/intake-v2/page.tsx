@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { Ctx } from "./ctx";
-import { scrollToTop } from "./components/motion";
+import { dur, MOTION_EASE, scrollToTop } from "./components/motion";
 import { FLOW_NEW, FLOW_NEW_ADOLESCENT, FLOW_NEW_INFANT, FLOW_RET, FLOW_RETURNING_SICK, FLOW_RETURNING_SPORTS, FLOW_RETURNING_WELL, HEADER_TITLE, PCT, REVIEW_TITLE, initialState } from "./constants";
 import { DemoScenarioId, FlowKey, IntakeState, Patch } from "./types";
+import { isValidEmailFormat } from "./format";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { OtpScreen } from "./components/screens/OtpScreen";
@@ -23,12 +25,8 @@ import { PaymentScreen } from "./components/screens/PaymentScreen";
 import { ConsentScreen } from "./components/screens/ConsentScreen";
 import { SuccessScreen } from "./components/screens/SuccessScreen";
 import { PatientConfirmScreen } from "./components/screens/PatientConfirmScreen";
-import { GuardianIdScanScreen } from "./components/screens/GuardianIdScanScreen";
 import { GuardianIdReviewScreen } from "./components/screens/GuardianIdReviewScreen";
-import { PatientContactScreen } from "./components/screens/PatientContactScreen";
-import { PatientDemographicsScreen } from "./components/screens/PatientDemographicsScreen";
 import { PatientEmergencyScreen } from "./components/screens/PatientEmergencyScreen";
-import { PatientReviewScreen } from "./components/screens/PatientReviewScreen";
 import { SurgeriesScreen } from "./components/screens/SurgeriesScreen";
 import { FamilyHistoryScreen } from "./components/screens/FamilyHistoryScreen";
 import { PediQuestionsScreen } from "./components/screens/PediQuestionsScreen";
@@ -74,7 +72,7 @@ function flowFor(s: Pick<IntakeState, "scenario" | "demoScenarioId" | "coverageC
 }
 
 export default function IntakeV2Page() {
-  const [state, setState] = useState<IntakeState>(() => initialState("returning"));
+  const [state, setState] = useState<IntakeState>(() => initialState("new"));
 
   const update = (patch: Patch) =>
     setState((s) => ({ ...s, ...(typeof patch === "function" ? patch(s) : patch) }));
@@ -115,14 +113,6 @@ export default function IntakeV2Page() {
         const f = flowFor(s);
         const i = f.indexOf("success");
         return { ...s, reviewingFromSuccess: false, idx: i >= 0 ? i : s.idx };
-      }
-      // Same idea, one level down — reviewing a step from
-      // PatientReviewScreen's own "Edit" links returns there, not to
-      // whatever sits one position earlier in the wizard.
-      if (s.reviewingFromPatientReview) {
-        const f = flowFor(s);
-        const i = f.indexOf("patientReview");
-        return { ...s, reviewingFromPatientReview: false, idx: i >= 0 ? i : s.idx };
       }
       return { ...s, idx: Math.max(s.idx - 1, 0) };
     });
@@ -168,24 +158,6 @@ export default function IntakeV2Page() {
       return { ...s, reviewingFromSuccess: false, idx: i >= 0 ? i : s.idx };
     });
 
-  // Same pair as reviewSection/returnToSummary, scoped to
-  // PatientReviewScreen's own "Edit" links instead of the final
-  // summary's checklist — none of this wizard's steps sit behind a
-  // read-only "on file" view first, so unlike reviewSection there's no
-  // per-target editing flag to force open here.
-  const reviewPatientSection = (target: FlowKey) =>
-    setState((s) => {
-      const f = flowFor(s);
-      const i = f.indexOf(target);
-      return i >= 0 ? { ...s, reviewingFromPatientReview: true, idx: i } : s;
-    });
-  const returnToPatientReview = () =>
-    setState((s) => {
-      const f = flowFor(s);
-      const i = f.indexOf("patientReview");
-      return { ...s, reviewingFromPatientReview: false, idx: i >= 0 ? i : s.idx };
-    });
-
   // Six-digit auto-fill on the verification screen — README: "The code
   // auto-fills one digit every 260ms." One long-lived interval (mirrors
   // the prototype's componentDidMount timer) that only writes while the
@@ -211,8 +183,6 @@ export default function IntakeV2Page() {
     go,
     reviewSection,
     returnToSummary,
-    reviewPatientSection,
-    returnToPatientReview,
     isRet,
     flow,
     key,
@@ -249,6 +219,22 @@ export default function IntakeV2Page() {
   // opening, Birth History revealing its next section) — only an
   // actual step change.
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  // A soft shadow under the header once the screen's content has
+  // scrolled out from under it — a flat header reads fine at rest, but
+  // once content is sliding past its bottom edge a bit of elevation is
+  // what makes it read as a fixed surface rather than part of the page.
+  // Purely cosmetic (never affects layout), so it's fine to derive from
+  // a plain scroll listener rather than routing through state.
+  const [headerElevated, setHeaderElevated] = useState(false);
+  useEffect(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    const onScroll = () => setHeaderElevated(el.scrollTop > 4);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   // The one exception to "always land at the top": returning to the
   // final summary from a section reviewSection sent the patient into —
@@ -285,6 +271,13 @@ export default function IntakeV2Page() {
       return;
     }
     scrollToTop(scrollAreaRef.current);
+    if (contentRef.current) {
+      gsap.fromTo(
+        contentRef.current,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: dur(0.28), ease: MOTION_EASE }
+      );
+    }
   }, [key, state.reviewingFromSuccess]);
 
   // Footer configuration per screen — ported 1:1 from the prototype's
@@ -299,17 +292,13 @@ export default function IntakeV2Page() {
             percent={percent}
             timeLeft={isRet ? "About 2 min left" : "About 4–5 min left"}
             onBack={back}
-            title={
-              state.reviewingFromSuccess
-                ? REVIEW_TITLE[key] ?? `Review ${(HEADER_TITLE[key] ?? "section").toLowerCase()}`
-                : state.reviewingFromPatientReview
-                  ? `Review ${(HEADER_TITLE[key] ?? "section").toLowerCase()}`
-                  : HEADER_TITLE[key]
-            }
+            title={state.reviewingFromSuccess ? (REVIEW_TITLE[key] ?? `Review ${(HEADER_TITLE[key] ?? "section").toLowerCase()}`) : HEADER_TITLE[key]}
+            elevated={headerElevated}
           />
         ) : null}
 
         <div ref={scrollAreaRef} className="flex-1 overflow-auto">
+        <div ref={contentRef}>
           {state.identityFallbackOpen ? <IdentityFallbackScreen ctx={ctx} /> : null}
           {!state.identityFallbackOpen && key === "verifyIntro" ? <VerifyIntroScreen ctx={ctx} /> : null}
           {key === "otp" ? <OtpScreen ctx={ctx} /> : null}
@@ -317,12 +306,8 @@ export default function IntakeV2Page() {
           {key === "personal" ? <PersonalScreen ctx={ctx} /> : null}
           {key === "emergency" ? <EmergencyScreen ctx={ctx} /> : null}
           {key === "patientConfirm" ? <PatientConfirmScreen ctx={ctx} /> : null}
-          {key === "guardianIdScan" ? <GuardianIdScanScreen ctx={ctx} /> : null}
           {key === "guardianIdReview" ? <GuardianIdReviewScreen ctx={ctx} /> : null}
-          {key === "patientContact" ? <PatientContactScreen ctx={ctx} /> : null}
-          {key === "patientDemographics" ? <PatientDemographicsScreen ctx={ctx} /> : null}
           {key === "patientEmergency" ? <PatientEmergencyScreen ctx={ctx} /> : null}
-          {key === "patientReview" ? <PatientReviewScreen ctx={ctx} /> : null}
           {key === "visit" ? <VisitScreen ctx={ctx} /> : null}
           {key === "coverage" ? <CoverageScreen ctx={ctx} /> : null}
           {key === "ocr" ? <OcrScreen ctx={ctx} /> : null}
@@ -345,6 +330,7 @@ export default function IntakeV2Page() {
           {key === "payment" ? <PaymentScreen ctx={ctx} /> : null}
           {key === "consent" ? <ConsentScreen ctx={ctx} /> : null}
           {key === "success" ? <SuccessScreen ctx={ctx} /> : null}
+        </div>
         </div>
 
         <Footer
@@ -401,20 +387,10 @@ function footerFor(ctx: Ctx): FooterConfig {
   if (state.reviewingFromSuccess) {
     return { primaryLabel: "Save and return", primary: ctx.returnToSummary };
   }
-  // Same override, one level down — reviewing a step from
-  // PatientReviewScreen's own "Edit" links.
-  if (state.reviewingFromPatientReview) {
-    return { primaryLabel: "Save and return to review", primary: ctx.returnToPatientReview };
-  }
-
   if (key === "otp") {
     return { primaryLabel: "Continue", primaryDisabled: state.otp.length < 6, primary: next };
   }
-  if (key === "verifyIntro" || key === "welcome" || key === "success" || key === "guardianIdScan") {
-    // guardianIdScan has no footer of its own — its "Scan…"/"Enter
-    // details manually" actions live in the screen body (matching
-    // CoverageScreen's own scan-capture screen, which has no footer
-    // either), and the camera-capture state auto-advances on its own.
+  if (key === "verifyIntro" || key === "welcome" || key === "success") {
     return { primaryLabel: null };
   }
   if (key === "patientConfirm") {
@@ -422,21 +398,12 @@ function footerFor(ctx: Ctx): FooterConfig {
   }
   if (key === "guardianIdReview") {
     const g = state.guardian1;
-    return { primaryLabel: "Looks right", primaryDisabled: !g.name.trim() || (g.dob ?? "").length !== 10, primary: next };
-  }
-  if (key === "patientContact") {
-    return { primaryLabel: "Looks right", primaryDisabled: !state.personal.address.trim(), primary: next };
-  }
-  if (key === "patientDemographics") {
-    // Fully deferrable, same shape as SocialHistoryScreen's own
-    // "Skip for today" — nothing here blocks moving on.
-    return { primaryLabel: "Continue", primary: next, secondaryLabel: "I'll complete this later", secondary: next };
+    const phoneDigits = g.mobile.replace(/\D/g, "");
+    const ready = g.name.trim() && g.relationship && phoneDigits.length === 10 && isValidEmailFormat(state.personal.email);
+    return { primaryLabel: "Looks right", primaryDisabled: !ready, primary: next };
   }
   if (key === "patientEmergency") {
     return { primaryLabel: "Continue", primary: next, secondaryLabel: "I'll add this later", secondary: next };
-  }
-  if (key === "patientReview") {
-    return { primaryLabel: "Continue", primary: next };
   }
   if (key === "healthSurgeries") {
     return { primaryLabel: "Continue", primaryDisabled: !(state.surgeries.length || state.surgeriesNone), primary: next };

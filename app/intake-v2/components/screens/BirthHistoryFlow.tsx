@@ -2,11 +2,14 @@
 
 import { ReactNode, RefObject, useRef, useState } from "react";
 import { Ctx } from "../../ctx";
+import { PEDI_MED_CATALOG } from "../../constants";
 import { formatDigits } from "../../format";
 import { BirthHistory } from "../../types";
 import { ChevronDownIcon, InfoIcon } from "../Icons";
 import { scrollIntoComfortableView, scrollToReadingPosition } from "../motion";
-import { Eyebrow, InputField, OptionPill, Reveal } from "../ui";
+import { InputField, OptionPill, Reveal, SearchClearInput } from "../ui";
+
+const MEDS_SUGGESTION_COUNT = 5;
 
 const DELIVERY_TYPES = ["Vaginal", "C-Section", "Unknown"];
 const YES_NO_UNKNOWN = ["Yes", "No", "Unknown"];
@@ -64,11 +67,10 @@ function useBirth(ctx: Ctx) {
 
 // Question label + optional hint on top, a compact Yes/No pill pair
 // underneath — one question per FieldCard (Pregnancy section).
-function YesNoInline({ label, hint, value, onChange }: { label: string; hint?: string; value: string; onChange: (v: string) => void }) {
+function YesNoInline({ label, value, onChange }: { label: string; hint?: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
       <div className="text-base font-bold text-[var(--iv2-text-primary)]">{label}</div>
-      {hint ? <div className="mt-1 text-sm leading-[1.4] text-[var(--iv2-text-muted)]">{hint}</div> : null}
       <div className="mt-3 flex gap-2">
         <OptionPill label="Yes" selected={value === "Yes"} onClick={() => onChange("Yes")} />
         <OptionPill label="No" selected={value === "No"} onClick={() => onChange("No")} />
@@ -83,13 +85,13 @@ function YesNoInline({ label, hint, value, onChange }: { label: string; hint?: s
 // one Card with dividers, matching that section's reference design.
 function FieldCard({ children, fieldRef }: { children: ReactNode; fieldRef?: RefObject<HTMLDivElement | null> }) {
   return (
-    <div ref={fieldRef} className="rounded-2xl border border-[var(--iv2-border)] bg-white p-4">
+    <div ref={fieldRef} className="rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
       {children}
     </div>
   );
 }
 
-function FieldLabel({ label, required, optional, hint }: { label: string; required?: boolean; optional?: boolean; hint?: string }) {
+function FieldLabel({ label, required, optional }: { label: string; required?: boolean; optional?: boolean; hint?: string }) {
   return (
     <div className="mb-3">
       <div className="flex items-start justify-between gap-3">
@@ -98,7 +100,6 @@ function FieldLabel({ label, required, optional, hint }: { label: string; requir
         </div>
         {optional ? <OptionalBadge /> : null}
       </div>
-      {hint ? <div className="mt-0.5 text-sm leading-[1.4] text-[var(--iv2-text-muted)]">{hint}</div> : null}
     </div>
   );
 }
@@ -122,8 +123,30 @@ function Textarea({ value, onChange, placeholder }: { value: string; onChange: (
       placeholder={placeholder}
       rows={2}
       aria-label={placeholder}
-      className="w-full resize-none rounded-xl border border-[var(--iv2-border)] bg-white px-3.5 py-3 text-[15px] font-medium text-[var(--iv2-text-primary)] outline-none transition-colors focus:border-[var(--iv2-brand)] focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 hover:border-[var(--iv2-text-muted)]"
+      className="w-full resize-none rounded-xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-3.5 py-3 text-[15px] font-medium text-[var(--iv2-text-primary)] outline-none transition-colors focus:border-[var(--iv2-brand)] focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 hover:border-[var(--iv2-text-muted)]"
     />
+  );
+}
+
+// A short pick-list under the "List medications" search box — same
+// pediatric catalog the Medications health-history screen searches,
+// just a plain tap-to-fill suggestion here rather than that screen's
+// full checkbox/dose/frequency flow, since this field is only a quick
+// free-text note for the pregnancy question, not a structured med list.
+// Shows the catalog's first few names by default, filtered live to
+// whatever's typed, as wrapping chips (matching every other single-pick
+// question in this flow) rather than a stacked list; tapping one
+// replaces the field's text outright.
+function MedsSuggestions({ query, onPick }: { query: string; onPick: (name: string) => void }) {
+  const q = query.trim();
+  const matches = (q ? PEDI_MED_CATALOG.filter((n) => n.toLowerCase().includes(q.toLowerCase())) : PEDI_MED_CATALOG).slice(0, MEDS_SUGGESTION_COUNT);
+  if (matches.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {matches.map((name) => (
+        <OptionPill key={name} label={name} selected={name === query} onClick={() => onPick(name)} />
+      ))}
+    </div>
   );
 }
 
@@ -132,7 +155,7 @@ function Textarea({ value, onChange, placeholder }: { value: string; onChange: (
 function FieldNote({ text }: { text: string }) {
   return (
     <div className="mt-2.5 flex items-start gap-1.5 text-[13px] leading-[1.4] text-[var(--iv2-text-muted)]">
-      <InfoIcon size={14} color="#98A2B3" />
+      <InfoIcon size={14} color="var(--iv2-text-muted)" />
       <span>{text}</span>
     </div>
   );
@@ -189,7 +212,7 @@ function SuffixInput({
         placeholder={placeholder}
         inputMode={inputMode}
         aria-label={placeholder}
-        className="h-full min-w-0 flex-1 border-none bg-[#FBFBFC] px-3.5 text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none"
+        className="h-full min-w-0 flex-1 border-none bg-[var(--iv2-surface)] px-3.5 text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none"
       />
       <div className="flex shrink-0 items-center border-l border-[var(--iv2-border)] bg-[var(--iv2-surface-muted)] px-3.5 text-[15px] font-semibold text-[var(--iv2-text-muted)]">
         {suffix}
@@ -230,57 +253,34 @@ function SplitWeightInput({
   );
 }
 
-// Which fields make up each section's "X of Y marked 'Yes'" review
-// summary — free-text/measurement fields (gestational age, hospital,
-// delivery type, weights, formula type, diaper counts) are left out
-// since they aren't Yes/No answers.
-function reviewRowsFor(sectionIdx: number, birth: BirthHistory): { label: string; value: string }[] {
-  switch (sectionIdx) {
-    case 0:
-      return [
-        { label: "Illness during pregnancy", value: birth.pregnancyIllness },
-        { label: "Infections during pregnancy", value: birth.pregnancyInfections },
-        { label: "Medications during pregnancy", value: birth.pregnancyMeds },
-        { label: "Substance use during pregnancy", value: birth.pregnancySubstances },
-      ];
-    case 1:
-      return [
-        { label: "Complications during delivery", value: birth.deliveryComplications },
-        { label: "Complications during hospitalization", value: birth.hospitalizationComplications },
-      ];
-    case 2:
-      return [
-        { label: "Jaundice at birth", value: birth.jaundice },
-        { label: "Passed newborn hearing test", value: birth.hearingTest },
-        { label: "Metabolic / heel-prick screen done", value: birth.heelPrick },
-      ];
-    case 3:
-      return [
-        { label: "Breastfeeding", value: birth.breastfeeding },
-        { label: "Formula fed", value: birth.formulaFed },
-      ];
-    default:
-      return [];
-  }
+// Every Yes/No question across all 4 sections, combined into one
+// "X of Y marked 'Yes'" review summary — free-text/measurement fields
+// (gestational age, hospital, delivery type, weights, formula type,
+// diaper counts) are left out since they aren't Yes/No answers.
+function allReviewRows(birth: BirthHistory): { label: string; value: string }[] {
+  return [
+    { label: "Illness during pregnancy", value: birth.pregnancyIllness },
+    { label: "Infections during pregnancy", value: birth.pregnancyInfections },
+    { label: "Medications during pregnancy", value: birth.pregnancyMeds },
+    { label: "Substance use during pregnancy", value: birth.pregnancySubstances },
+    { label: "Complications during delivery", value: birth.deliveryComplications },
+    { label: "Complications during hospitalization", value: birth.hospitalizationComplications },
+    { label: "Jaundice at birth", value: birth.jaundice },
+    { label: "Passed newborn hearing test", value: birth.hearingTest },
+    { label: "Metabolic / heel-prick screen done", value: birth.heelPrick },
+    { label: "Breastfeeding", value: birth.breastfeeding },
+    { label: "Formula fed", value: birth.formulaFed },
+  ];
 }
 
-// Inline, per-section "Review your answers" bar — replaces the old
-// separate full-page BirthReviewScreen. Sits at the bottom of each
-// section once that section is complete, collapsed by default;
-// tapping "View details" expands the same label/value rows the old
-// review screen showed, without leaving the section.
-function ReviewBar({
-  sectionIdx,
-  birth,
-  expanded,
-  onToggle,
-}: {
-  sectionIdx: number;
-  birth: BirthHistory;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const rows = reviewRowsFor(sectionIdx, birth);
+// Single "Review your answers" bar for the whole flow — replaces the
+// old separate full-page BirthReviewScreen. Sits once at the very end,
+// right before the footer's Continue button, once every section is
+// complete (rather than repeating after each section); collapsed by
+// default, tapping "View details" expands every question's answer
+// across all 4 sections without leaving the screen.
+function ReviewBar({ birth, expanded, onToggle }: { birth: BirthHistory; expanded: boolean; onToggle: () => void }) {
+  const rows = allReviewRows(birth);
   const yes = rows.filter((r) => r.value === "Yes").length;
 
   return (
@@ -331,8 +331,8 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
   const { state } = ctx;
   const { birth, update } = useBirth(ctx);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [reviewOpen, setReviewOpen] = useState<Record<number, boolean>>({});
-  const toggleReview = (i: number) => setReviewOpen((prev) => ({ ...prev, [i]: !prev[i] }));
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const toggleReview = () => setReviewOpen((prev) => !prev);
 
   // One question per FieldCard within a section (Pregnancy, Delivery,
   // Newborn) — every one of those questions gets its own ref here so
@@ -409,7 +409,7 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
   const indices = Array.from({ length: visibleCount }, (_, i) => i);
 
   return (
-    <div className="px-6 pt-8 pb-6">
+    <div className="px-6 pt-5 pb-6">
       {indices.map((i) => (
         <div
           key={SECTIONS[i].key}
@@ -418,7 +418,6 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
           }}
           className={i > 0 ? "mt-9" : ""}
         >
-          {i === 1 || i === 3 ? null : <Eyebrow>{SECTIONS[i].eyebrow}</Eyebrow>}
           <div className="mb-1 text-base font-bold text-[var(--iv2-text-primary)]">{SECTIONS[i].title}</div>
           {SECTIONS[i].copy ? (
             <div className="mb-6 text-sm leading-[1.4] text-[var(--iv2-text-secondary)]">{SECTIONS[i].copy}</div>
@@ -455,11 +454,16 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                 {birth.pregnancyMeds === "Yes" ? (
                   <div ref={medsFollowupRef}>
                     <Reveal className="mt-3.5 rounded-xl bg-[var(--iv2-brand-surface)] p-3.5">
-                      <InputField
-                        label="List medications"
+                      <FieldLabel label="List medications" />
+                      <SearchClearInput
+                        ariaLabel="List medications"
                         value={birth.pregnancyMedsList}
-                        placeholder="Medication names"
+                        placeholder="Search medication name"
                         onChange={(v) => update({ birth: { ...birth, pregnancyMedsList: v } })}
+                      />
+                      <MedsSuggestions
+                        query={birth.pregnancyMedsList}
+                        onPick={(name) => update({ birth: { ...birth, pregnancyMedsList: name } })}
                       />
                     </Reveal>
                   </div>
@@ -474,9 +478,6 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                 />
               </FieldCard>
             </div>
-            {SECTIONS[0].complete(birth) ? (
-              <ReviewBar sectionIdx={0} birth={birth} expanded={!!reviewOpen[0]} onToggle={() => toggleReview(0)} />
-            ) : null}
             </>
           ) : null}
 
@@ -550,9 +551,6 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                 ) : null}
               </FieldCard>
             </div>
-            {SECTIONS[1].complete(birth) ? (
-              <ReviewBar sectionIdx={1} birth={birth} expanded={!!reviewOpen[1]} onToggle={() => toggleReview(1)} />
-            ) : null}
             </>
           ) : null}
 
@@ -590,9 +588,6 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                 <YesNoPillRow value={birth.heelPrick} onChange={(v) => setAndCheck({ heelPrick: v }, i)} />
               </FieldCard>
             </div>
-            {SECTIONS[2].complete(birth) ? (
-              <ReviewBar sectionIdx={2} birth={birth} expanded={!!reviewOpen[2]} onToggle={() => toggleReview(2)} />
-            ) : null}
             </>
           ) : null}
 
@@ -647,13 +642,16 @@ export function BirthHistoryFlowScreen({ ctx }: { ctx: Ctx }) {
                 </div>
               </div>
             </div>
-            {SECTIONS[3].complete(birth) ? (
-              <ReviewBar sectionIdx={3} birth={birth} expanded={!!reviewOpen[3]} onToggle={() => toggleReview(3)} />
-            ) : null}
             </>
           ) : null}
         </div>
       ))}
+
+      {SECTIONS.every((s) => s.complete(birth)) ? (
+        <div className="mt-9">
+          <ReviewBar birth={birth} expanded={reviewOpen} onToggle={toggleReview} />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -14,14 +14,13 @@ export function VisitScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>Today&apos;s visit</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-3.5 leading-[1.28]">A few details</ScreenTitle>
       <ScreenCopy className="mb-7">Just a couple quick questions to help us prepare for your visit.</ScreenCopy>
 
-      <div className="flex items-center gap-4 rounded-[18px] border border-[var(--iv2-border)] bg-white p-4.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="flex items-center gap-4 rounded-[18px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-          <CalendarIcon size={22} color="#1677E8" />
+          <CalendarIcon size={22} color="var(--iv2-brand)" />
         </div>
         <div>
           <div className="text-[15px] text-[var(--iv2-text-secondary)]">Reason for visit</div>

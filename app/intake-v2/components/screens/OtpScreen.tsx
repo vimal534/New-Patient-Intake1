@@ -27,7 +27,7 @@ export function OtpScreen({ ctx }: { ctx: Ctx }) {
         {cells.map((digit, i) => (
           <div
             key={i}
-            className="flex h-16 flex-1 items-center justify-center rounded-2xl border-[1.5px] bg-white text-[26px] font-semibold text-[var(--iv2-text-primary)]"
+            className="flex h-16 flex-1 items-center justify-center rounded-2xl border-[1.5px] bg-[var(--iv2-surface)] text-[26px] font-semibold text-[var(--iv2-text-primary)]"
             style={{ borderColor: digit ? "var(--iv2-brand)" : "var(--iv2-border)" }}
           >
             {digit}

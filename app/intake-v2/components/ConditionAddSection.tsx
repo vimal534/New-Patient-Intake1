@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Ctx } from "../ctx";
 import { COMMON_CONDS, MORE_CONDS } from "../constants";
-import { CatalogCheckRow, NoneCheckRow, SearchClearInput, SelectedListSection } from "./ui";
+import { CatalogChip, CatalogCheckRow, NoneCheckRow, SearchClearInput, SelectedListSection } from "./ui";
 
 const CATALOG_VISIBLE = 5;
 const SEARCH_MIN_CHARS = 2;
@@ -63,28 +63,38 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
         <SearchClearInput placeholder="Search conditions, like migraine" value={query} onChange={setQuery} disabled={none} />
 
         {searching ? (
-          <div className="mt-2.5 max-h-[280px] overflow-y-auto">
-            <div className="flex flex-col gap-2.5 pr-0.5">
-              {searchMatches.length ? (
-                searchMatches.map((name) => <CatalogCheckRow key={name} label={name} query={query} checked={false} onClick={() => addCond(name)} />)
-              ) : (
-                <div className="py-2 text-[15px] text-[var(--iv2-text-muted)]">No matches for &ldquo;{query.trim()}&rdquo;.</div>
-              )}
-            </div>
-          </div>
+          <>
+            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Search results</div>
+            {searchMatches.length ? (
+              <div className="max-h-[280px] overflow-y-auto">
+                <div className="flex flex-wrap gap-2 pr-0.5">
+                  {searchMatches.map((name) => (
+                    <CatalogChip key={name} label={name} query={query} selected={false} onClick={() => addCond(name)} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[var(--iv2-border-strong)] px-5 py-8 text-center">
+                <div className="text-[15px] font-semibold text-[var(--iv2-text-primary)]">
+                  No matches for &ldquo;<span className="font-extrabold">{query.trim()}</span>&rdquo;.
+                </div>
+                <div className="mt-1 text-sm text-[var(--iv2-text-muted)]">Check the spelling or try the generic name.</div>
+              </div>
+            )}
+          </>
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-wrap gap-2">
               {commonVisible.map((name) => (
-                <CatalogCheckRow key={name} label={name} checked={false} onClick={() => addCond(name)} />
+                <CatalogChip key={name} label={name} selected={false} onClick={() => addCond(name)} />
               ))}
             </div>
             {commonHiddenCount > 0 ? (
               <button
                 type="button"
                 onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
               >
                 Show more ({commonHiddenCount})
               </button>

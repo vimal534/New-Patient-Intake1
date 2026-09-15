@@ -44,7 +44,7 @@ export function ReadinessRing({ percent, size = 92, stroke = 9 }: { percent: num
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex h-[66px] w-[66px] items-center justify-center gap-px rounded-full bg-white">
+        <div className="flex h-[66px] w-[66px] items-center justify-center gap-px rounded-full bg-[var(--iv2-surface)]">
           <span className="text-2xl leading-none font-bold text-[var(--iv2-text-primary)]">{percent}</span>
           <span className="text-[13px] leading-none font-semibold text-[var(--iv2-text-secondary)]">%</span>
         </div>

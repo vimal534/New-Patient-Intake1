@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, RefObject, useEffect, useId, useRef, useState } from "react";
+import { CSSProperties, ReactNode, RefObject, useEffect, useId, useRef, useState } from "react";
 import gsap from "gsap";
 import { CheckIcon, ChevronDownIcon, PencilIcon, SearchIcon, TrashIcon, XIcon } from "./Icons";
 import {
@@ -23,18 +23,24 @@ import {
 // white-label visual system (own brand-blue accent, own radii/shadow
 // scale), not a re-skin. See that README's "About the Design Files".
 
+// "Soft tinted" shadow signature — never a flat/hard black shadow, and
+// tinted with --ink rather than pure black so it reads as material,
+// not a generic box-shadow default. 0/16/40 offset-y/blur per the
+// design panel's own single Shadow row.
+const CARD_SHADOW = "shadow-[0_16px_40px_rgba(27,38,36,0.08)]";
+
 export function Card({ children, className = "", padded = true }: { children: ReactNode; className?: string; padded?: boolean }) {
   return (
     <div
-      className={`rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${padded ? "p-6" : ""} ${className}`}
+      className={`rounded-[22px] border border-[var(--iv2-card-border)] bg-[var(--iv2-surface)] ${CARD_SHADOW} ${padded ? "p-6" : ""} ${className}`}
     >
       {children}
     </div>
   );
 }
 
-export function Divider({ className = "" }: { className?: string }) {
-  return <div className={`h-px bg-[var(--iv2-border-subtle)] ${className}`} />;
+export function Divider({ className = "", style }: { className?: string; style?: CSSProperties }) {
+  return <div className={`h-px bg-[var(--iv2-border-subtle)] ${className}`} style={style} />;
 }
 
 // Wraps a field/panel that only exists because an earlier answer
@@ -71,8 +77,15 @@ export function Eyebrow({ children }: { children: ReactNode; muted?: boolean }) 
   return <div className="mb-2.5 text-xs font-semibold tracking-[0.07em] text-[var(--iv2-text-muted)] uppercase">{children}</div>;
 }
 
+// Every screen's own main question/heading — now the same body sans
+// (Inter, inherited from PhoneFrame) as everything else on the screen,
+// rather than the design system's humanist serif this used to carry.
 export function ScreenTitle({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`mb-2 text-2xl leading-[1.2] font-bold text-[var(--iv2-text-primary)] ${className}`}>{children}</div>;
+  return (
+    <div className={`mb-2 text-[24px] leading-[1.28] font-semibold tracking-[-0.01em] text-[var(--iv2-text-primary)] ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 export function ScreenCopy({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -158,13 +171,13 @@ export function InputField({
           placeholder={placeholder}
           aria-label={ariaLabel || label}
           inputMode={inputMode}
-          className={`h-13 w-full rounded-xl border bg-[#FBFBFC] px-3.5 text-[17px] font-semibold outline-none transition-colors focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 ${
+          className={`h-13 w-full rounded-xl border bg-[var(--iv2-surface)] px-3.5 text-[17px] font-semibold outline-none transition-colors focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 ${
             valueColor ? "" : "text-[var(--iv2-text-primary)]"
           } ${rightAdornment ? "pr-11" : ""} ${
             tone === "warning"
-              ? "border-[var(--iv2-warning-border-strong)] bg-white"
+              ? "border-[var(--iv2-warning-border-strong)] bg-[var(--iv2-surface)]"
               : tone === "danger"
-                ? "border-[var(--iv2-danger)] bg-white focus:outline-[var(--iv2-danger)]"
+                ? "border-[var(--iv2-danger)] bg-[var(--iv2-surface)] focus:outline-[var(--iv2-danger)]"
                 : "border-[var(--iv2-border)] hover:border-[var(--iv2-text-muted)]"
           }`}
           style={{ height: 52, boxShadow: ELEVATE_REST_SHADOW, color: valueColor }}
@@ -188,10 +201,10 @@ export function InputField({
 // Same external shape (value/onChange/options) as before, so every
 // existing caller's form logic is untouched.
 const SELECT_C = {
-  border: "#E4E7EC",
+  border: "#DDE4E0",
   borderDanger: "#B42318",
-  borderFocus: "#1677E8",
-  bgDefault: "#FBFBFC",
+  borderFocus: "#2B3440",
+  bgDefault: "#FFFFFF",
   bgFocus: "#FFFFFF",
 };
 const SELECT_FOCUS_DURATION = 0.18; // 180ms, matching SmartField's focus tween
@@ -366,7 +379,7 @@ export function SelectField({
           id={listId}
           role="listbox"
           aria-label={ariaLabel || label}
-          className={`absolute inset-x-0 z-30 overflow-y-auto rounded-2xl border border-[var(--iv2-border)] bg-white p-1.5 shadow-[0_12px_28px_rgba(16,24,40,0.14)] ${
+          className={`absolute inset-x-0 z-30 overflow-y-auto rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-1.5 shadow-[0_12px_28px_rgba(16,24,40,0.14)] ${
             openUpward ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"
           }`}
           style={{ maxHeight: SELECT_PANEL_MAX_HEIGHT }}
@@ -422,8 +435,8 @@ export function ValueRow({ label, value }: { label: string; value: ReactNode }) 
 export function LabelValueRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <div className="shrink-0 text-[13px] font-semibold tracking-[0.05em] text-[var(--iv2-text-muted)] uppercase">{label}</div>
-      <div className="text-right text-[17px] font-semibold text-[var(--iv2-text-primary)]">{value}</div>
+      <div className="shrink-0 text-[15px] font-normal text-[var(--iv2-text-muted)]">{label}</div>
+      <div className="text-right text-[15px] font-bold text-[var(--iv2-text-primary)]">{value}</div>
     </div>
   );
 }
@@ -477,7 +490,7 @@ export function RadioRow({ label, selected, onClick }: { label: string; selected
       onFocus={onCardFocus}
       onBlur={onCardBlur}
       className={`flex w-full min-h-[60px] cursor-pointer items-center gap-3.5 rounded-2xl border px-[18px] text-left transition-colors duration-150 ${
-        selected ? "border-transparent" : "border-[var(--iv2-border)] bg-white hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
+        selected ? "border-transparent" : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
       }`}
       style={selected ? { backgroundColor: "var(--iv2-brand)" } : undefined}
     >
@@ -522,7 +535,7 @@ export function OptionPill({ label, selected, onClick }: { label: string; select
       className={`inline-flex h-12 cursor-pointer items-center justify-center rounded-full border px-5 text-[15px] transition-colors duration-150 ${
         selected
           ? "border-transparent bg-[var(--iv2-brand)] font-bold text-white"
-          : "border-[var(--iv2-border)] bg-white font-semibold text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
+          : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] font-semibold text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
       }`}
     >
       {label}
@@ -570,7 +583,7 @@ export function ConditionTile({ label, selected, onClick }: { label: string; sel
       onFocus={onCardFocus}
       onBlur={onCardBlur}
       className={`flex min-h-16 cursor-pointer items-center gap-2.5 rounded-2xl border-[1.5px] p-3.5 text-left ${
-        selected ? "" : "border-[var(--iv2-border-subtle)] bg-white hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
+        selected ? "" : "border-[var(--iv2-border-subtle)] bg-[var(--iv2-surface)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
       }`}
       style={selected ? { borderColor: "var(--iv2-brand)", backgroundColor: "var(--iv2-brand-surface)" } : undefined}
     >
@@ -702,7 +715,7 @@ export function BottomSheet({
       onClick={onClose}
     >
       <div
-        className="flex flex-col rounded-t-[24px] bg-white px-5 pt-3 pb-[30px]"
+        className="flex flex-col rounded-t-[24px] bg-[var(--iv2-surface)] px-5 pt-3 pb-[30px]"
         style={{ maxHeight }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -741,7 +754,7 @@ export function DetailPill({ label, selected, onClick }: { label: string; select
       onFocus={onCardFocus}
       onBlur={onCardBlur}
       className={`min-h-11 cursor-pointer rounded-full border px-4 text-[15px] font-semibold ${
-        selected ? "" : "border-[var(--iv2-border)] bg-white text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:text-[var(--iv2-brand)]"
+        selected ? "" : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:text-[var(--iv2-brand)]"
       }`}
       style={selected ? { borderColor: "var(--iv2-brand)", backgroundColor: "var(--iv2-brand-surface)", color: "var(--iv2-brand)" } : undefined}
     >
@@ -812,7 +825,7 @@ export function SearchClearInput({
         placeholder={placeholder}
         aria-label={ariaLabel || placeholder}
         disabled={disabled}
-        className="h-13 w-full rounded-xl border border-[var(--iv2-border)] bg-[#FBFBFC] py-3.5 pr-11 pl-3.5 text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 disabled:opacity-50"
+        className="h-13 w-full rounded-xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] py-3.5 pr-11 pl-3.5 text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 disabled:opacity-50"
         style={{ height: 52, boxShadow: ELEVATE_REST_SHADOW }}
       />
       <span className="absolute top-1/2 right-3.5 -translate-y-1/2">
@@ -867,7 +880,7 @@ export function CatalogCheckRow({
       onFocus={onCardFocus}
       onBlur={onCardBlur}
       disabled={disabled}
-      className={`flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border bg-[var(--iv2-surface)] px-4 py-3.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         checked ? "border-[var(--iv2-brand)]" : dashed ? "border-dashed border-[var(--iv2-border-strong)]" : "border-[var(--iv2-border)] hover:border-[var(--iv2-brand)]"
       }`}
     >
@@ -875,6 +888,53 @@ export function CatalogCheckRow({
       <span className="truncate text-[15px] font-semibold" style={{ color: checked ? "var(--iv2-brand)" : "var(--iv2-text-primary)" }}>
         {query ? highlightMatch(label, query) : label}
       </span>
+    </button>
+  );
+}
+
+// Content-sized pick chip for a Health History catalog/search list
+// (conditions, surgeries, family history, allergies, medications) —
+// the wrapping-chip counterpart to CatalogCheckRow's full-width row,
+// used where a whole screen's worth of options reads better as a
+// flowing chip group than a long vertical stack. Selected state is a
+// solid brand fill (no separate checkbox glyph, unlike CatalogCheckRow)
+// since the fill alone reads clearly at chip size.
+export function CatalogChip({
+  label,
+  query,
+  selected,
+  onClick,
+  dashed = false,
+}: {
+  label: string;
+  query?: string;
+  selected: boolean;
+  onClick: () => void;
+  dashed?: boolean;
+}) {
+  const cardRef = useRef<HTMLButtonElement>(null);
+  const onCardFocus = () => {
+    if (cardRef.current) gsap.to(cardRef.current, { boxShadow: ELEVATE_SHADOW, scale: ELEVATE_SCALE, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
+  };
+  const onCardBlur = () => {
+    if (cardRef.current) gsap.to(cardRef.current, { boxShadow: ELEVATE_REST_SHADOW, scale: 1, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
+  };
+  return (
+    <button
+      ref={cardRef}
+      type="button"
+      onClick={onClick}
+      onFocus={onCardFocus}
+      onBlur={onCardBlur}
+      className={`inline-flex h-11 shrink-0 cursor-pointer items-center rounded-full border px-4 text-[15px] font-semibold transition-colors ${
+        selected
+          ? "border-transparent bg-[var(--iv2-brand)] text-white"
+          : dashed
+            ? "border-dashed border-[var(--iv2-border-strong)] bg-[var(--iv2-surface)] text-[var(--iv2-brand)]"
+            : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
+      }`}
+    >
+      {query ? highlightMatch(label, query) : label}
     </button>
   );
 }
@@ -910,7 +970,7 @@ export function NoneCheckRow({
       onBlur={onCardBlur}
       disabled={disabled}
       className={`flex w-full cursor-pointer items-start gap-3 rounded-2xl border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        checked ? "border-[var(--iv2-brand)] bg-[var(--iv2-brand-surface)]" : "border-[var(--iv2-border)] bg-white hover:border-[var(--iv2-brand)]"
+        checked ? "border-[var(--iv2-brand)] bg-[var(--iv2-brand-surface)]" : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] hover:border-[var(--iv2-brand)]"
       }`}
     >
       <Checkbox22 checked={checked} />

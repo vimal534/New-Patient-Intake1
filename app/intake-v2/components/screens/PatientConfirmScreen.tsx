@@ -1,10 +1,10 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { REVIEW_TITLE } from "../../constants";
-import { formatAgeFromDob } from "../../format";
-import { UserIcon } from "../Icons";
-import { Card, Divider, Eyebrow, ScreenCopy, ScreenTitle } from "../ui";
+import { InfoIcon } from "../Icons";
+import { Card, Divider, InfoNote, LabelValueRow, ScreenCopy, ScreenTitle } from "../ui";
+
+const DIVIDER_COLOR = "#dde5f0";
 
 // "MM/DD/YYYY" → "Jun 12, 2026" — deterministic given the string
 // itself (not the current date), so safe to call during render.
@@ -15,52 +15,75 @@ function formatDobDisplay(dob: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-// Patient Information wizard — Step 1 of 6. Both basics (date of
-// birth, sex assigned at birth) already came in on the appointment
-// record itself, not something the patient is expected to correct
-// here — so this is a plain read-only confirmation, not an editable
-// form: no split date inputs, no selectable pills, just the two facts
-// laid out the same label-above-value-below way the header block
-// already shows the patient's name, and one "Looks right" CTA.
+// First + last initial ("Emma Rodriguez" → "ER") for the identity
+// avatar — falls back to just the first letter for a single-word name.
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Patient Information wizard — Step 1 of 3. Everything on this card is
+// already known before the patient ever sees it — the basics from the
+// appointment record, the guarantor from scheduling, and (once set
+// later in the wizard) the emergency contact — so it's one combined
+// read-only confirmation card, each fact its own label-left/value-right
+// row, rather than a form the patient fills in field by field.
+// Guarantor is always known by this point; emergency contact is
+// collected later in the wizard (Step 3) and simply reads "Not added
+// yet" here until it is.
 export function PatientConfirmScreen({ ctx }: { ctx: Ctx }) {
   const { state } = ctx;
-  const age = formatAgeFromDob(state.personal.dob);
   const dobDisplay = formatDobDisplay(state.personal.dob);
-  const summaryLine = [age, dobDisplay ? `DOB ${dobDisplay}` : ""].filter(Boolean).join(" · ");
+  const guarantorValue = state.guardian1.name || "—";
+  const emergencyValue = state.emergency.name.trim() ? (
+    state.emergency.name
+  ) : (
+    <span className="text-[15px] font-normal normal-case text-[var(--iv2-text-muted)]">Not added yet</span>
+  );
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>
-        {state.reviewingFromPatientReview ? "Review patient information" : state.reviewingFromSuccess ? REVIEW_TITLE.patientReview : "Patient information · Step 1 of 6"}
-      </Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Let&apos;s confirm the patient&apos;s information</ScreenTitle>
       <ScreenCopy className="mb-6">We&apos;ve pre-filled this from your appointment. Let us know if anything looks wrong.</ScreenCopy>
 
       <Card>
         <div className="flex items-center gap-3.5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-            <UserIcon size={20} color="var(--iv2-brand)" />
+          <span
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[19px] font-bold text-white"
+            style={{ background: "var(--iv2-brand-gradient)" }}
+            aria-hidden
+          >
+            {initialsOf(state.scheduling.patientName)}
           </span>
           <div>
-            <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Patient (Minor)</div>
-            <div className="mt-0.5 text-[17px] font-semibold text-[var(--iv2-text-primary)]">{state.scheduling.patientName}</div>
-            <div className="text-[13px] text-[var(--iv2-text-secondary)]">{summaryLine}</div>
+            <div className="text-[17px] font-semibold text-[var(--iv2-text-primary)]">{state.scheduling.patientName}</div>
+            <div className="mt-0.5 text-[15px] text-[var(--iv2-text-secondary)]">New Patient</div>
           </div>
         </div>
 
-        <Divider className="my-4" />
+        <Divider className="my-4" style={{ backgroundColor: DIVIDER_COLOR }} />
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Date of birth</div>
-            <div className="mt-0.5 text-[17px] font-semibold text-[var(--iv2-text-primary)]">{dobDisplay || state.personal.dob}</div>
-          </div>
-          <div>
-            <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Sex assigned at birth</div>
-            <div className="mt-0.5 text-[17px] font-semibold text-[var(--iv2-text-primary)]">{state.sexAssignedAtBirth || "—"}</div>
-          </div>
+        <div className="flex flex-col">
+          <LabelValueRow label="Date of birth" value={dobDisplay || state.personal.dob} />
+          <Divider className="my-3" style={{ backgroundColor: DIVIDER_COLOR }} />
+          <LabelValueRow label="Sex assigned at birth" value={state.sexAssignedAtBirth || "—"} />
+          <Divider className="my-3" style={{ backgroundColor: DIVIDER_COLOR }} />
+          <LabelValueRow label="Guarantor" value={guarantorValue} />
+          <Divider className="my-3" style={{ backgroundColor: DIVIDER_COLOR }} />
+          <LabelValueRow label="Emergency contact" value={emergencyValue} />
         </div>
       </Card>
+
+      <div className="mt-4">
+        <InfoNote>
+          <InfoIcon size={28} color="var(--iv2-brand)" />
+          <div className="text-[15px] leading-[1.5] text-[var(--iv2-text-primary)]">
+            This information is read-only here. Let your care team know at check-in if anything needs to change.
+          </div>
+        </InfoNote>
+      </div>
     </div>
   );
 }

@@ -1,28 +1,31 @@
 import { CatalogItem, DemoScenarioId, FlowKey, Guardian, IntakeState, SavedCard, Scenario, SurgeryItem } from "./types";
 
 // Progress percentages per step — README "Global chrome" table.
+// "coverage"/"ocr" are shared between the two reachable new-patient
+// wizards below (which now place Insurance after Health History) and
+// the legacy, demo-picker-unreachable FLOW_NEW/FLOW_RET fallbacks
+// (which keep their own older, earlier placement) — since PCT is one
+// flat map keyed by FlowKey, not per-flow, the values here follow the
+// wizards' new later position; the unreachable flows just inherit it.
 export const PCT: Partial<Record<FlowKey, number>> = {
   welcome: 20,
   personal: 30,
   emergency: 38,
   visit: 46,
-  coverage: 54,
-  ocr: 58,
+  coverage: 84,
+  ocr: 87,
   payment: 90,
   consent: 99,
-  // Scenario 1 (New Patient, Infant) — 26 steps total. "welcome" (the
+  // Scenario 1 (New Patient, Infant) — 22 steps total. "welcome" (the
   // Appointment Landing Page) is the first screen after verification;
-  // the six-step Patient Information wizard right after that (see
-  // FLOW_NEW_INFANT) — the patient's own basics, the guardian's
-  // identity via an ID scan (its own two-screen sub-flow), contact
-  // info, demographics, emergency contact, then one combined review.
-  patientConfirm: 22,
-  guardianIdScan: 28,
-  guardianIdReview: 34,
-  patientContact: 40,
-  patientDemographics: 45,
-  patientEmergency: 49,
-  patientReview: 52,
+  // the three-step Patient Information wizard right after that (see
+  // FLOW_NEW_INFANT) — the patient's own basics, guardian info, then
+  // emergency contact — leads straight into Health History. No
+  // ID-scan step, no separate contact-info step (both removed per
+  // product direction).
+  patientConfirm: 25,
+  guardianIdReview: 35,
+  patientEmergency: 45,
   // Health History — 5 separate screens (spec's "duplicate page" fix,
   // one topic per screen, not one long scrolling page): past
   // conditions, surgeries, family history, allergies, medications.
@@ -65,12 +68,8 @@ export const HEADER_TITLE: Partial<Record<FlowKey, string>> = {
   personal: "Personal information",
   emergency: "Emergency contact",
   patientConfirm: "Patient information",
-  guardianIdScan: "Identity verification",
-  guardianIdReview: "Identity verification",
-  patientContact: "Contact information",
-  patientDemographics: "Demographics",
+  guardianIdReview: "Guardian information",
   patientEmergency: "Emergency contact",
-  patientReview: "Review",
   visit: "Today's visit",
   coverage: "Coverage",
   ocr: "Coverage",
@@ -115,7 +114,7 @@ export const HEADER_TITLE: Partial<Record<FlowKey, string>> = {
 // reviewing, not just the top nav bar.
 export const REVIEW_TITLE: Partial<Record<FlowKey, string>> = {
   personal: "Review personal information",
-  patientReview: "Review personal information",
+  patientConfirm: "Review personal information",
   confirmInfo: "Review your information",
   confirmAdditional: "Review your information",
   coverage: "Review insurance & coverage",
@@ -163,36 +162,26 @@ export const FLOW_NEW: FlowKey[] = [
   "success",
 ];
 
-// Scenario 1 — New Patient, Infant (Sick Visit). Spec Part 2: Insurance
-// is scan-first (coverage capture + OCR confirm, reused as-is), with
-// Payment (copay + method + receipt) right after it — insurance is
-// confirmed and any due copay collected in the same breath, before
-// Health History is 5 separate screens (conditions, surgeries, family,
-// allergies, medications — one topic per screen), then the Birth &
-// Prenatal wizard — now one continuous flow (BirthHistoryFlow.tsx)
-// ending in its own Review summary — then Consent to Disclose and
-// consolidated Policies.
+// Scenario 1 — New Patient, Infant (Sick Visit). Reordered per product
+// direction: the Patient Information wizard is three plain steps
+// (patient basics, guardian info, emergency contact — no ID-scan
+// step, no separate contact-info step, no Demographics, no
+// wizard-ending review screen) and leads straight into Health
+// History, rather than Insurance/Payment sitting in between.
+// Insurance (scan-first coverage capture + OCR confirm) and Payment
+// (copay + method + receipt) now come right after Health History
+// instead, followed by Consent to Disclose and Policies.
 //
 // Identity verification lands on the Appointment Landing Page
 // ("welcome") first — tapping "Start check-in" there is what actually
-// begins data collection: the six-step Patient Information wizard
-// (patient basics, the guardian's identity verified via an ID scan,
-// contact info, demographics, emergency contact, one combined review)
-// before the rest of the intake continues.
+// begins data collection.
 export const FLOW_NEW_INFANT: FlowKey[] = [
   "verifyIntro",
   "otp",
   "welcome",
   "patientConfirm",
-  "guardianIdScan",
   "guardianIdReview",
-  "patientContact",
-  "patientDemographics",
   "patientEmergency",
-  "patientReview",
-  "coverage",
-  "ocr",
-  "payment",
   "health",
   "healthSurgeries",
   "healthFamily",
@@ -200,34 +189,30 @@ export const FLOW_NEW_INFANT: FlowKey[] = [
   "medications",
   "pediQuestions",
   "birthHistory",
+  "coverage",
+  "ocr",
+  "payment",
   "consentDisclose",
   "consent",
   "success",
 ];
 
-// Scenario 2 — New Patient, Adolescent (14, female). Spec Part 3:
-// same identity/landing/patient+guardian-info/insurance-scan/
-// Health History shape as Scenario 1, but no Birth & Prenatal
-// wizard (not a newborn) — instead an entirely-deferrable Social
-// History page, then General Pediatric Questions, then age/sex-gated
-// Substance Use and GYN History (both apply here: age 14 > 11, sex
-// assigned at birth = female). "Additional Patient Information"
-// (orientation/gender identity/pronouns, trigger Age >= 18) correctly
-// does NOT appear.
+// Scenario 2 — New Patient, Adolescent (14, female). Same reordering as
+// Scenario 1 above (Patient Info → Guardian → Emergency Contact →
+// Health History → Insurance/Payment → Consent), with Scenario 2's own
+// Health History tail: no Birth & Prenatal wizard (not a newborn) —
+// instead an entirely-deferrable Social History page, General
+// Pediatric Questions, then age/sex-gated Substance Use and GYN
+// History (both apply here: age 14 > 11, sex assigned at birth =
+// female). "Additional Patient Information" (orientation/gender
+// identity/pronouns, trigger Age >= 18) correctly does NOT appear.
 export const FLOW_NEW_ADOLESCENT: FlowKey[] = [
   "verifyIntro",
   "otp",
   "welcome",
   "patientConfirm",
-  "guardianIdScan",
   "guardianIdReview",
-  "patientContact",
-  "patientDemographics",
   "patientEmergency",
-  "patientReview",
-  "coverage",
-  "ocr",
-  "payment",
   "health",
   "healthSurgeries",
   "healthFamily",
@@ -237,6 +222,9 @@ export const FLOW_NEW_ADOLESCENT: FlowKey[] = [
   "pediQuestions",
   "substanceUse",
   "gynHistory",
+  "coverage",
+  "ocr",
+  "payment",
   "consentDisclose",
   "consent",
   "success",
@@ -394,7 +382,6 @@ export const GUARDIAN_RELATIONSHIP_OPTIONS = [
   "Grandparent",
   "Legal guardian",
   "Foster parent",
-  "Other relative",
   "Other",
 ];
 
@@ -658,13 +645,6 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
     phoneOnFile: seed.phoneOnFile,
     identityFallbackOpen: false,
     reviewingFromSuccess: false,
-    reviewingFromPatientReview: false,
-
-    guardianIdScanning: false,
-    guardianIdManual: false,
-    guardianIdNumber: "",
-    guardianIdIssuingState: "",
-    guardianIdExpiration: "",
 
     additionalOpen: false,
     editingPersonal: false,
@@ -790,7 +770,7 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
     authorizedPersons: [],
     authPersonAdding: false,
     authPersonEditingIndex: null,
-    authPersonDraft: { name: "", relationship: "", phone: "", access: "", otherSpecify: "" },
+    authPersonDraft: { name: "", relationship: "", phone: "" },
 
     social: {
       familySocialChanges: "",

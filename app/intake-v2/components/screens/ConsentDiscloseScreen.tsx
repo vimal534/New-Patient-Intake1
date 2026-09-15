@@ -1,20 +1,36 @@
 "use client";
 
 import { Ctx } from "../../ctx";
+import { EMERGENCY_RELATIONSHIP_OPTIONS } from "../../constants";
+import { ShieldUserIcon } from "../Icons";
+import { PhoneField } from "../SmartField";
 import { AuthorizedPerson } from "../../types";
-import { CloseCircleButton, Eyebrow, IconActionButton, InputField, RadioRow, Reveal, ScreenCopy, ScreenTitle, SelectField } from "../ui";
+import { CloseCircleButton, IconActionButton, InputField, OptionRow, RadioRow, Reveal, ScreenCopy, ScreenTitle } from "../ui";
 
-const ACCESS_OPTIONS = ["All health information", "Scheduling only", "Billing only", "Other"];
+const EMPTY_DRAFT: AuthorizedPerson = { name: "", relationship: "", phone: "" };
 
-const EMPTY_DRAFT: AuthorizedPerson = { name: "", relationship: "", phone: "", access: "", otherSpecify: "" };
+// First + last initial ("Grandma Rose" → "GR") for the authorized-
+// person avatar — falls back to just the first letter for a
+// single-word name. Same convention as PatientConfirmScreen's.
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 // Consent to Disclose — card-based, spec Part 1. Starts empty (never
 // pre-filled with placeholder people) — "+ Add an authorized person"
 // reveals one bordered card per person, same inline-panel pattern as
-// Surgeries/Family history.
+// Surgeries/Family history. Redesigned pass: a icon-led intro (instead
+// of a bare title/copy pair) so the ask reads at a glance, tightened
+// copy throughout, and initials-avatar rows for saved people so the
+// list scans the same way Steps 1-2's own patient/guardian cards do,
+// rather than three lines of plain text per row.
 export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
   const people = state.authorizedPersons;
+  const firstName = state.scheduling.patientName.split(" ")[0] || "the patient";
 
   const openAdd = () => update({ authPersonAdding: true, authPersonEditingIndex: null, authPersonDraft: { ...EMPTY_DRAFT } });
   const startEdit = (i: number) => update({ authPersonEditingIndex: i, authPersonAdding: false, authPersonDraft: { ...people[i] } });
@@ -22,7 +38,7 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
   const remove = (i: number) => update((s) => ({ authorizedPersons: s.authorizedPersons.filter((_, j) => j !== i) }));
 
   const draft = state.authPersonDraft;
-  const ready = draft.name.trim() && draft.relationship.trim() && draft.phone.trim() && draft.access && (draft.access !== "Other" || draft.otherSpecify.trim());
+  const ready = draft.name.trim() && draft.relationship.trim() && draft.phone.trim();
 
   const confirmAdd = () => {
     if (!ready) return;
@@ -40,10 +56,17 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
   const setDraft = (patch: Partial<AuthorizedPerson>) => update((s) => ({ authPersonDraft: { ...s.authPersonDraft, ...patch } }));
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>Consent to disclose</Eyebrow>
-      <ScreenTitle className="mb-2 leading-[1.28]">Do you consent to disclose your health information?</ScreenTitle>
-      <ScreenCopy className="mb-6">To anyone besides the parent/guardian listed on this visit.</ScreenCopy>
+    <div className="px-6 pt-5 pb-6">
+
+      <div className="mb-6 flex items-start gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--iv2-brand-tint)]">
+          <ShieldUserIcon size={24} />
+        </span>
+        <div className="pt-0.5">
+          <ScreenTitle className="mb-1 leading-[1.28]">Share {firstName}&apos;s info with others?</ScreenTitle>
+          <ScreenCopy>Beyond the guardian on this visit.</ScreenCopy>
+        </div>
+      </div>
 
       <div className="mb-7 flex flex-col gap-2.5">
         {["Yes", "No"].map((opt) => (
@@ -58,7 +81,10 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
 
       {state.consentDiscloseYes ? (
         <div>
-          <div className="mb-3 text-sm font-bold text-[var(--iv2-text-primary)]">Authorized people</div>
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-bold text-[var(--iv2-text-primary)]">Authorized people</div>
+            {people.length ? <div className="text-sm font-semibold text-[var(--iv2-success)]">{people.length} added</div> : null}
+          </div>
 
           {people.length ? (
             <div className="mb-3.5 flex flex-col gap-2.5">
@@ -71,12 +97,14 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
                     className="rounded-2xl border-[1.5px] p-4"
                     style={{ borderColor: "var(--iv2-brand)", backgroundColor: "var(--iv2-brand-surface)" }}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-base font-bold text-[var(--iv2-text-primary)]">{p.name}</div>
-                        <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">{p.relationship} · {p.phone}</div>
-                        <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">
-                          {p.access === "Other" ? p.otherSpecify : p.access}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-brand)]">
+                          {initialsOf(p.name)}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-bold text-[var(--iv2-text-primary)]">{p.name}</div>
+                          <div className="mt-0.5 truncate text-sm text-[var(--iv2-text-secondary)]">{p.relationship} · {p.phone}</div>
                         </div>
                       </div>
                       <div className="flex w-[76px] shrink-0 justify-end gap-1">
@@ -96,9 +124,11 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
             <button
               type="button"
               onClick={openAdd}
-              className="flex min-h-14 w-full cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-[var(--iv2-border-strong)] bg-white px-4 py-3.5 text-left"
+              className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-[var(--iv2-border-strong)] bg-[var(--iv2-surface)] px-4 py-3.5 text-left transition-colors hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
             >
-              <span className="text-lg leading-none font-bold text-[var(--iv2-brand)]">+</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)] text-base leading-none font-bold text-[var(--iv2-brand)]">
+                +
+              </span>
               <span className="text-[15px] font-semibold text-[var(--iv2-brand)]">Add an authorized person</span>
             </button>
           )}
@@ -124,33 +154,21 @@ function AuthPersonPanel({
   ready: boolean;
 }) {
   return (
-    <Reveal className="rounded-2xl border-[1.5px] border-[var(--iv2-brand)] bg-white p-4">
+    <Reveal className="rounded-2xl border-[1.5px] border-[var(--iv2-brand)] bg-[var(--iv2-surface)] p-4">
       <div className="mb-3.5 flex items-center justify-between gap-3">
         <div className="text-base font-bold text-[var(--iv2-text-primary)]">{mode === "edit" ? "Edit authorized person" : "Add authorized person"}</div>
         <CloseCircleButton onClick={onCancel} />
       </div>
       <div className="flex flex-col gap-3.5">
         <InputField label="Name" value={draft.name} onChange={(v) => setDraft({ name: v })} />
-        <InputField label="Relationship" value={draft.relationship} placeholder="e.g. Grandmother" onChange={(v) => setDraft({ relationship: v })} />
-        <InputField label="Phone number" value={draft.phone} placeholder="(555) 123-4567" inputMode="tel" onChange={(v) => setDraft({ phone: v })} />
-        <SelectField
-          label="Information they can access"
-          value={draft.access}
-          onChange={(v) => setDraft({ access: v })}
-          options={ACCESS_OPTIONS}
-          placeholder="Select"
-        />
-        {draft.access === "Other" ? (
-          <Reveal>
-            <InputField label="If other, specify" value={draft.otherSpecify} onChange={(v) => setDraft({ otherSpecify: v })} />
-          </Reveal>
-        ) : null}
+        <OptionRow label="Relationship" value={draft.relationship} options={EMERGENCY_RELATIONSHIP_OPTIONS} onChange={(v) => setDraft({ relationship: v })} />
+        <PhoneField label="Phone number" value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
       </div>
       <div className="mt-4 flex gap-2.5">
         <button
           type="button"
           onClick={onCancel}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
         >
           Cancel
         </button>

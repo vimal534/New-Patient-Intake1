@@ -2,7 +2,7 @@
 
 import { Ctx } from "../../ctx";
 import { SocialHistory } from "../../types";
-import { Eyebrow, InputField, ScreenCopy, ScreenTitle, SelectField, YesNoRow } from "../ui";
+import { InputField, ScreenCopy, ScreenTitle, SelectField, YesNoRow } from "../ui";
 
 const CHILD_CARE_OPTIONS = ["Daycare/preschool", "None", "Private sitter", "Relative"];
 
@@ -17,8 +17,7 @@ export function SocialHistoryScreen({ ctx }: { ctx: Ctx }) {
   const social = state.social;
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>Social history</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">A bit about home life</ScreenTitle>
       <ScreenCopy className="mb-6">
         None of this changes how we treat today&apos;s visit. Skip it now, and we&apos;ll ask again at a well visit.

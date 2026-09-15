@@ -22,11 +22,6 @@ export type Ctx = {
   // — always lands back on the final summary (never the next step in
   // flow order) and clears `reviewingFromSuccess`.
   returnToSummary: () => void;
-  // Same pair, scoped to the smaller Patient Information wizard's own
-  // review screen (PatientReviewScreen) instead of the final summary —
-  // see IntakeState.reviewingFromPatientReview.
-  reviewPatientSection: (key: FlowKey) => void;
-  returnToPatientReview: () => void;
   isRet: boolean;
   flow: FlowKey[];
   key: FlowKey;

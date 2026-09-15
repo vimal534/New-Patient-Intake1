@@ -10,8 +10,8 @@ import { CheckIcon } from "../ui";
 
 // Each topic's screen isn't the same FlowKey in every scenario — a
 // returning patient's personal info AND insurance both live on one
-// "confirmInfo" screen, a new-patient minor's own info is the six-step
-// Patient Information wizard's own review screen ("patientReview") not
+// "confirmInfo" screen, a new-patient minor's own info is the five-step
+// Patient Information wizard's own first step ("patientConfirm") not
 // "personal", etc. — so each row lists its candidates most- to
 // least-specific; the first one actually present in the current flow
 // is where that row goes. A topic with no candidate in this flow at
@@ -19,7 +19,7 @@ import { CheckIcon } from "../ui";
 // has neither as its own step) just doesn't render its row rather than
 // linking to a step that doesn't exist for this visit.
 const CHECKLIST: { label: string; detail: string; candidates: FlowKey[] }[] = [
-  { label: "Personal information", detail: "Your details are saved", candidates: ["personal", "patientReview", "confirmInfo"] },
+  { label: "Personal information", detail: "Your details are saved", candidates: ["personal", "patientConfirm", "confirmInfo"] },
   { label: "Insurance & coverage", detail: "Coverage verified", candidates: ["coverage", "confirmInfo"] },
   { label: "Health history", detail: "Information submitted", candidates: ["health"] },
   { label: "Forms & consent", detail: "All set", candidates: ["consent"] },
@@ -82,16 +82,15 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
         </div>
       </div>
 
-      <div className="mb-2 text-[28px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">You&apos;re ready for your visit!</div>
-      <div className="mb-7 text-base leading-[1.5] text-[var(--iv2-text-secondary)]">
-        Your information has been sent to your care team.
-        <br />
-        We look forward to seeing you!
-      </div>
+      <div className="mb-2 text-[26px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">You&apos;re all set!</div>
+      <div className="mb-7 text-base leading-[1.5] text-[var(--iv2-text-secondary)]">We&apos;ll see you soon.</div>
 
-      <div className="rounded-2xl bg-[var(--iv2-brand-tint)] p-4 text-left">
+      <div
+        className="rounded-[28px] border border-white/70 p-4 text-left shadow-[0_16px_40px_rgba(15,23,42,0.12)] backdrop-blur-xl"
+        style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.75), var(--iv2-brand-tint) 120%)" }}
+      >
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md">
             <CalendarIcon size={20} color="var(--iv2-brand)" />
           </span>
           <div>
@@ -101,10 +100,10 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
 
-        <div className="my-4 h-px bg-[rgba(22,119,232,0.14)]" />
+        <div className="my-4 h-px bg-white/60" />
 
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md">
             <UserIcon size={20} color="var(--iv2-brand)" />
           </span>
           <div>
@@ -113,11 +112,11 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
 
-        <div className="my-4 h-px bg-[rgba(22,119,232,0.14)]" />
+        <div className="my-4 h-px bg-white/60" />
 
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md">
               <LocationIcon size={19} color="var(--iv2-brand)" />
             </span>
             <div>
@@ -127,7 +126,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
           </div>
           <button
             type="button"
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-none bg-white px-3 py-1.5 text-[13px] font-bold whitespace-nowrap text-[var(--iv2-brand)]"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-none bg-[var(--iv2-surface)] px-3 py-1.5 text-[13px] font-bold whitespace-nowrap text-[var(--iv2-brand)]"
           >
             <SendIcon size={13} color="var(--iv2-brand)" />
             Get directions
@@ -143,7 +142,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {checklist.map((item, i) => (
           <button
             key={item.label}
@@ -202,7 +201,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
 // popping outward in place instead of all sliding in from one corner.
 const Confetti = forwardRef<SVGSVGElement>(function Confetti(_props, ref) {
   const marks: { x: number; y: number; rotate?: number; color: string; shape: "line" | "dot"; size?: number }[] = [
-    { x: 6, y: 8, rotate: -35, color: "#1677E8", shape: "line" },
+    { x: 6, y: 8, rotate: -35, color: "var(--iv2-brand)", shape: "line" },
     { x: 92, y: 4, rotate: 30, color: "#F59E0B", shape: "line" },
     { x: -8, y: 40, rotate: 10, color: "#16A34A", shape: "line" },
     { x: 104, y: 42, rotate: -10, color: "#0D9488", shape: "line" },
@@ -210,7 +209,7 @@ const Confetti = forwardRef<SVGSVGElement>(function Confetti(_props, ref) {
     { x: 92, y: 84, rotate: -50, color: "#16A34A", shape: "line" },
     { x: 32, y: -6, color: "#EC4899", shape: "dot", size: 3 },
     { x: 76, y: 98, color: "#7C3AED", shape: "dot", size: 3 },
-    { x: -4, y: 62, color: "#1677E8", shape: "dot", size: 2.5 },
+    { x: -4, y: 62, color: "var(--iv2-brand)", shape: "dot", size: 2.5 },
   ];
   return (
     <svg ref={ref} width="112" height="100" viewBox="0 0 112 100" className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2" aria-hidden>

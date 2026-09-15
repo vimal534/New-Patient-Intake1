@@ -12,7 +12,7 @@ import { ScreenCopy, ScreenTitle } from "../ui";
 // here would just be noise.
 export function SurgeriesScreen({ ctx }: { ctx: Ctx }) {
   return (
-    <div className="px-6 pt-8 pb-6">
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Surgeries</ScreenTitle>
       <ScreenCopy className="mb-6">Have you had any surgeries? Select any that apply, now or in the past.</ScreenCopy>
       <SurgeriesEditor ctx={ctx} />

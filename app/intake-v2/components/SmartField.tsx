@@ -22,11 +22,11 @@ import { ELEVATE_REST_SHADOW, ELEVATE_SCALE, ELEVATE_SHADOW, dur, focusNextIfEmp
 // var(...) because GSAP tweens toward a real, computable color value
 // — it can't animate an unresolved CSS custom-property reference.
 const C = {
-  border: "#E4E7EC",
-  borderFocus: "#1677E8",
+  border: "#DDE4E0",
+  borderFocus: "#2B3440",
   borderError: "#B42318",
   borderSuccess: "#067647",
-  bgDefault: "#FBFBFC",
+  bgDefault: "#FFFFFF",
   bgFocus: "#FFFFFF",
   bgSuccess: "#ECFDF3",
 };
@@ -350,9 +350,9 @@ export function ZipField({ label = "ZIP code", placeholder = "ZIP code", ...rest
 // other DOB field in the app uses, so it's a drop-in replacement
 // wherever the patient (not a guardian/policyholder) is a minor.
 const SPLIT_DOB_C = {
-  border: "#E4E7EC",
+  border: "#DDE4E0",
   borderError: "#B42318",
-  bgDefault: "#FBFBFC",
+  bgDefault: "#FFFFFF",
 };
 
 export function SplitDobField({
@@ -425,7 +425,7 @@ export function SplitDobField({
   const borderColor = error ? SPLIT_DOB_C.borderError : SPLIT_DOB_C.border;
 
   const boxClass =
-    "h-13 w-full rounded-xl border bg-[#FBFBFC] px-3 text-center text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--iv2-brand)] focus:bg-white hover:border-[var(--iv2-text-muted)]";
+    "h-13 w-full rounded-xl border bg-[var(--iv2-surface)] px-3 text-center text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--iv2-brand)] focus:bg-[var(--iv2-surface)] hover:border-[var(--iv2-text-muted)]";
 
   return (
     <div>

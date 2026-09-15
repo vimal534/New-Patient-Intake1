@@ -1,10 +1,9 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { REVIEW_TITLE } from "../../constants";
 import { Guardian } from "../../types";
 import { formatPhone } from "../../format";
-import { Card, Divider, Eyebrow, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
+import { Card, Divider, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
 
 // Confirm Additional Information — spec Parts 4-5, item 4. Both
 // parents' contact and occupation, plus who completed registration —
@@ -18,8 +17,7 @@ export function ConfirmAdditionalScreen({ ctx }: { ctx: Ctx }) {
     update((s) => ({ [which]: { ...s[which], ...patch } }));
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.confirmAdditional : "Confirm additional information"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Parent details on file</ScreenTitle>
       <ScreenCopy className="mb-6">We have this on file. Update only what&apos;s changed.</ScreenCopy>
 

@@ -2,7 +2,7 @@
 
 import { Ctx } from "../../ctx";
 import { formatDob } from "../../format";
-import { Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
+import { InputField, ScreenCopy, ScreenTitle } from "../ui";
 
 // Insurance — single manual page. Shared component (spec Part 1) used
 // by returning/specialty visits that need their own coverage on file
@@ -13,8 +13,7 @@ export function InsuranceManualScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>Insurance</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Insurance for today&apos;s visit</ScreenTitle>
       <ScreenCopy className="mb-6">This visit needs its own coverage details on file.</ScreenCopy>
 

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Ctx } from "../../ctx";
-import { REVIEW_TITLE } from "../../constants";
 import { CalendarIcon, CardIcon, ChevronRightIcon, LockIcon, MailIcon, ShieldCheckIcon } from "../Icons";
 import { Card, Divider, Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
 
@@ -37,24 +36,20 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
   };
 
   return (
-    <div className="px-6 pt-7 pb-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.payment : "Payment"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>Your copay</ScreenTitle>
       <ScreenCopy className="mb-6">Review your copay and payment method.</ScreenCopy>
 
       <Card>
         <div className="flex items-center gap-3.5">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iv2-brand-tint)]">
-            <CalendarIcon size={20} color="#1677E8" />
+            <CalendarIcon size={20} color="var(--iv2-brand)" />
           </div>
           <div>
             <div className="text-[15px] text-[var(--iv2-text-secondary)]">Due today</div>
             <div className="text-2xl font-bold text-[var(--iv2-text-primary)]">$40.00</div>
           </div>
         </div>
-        <Divider className="my-4" />
-        <div className="text-[17px] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.reason}</div>
-        <div className="mt-0.5 text-[15px] text-[var(--iv2-text-secondary)]">Tomorrow · 8:00 AM · Main St. Clinic</div>
       </Card>
 
       <div className="mt-6 mb-3 flex items-center justify-between">
@@ -66,7 +61,10 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
       </div>
 
       {applePaySelected || selCard ? (
-        <div className="overflow-hidden rounded-2xl border border-[var(--iv2-border)] bg-white">
+        <div
+          className="overflow-hidden rounded-[22px] border border-[var(--iv2-card-border)] shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+          style={{ background: "var(--iv2-brand-surface)" }}
+        >
           {applePaySelected ? (
             <div className="flex items-center gap-3.5 p-4">
               <span className="flex h-9 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--iv2-text-primary)] text-[11px] font-bold text-white">
@@ -74,7 +72,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-base font-semibold text-[var(--iv2-text-primary)]">Apple Pay</div>
-                <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[var(--iv2-success-surface)] px-2 py-0.5 text-xs font-bold text-[var(--iv2-success)]">
+                <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[var(--iv2-surface)] px-2 py-0.5 text-xs font-bold text-[var(--iv2-success)]">
                   ✓ Ready to pay
                 </div>
               </div>
@@ -92,42 +90,33 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
                   {BRAND_LABEL[selCard.brand]} •••• {selCard.last4}
                 </div>
                 <div className="mt-0.5 text-[15px] text-[var(--iv2-text-secondary)]">Expires {selCard.exp}</div>
-                <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--iv2-success-surface)] px-2 py-0.5 text-xs font-bold text-[var(--iv2-success)]">
+                <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--iv2-surface)] px-2 py-0.5 text-xs font-bold text-[var(--iv2-success)]">
                   ✓ Card on file
                 </div>
               </div>
             </div>
           ) : null}
 
-          <Divider />
+          <Divider style={{ backgroundColor: "rgba(22,119,232,0.14)" }} />
 
           <button
             type="button"
             onClick={() => update({ methodsOpen: true })}
             className="flex w-full cursor-pointer items-center justify-between gap-3 p-4"
           >
-            <span className="text-base text-[var(--iv2-text-primary)]">Change payment method</span>
-            <ChevronRightIcon />
+            <span className="text-base font-semibold text-[var(--iv2-brand-hover)]">Change payment method</span>
+            <ChevronRightIcon color="var(--iv2-brand-hover)" />
           </button>
         </div>
       ) : (
         <div>
-          <div className="flex items-start gap-3.5 rounded-2xl bg-[var(--iv2-brand-surface)] p-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white">
-              <ShieldCheckIcon size={22} />
-            </span>
-            <div>
-              <div className="text-base font-bold text-[var(--iv2-text-primary)]">Add a payment method</div>
-              <div className="mt-0.5 text-[15px] leading-[1.4] text-[var(--iv2-text-secondary)]">Choose a secure payment method to complete your check-in.</div>
-            </div>
-          </div>
-
           <button
             type="button"
-            onClick={() => update({ methodsOpen: true })}
-            className="mt-2.5 flex w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-[var(--iv2-border)] bg-white p-4 text-left"
+            onClick={() => update({ cardSheetOpen: true })}
+            className="flex w-full cursor-pointer items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 text-left shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+            style={{ background: "var(--iv2-brand-surface)" }}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)]">
               <CardIcon size={20} color="var(--iv2-brand)" />
             </span>
             <div className="min-w-0 flex-1">
@@ -140,9 +129,10 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
           <button
             type="button"
             onClick={() => update({ selectedCardId: "applepay" })}
-            className="mt-2.5 flex w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-[var(--iv2-border)] bg-white p-4 text-left"
+            className="mt-2.5 flex w-full cursor-pointer items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 text-left shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+            style={{ background: "var(--iv2-surface-muted)" }}
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface-muted)] text-[11px] font-bold text-[var(--iv2-text-primary)]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)] text-[11px] font-bold text-[var(--iv2-text-primary)]">
               APPLE
             </span>
             <div className="min-w-0 flex-1">
@@ -154,8 +144,11 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
         </div>
       )}
 
-      <div className="mt-3 flex items-start gap-3 rounded-2xl bg-[var(--iv2-brand-surface)] p-4">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
+      <div
+        className="mt-3 flex items-start gap-3 rounded-[22px] border border-[var(--iv2-card-border)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+        style={{ background: "var(--iv2-success-surface)" }}
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)]">
           <ShieldCheckIcon size={18} />
         </span>
         <div>
@@ -168,13 +161,13 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
         <Eyebrow muted>Receipt</Eyebrow>
       </div>
       {editingEmail ? (
-        <div className="rounded-2xl border border-[var(--iv2-brand)] bg-white p-4">
+        <div className="rounded-[22px] border border-[var(--iv2-brand)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]" style={{ background: "var(--iv2-warning-surface)" }}>
           <InputField label="Email receipt" value={draftEmail} placeholder="name@email.com" inputMode="email" onChange={setDraftEmail} />
           <div className="mt-3.5 flex gap-2.5">
             <button
               type="button"
               onClick={() => setEditingEmail(false)}
-              className="h-11 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+              className="h-11 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
             >
               Cancel
             </button>
@@ -191,9 +184,12 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3.5 rounded-2xl border border-[var(--iv2-border)] bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface-muted)]">
-            <MailIcon />
+        <div
+          className="flex items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+          style={{ background: "var(--iv2-warning-surface)" }}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface)]">
+            <MailIcon color="var(--iv2-brand)" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold text-[var(--iv2-text-primary)]">Email receipt</div>

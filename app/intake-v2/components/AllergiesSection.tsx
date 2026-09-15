@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Ctx } from "../ctx";
 import { ALLERGY_CATALOG, ALLERGY_DETAILS, ALLERGY_REACTIONS } from "../constants";
 import { CatalogItem } from "../types";
-import { BottomSheet, Checkbox22, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection, SeverityBadge, highlightMatch } from "./ui";
+import { BottomSheet, CatalogChip, Checkbox22, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectedListSection, SeverityBadge } from "./ui";
 
 const CATALOG_VISIBLE = 4;
 const SEARCH_MIN_CHARS = 2;
@@ -110,34 +110,30 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
   const toggleNone = () => update((s) => ({ allergiesNone: !s.allergiesNone, allergies: s.allergiesNone ? s.allergies : [] }));
 
   const renderPanel = (mode: "add" | "edit") => (
-    <Reveal className="border-t border-[var(--iv2-border)] bg-white p-4">
+    <Reveal className="border-t border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
       <div>
-        <SelectField
+        <OptionRow
           label="What is your typical reaction to this allergy?"
           value={draft.reaction}
           onChange={(v) => setDraft((d) => ({ ...d, reaction: v }))}
           options={ALLERGY_REACTIONS}
-          placeholder="Select reaction"
-          tone={attempted && !draft.reaction ? "danger" : "default"}
         />
-        {attempted && !draft.reaction ? <div className="mt-1 text-xs font-semibold text-[var(--iv2-danger)]">Reaction is required</div> : null}
+        {attempted && !draft.reaction ? <div className="mt-1.5 text-xs font-semibold text-[var(--iv2-danger)]">Reaction is required</div> : null}
       </div>
-      <div className="mt-3.5">
-        <SelectField
+      <div className="mt-4">
+        <OptionRow
           label="How severe is the reaction?"
           value={draft.severity}
           onChange={(v) => setDraft((d) => ({ ...d, severity: v }))}
           options={ALLERGY_DETAILS}
-          placeholder="Select severity"
-          tone={attempted && !draft.severity ? "danger" : "default"}
         />
-        {attempted && !draft.severity ? <div className="mt-1 text-xs font-semibold text-[var(--iv2-danger)]">Severity is required</div> : null}
+        {attempted && !draft.severity ? <div className="mt-1.5 text-xs font-semibold text-[var(--iv2-danger)]">Severity is required</div> : null}
       </div>
       <div className="mt-4 flex gap-2.5">
         <button
           type="button"
           onClick={mode === "add" ? closePanel : cancelEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
         >
           Cancel
         </button>
@@ -152,41 +148,24 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
     </Reveal>
   );
 
-  const renderRow = (name: string) => {
-    const expanded = expandedKey === name;
-    return (
-      <div key={name} className={`overflow-hidden rounded-2xl border transition-colors ${expanded ? "border-[var(--iv2-brand)]" : "border-[var(--iv2-border)]"}`}>
-        <button
-          type="button"
-          onClick={() => (expanded ? closePanel() : openPanel(name))}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-3 bg-white px-4 py-3.5 text-left hover:border-[var(--iv2-brand)]"
-        >
-          <Checkbox22 checked={expanded} />
-          <span className="truncate text-[15px] font-semibold" style={{ color: expanded ? "var(--iv2-brand)" : "var(--iv2-text-primary)" }}>
-            {highlightMatch(name, trimmedQuery)}
-          </span>
-        </button>
-        {expanded ? renderPanel("add") : null}
-      </div>
-    );
-  };
+  const renderChip = (name: string) => <CatalogChip key={name} label={name} query={trimmedQuery} selected={expandedKey === name} onClick={() => (expandedKey === name ? closePanel() : openPanel(name))} />;
 
-  const renderCustomRow = () => {
-    const expanded = expandedKey === customName;
-    return (
-      <div className={`overflow-hidden rounded-2xl border transition-colors ${expanded ? "border-[var(--iv2-brand)]" : "border-dashed border-[var(--iv2-border-strong)]"}`}>
-        <button
-          type="button"
-          onClick={() => (expanded ? closePanel() : openPanel(customName))}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-2 bg-white px-4 py-3.5 text-left"
-        >
-          <Checkbox22 checked={expanded} />
-          <span className="truncate text-[15px] font-semibold text-[var(--iv2-brand)]">Add &ldquo;{customName}&rdquo;</span>
-        </button>
-        {expanded ? renderPanel("add") : null}
+  const renderCustomChip = () => (
+    <CatalogChip label={`Add "${customName}"`} dashed selected={expandedKey === customName} onClick={() => (expandedKey === customName ? closePanel() : openPanel(customName))} />
+  );
+
+  // The Reaction/Severity panel now sits once below the whole chip
+  // group (not under whichever chip was tapped, which a wrapping row
+  // can't do cleanly) — its own header names the allergen being
+  // configured, since the chip itself no longer doubles as that label.
+  const expandedPanel = expandedKey ? (
+    <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
+      <div className="bg-[var(--iv2-surface)] px-4 py-3">
+        <span className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{expandedKey}</span>
       </div>
-    );
-  };
+      {renderPanel("add")}
+    </div>
+  ) : null;
 
   return (
     <div>
@@ -200,7 +179,7 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
             node:
               editingIndex === i ? (
                 <div className="overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
-                  <div className="flex items-center justify-between gap-3 bg-white px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-3 bg-[var(--iv2-surface)] px-4 py-3.5">
                     <span className="truncate text-[15px] font-bold text-[var(--iv2-text-primary)]">{it.name}</span>
                   </div>
                   {renderPanel("edit")}
@@ -240,30 +219,32 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
 
         {searching ? (
           <div className="mt-2.5 max-h-[280px] overflow-y-auto">
-            <div className="flex flex-col gap-2.5 pr-0.5">
-              {searchMatches.map(renderRow)}
-              {customVisible ? renderCustomRow() : null}
-              {!searchMatches.length && !customVisible ? (
-                <div className="py-2 text-[15px] text-[var(--iv2-text-muted)]">No matches for &ldquo;{customName}&rdquo;.</div>
-              ) : null}
-            </div>
+            {searchMatches.length || customVisible ? (
+              <div className="flex flex-wrap gap-2 pr-0.5">
+                {searchMatches.map(renderChip)}
+                {customVisible ? renderCustomChip() : null}
+              </div>
+            ) : (
+              <div className="py-2 text-[15px] text-[var(--iv2-text-muted)]">No matches for &ldquo;{customName}&rdquo;.</div>
+            )}
           </div>
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-col gap-2.5">{commonVisible.map(renderRow)}</div>
+            <div className="flex flex-wrap gap-2">{commonVisible.map(renderChip)}</div>
 
             {commonHiddenCount > 0 ? (
               <button
                 type="button"
                 onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
               >
                 Show more ({commonHiddenCount})
               </button>
             ) : null}
           </>
         )}
+        {expandedPanel}
       </div>
 
       <div className="mt-3.5">
@@ -277,7 +258,7 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
         <button
           type="button"
           onClick={() => setDeleteIndex(null)}
-          className="h-[54px] w-full cursor-pointer rounded-2xl border-[1.5px] border-[var(--iv2-border)] bg-white text-base font-bold text-[var(--iv2-text-primary)]"
+          className="h-[54px] w-full cursor-pointer rounded-2xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-base font-bold text-[var(--iv2-text-primary)]"
         >
           Keep it
         </button>

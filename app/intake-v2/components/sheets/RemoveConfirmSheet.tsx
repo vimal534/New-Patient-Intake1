@@ -17,7 +17,7 @@ export function RemoveConfirmSheet({ ctx }: { ctx: Ctx }) {
       <button
         type="button"
         onClick={() => update({ pendingRemove: null })}
-        className="h-[54px] w-full cursor-pointer rounded-2xl border-[1.5px] border-[var(--iv2-border)] bg-white text-base font-bold text-[var(--iv2-text-primary)]"
+        className="h-[54px] w-full cursor-pointer rounded-2xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-base font-bold text-[var(--iv2-text-primary)]"
       >
         Keep it
       </button>

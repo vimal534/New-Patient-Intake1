@@ -31,20 +31,15 @@ export type FlowKey =
   | "consent"
   | "success"
   // Scenario 1 (New Patient, Infant) — see constants.ts's
-  // FLOW_NEW_INFANT and the spec's Part 2. Six separate steps (own
-  // "Step N of 6" screens) rather than one long confirm screen: the
-  // patient's own basics, then the guardian's identity verified via a
-  // driver's-license scan (its own two-screen sub-flow — scan capture,
-  // then the parsed result to confirm/correct), then contact info,
-  // demographics, and emergency contact — ending on one combined
-  // review screen with an edit link back into each.
+  // FLOW_NEW_INFANT and the spec's Part 2. Three separate steps (own
+  // "Step N of 3" screens) rather than one long confirm screen: the
+  // patient's own basics, guardian info, and emergency contact —
+  // leading straight into Health History (no ID-scan step, no
+  // separate contact-info step, no Demographics step, no separate
+  // wizard-ending review screen).
   | "patientConfirm"
-  | "guardianIdScan"
   | "guardianIdReview"
-  | "patientContact"
-  | "patientDemographics"
   | "patientEmergency"
-  | "patientReview"
   | "pediQuestions"
   // Birth & Prenatal History — one continuous flow (see
   // BirthHistoryFlow.tsx) covering all 4 sections, not 4 separate
@@ -133,6 +128,7 @@ export type PassportState = "offer" | "saved" | "dismissed";
 export type Guardian = {
   name: string;
   relationship: string;
+  relationshipOther?: string;
   mobile: string;
   address: string;
   address2?: string;
@@ -140,10 +136,6 @@ export type Guardian = {
   state?: string;
   zip?: string;
   occupation: string;
-  // Only ever populated for guardian1, by GuardianIdScanScreen/
-  // GuardianIdReviewScreen's ID-scan sub-flow — guardian2 never goes
-  // through that flow, so this stays unset for it.
-  dob?: string;
 };
 
 export type BirthHistory = {
@@ -176,7 +168,7 @@ export type BirthHistory = {
   bowelMovements: string;
 };
 
-export type AuthorizedPerson = { name: string; relationship: string; phone: string; access: string; otherSpecify: string };
+export type AuthorizedPerson = { name: string; relationship: string; phone: string };
 
 // Social History — spec Part 3, item 10. The ENTIRE page is
 // "can wait until well visit" for a same-day sick visit; every field
@@ -259,26 +251,6 @@ export type IntakeState = {
   // (back to the summary, not the next step in flow order) instead of
   // `next`/`back`.
   reviewingFromSuccess: boolean;
-
-  // Same idea as `reviewingFromSuccess`, scoped to the smaller
-  // Patient Information wizard's own review screen (PatientReviewScreen)
-  // instead of the final one — its "Edit" links jump into one of that
-  // wizard's own steps via `reviewPatientSection`, and that step's
-  // footer becomes "Save and return to review" → `returnToPatientReview`
-  // instead of the normal `next`.
-  reviewingFromPatientReview: boolean;
-
-  // GuardianIdScanScreen/GuardianIdReviewScreen — the driver's-license
-  // scan sub-flow inside the Patient Information wizard's "Identity
-  // verification" step. `guardianIdScanning` drives the camera-capture
-  // visual state; `guardianIdManual` records that the patient chose
-  // "Enter details manually" instead of scanning (skips straight to
-  // the review step, empty, no "From ID" badge).
-  guardianIdScanning: boolean;
-  guardianIdManual: boolean;
-  guardianIdNumber: string;
-  guardianIdIssuingState: string;
-  guardianIdExpiration: string;
 
   additionalOpen: boolean;
   editingPersonal: boolean;

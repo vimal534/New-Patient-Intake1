@@ -2,7 +2,7 @@
 
 import { Ctx } from "../../ctx";
 import { PhoneField } from "../SmartField";
-import { Card, Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
+import { Card, InputField, ScreenCopy, ScreenTitle } from "../ui";
 
 // Screen 4 — Emergency contact.
 export function EmergencyScreen({ ctx }: { ctx: Ctx }) {
@@ -11,8 +11,7 @@ export function EmergencyScreen({ ctx }: { ctx: Ctx }) {
   const form = !isRet || state.emergencyUpdating;
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>Emergency contact</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>{known ? "Is this still your emergency contact?" : "Who should we contact?"}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {known ? "We have this contact on file." : "One person we can reach in an emergency."}

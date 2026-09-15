@@ -3,7 +3,7 @@
 import { Ctx } from "../../ctx";
 import { GynHistory } from "../../types";
 import { formatDob } from "../../format";
-import { Eyebrow, InputField, ScreenCopy, ScreenTitle, YesNoRow } from "../ui";
+import { InputField, ScreenCopy, ScreenTitle, YesNoRow } from "../ui";
 
 // GYN History — spec Part 3, item 13. Only fires for Age > 11 AND sex
 // assigned at birth = female (this scenario's patient is 14 and
@@ -14,8 +14,7 @@ export function GynHistoryScreen({ ctx }: { ctx: Ctx }) {
   const gyn = state.gyn;
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>GYN history</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">A few questions about your cycle</ScreenTitle>
       <ScreenCopy className="mb-6">Answered privately and used only to guide today&apos;s care.</ScreenCopy>
 

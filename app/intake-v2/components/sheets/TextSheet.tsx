@@ -25,7 +25,7 @@ export function TextSheet({
       <button
         type="button"
         onClick={onClose}
-        className="mt-5 h-[54px] w-full cursor-pointer rounded-2xl border border-[var(--iv2-border)] bg-white text-base font-semibold text-[var(--iv2-text-primary)]"
+        className="mt-5 h-[54px] w-full cursor-pointer rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-base font-semibold text-[var(--iv2-text-primary)]"
       >
         Close
       </button>

@@ -58,7 +58,7 @@ export function VerifyIntroScreen({ ctx }: { ctx: Ctx }) {
         </div>
         <div className="flex items-start gap-3.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-            <LockIcon size={16} color="#1677E8" />
+            <LockIcon size={16} color="var(--iv2-brand)" />
           </span>
           <div>
             <div className="text-base font-bold text-[var(--iv2-text-primary)]">Keeps your information safe</div>

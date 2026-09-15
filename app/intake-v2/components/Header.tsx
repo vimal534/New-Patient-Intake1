@@ -7,49 +7,55 @@ import { ChevronLeftIcon } from "./Icons";
 // renders the chrome once asked to). No close/restart affordance here —
 // dropped on request; resetting the demo scenario still works via the
 // DEMO sheet.
+//
+// One layout everywhere — a text "‹ Back" on the left and the
+// percentage complete on the right, sitting in their own row first,
+// with the progress bar underneath (8px gap) — per design-panel spec —
+// colors/sizes match that spec exactly (#64748B/15px for Back,
+// #94A3B8/13.5px for the percentage; #E7EDF4 track/#2563EB fill, 6px
+// tall, for the bar itself) rather than the app's usual muted-text/
+// brand tokens, since this treatment intentionally reads the same on
+// every screen, wizard included — no "Step N of total" text anywhere.
+// `title`/`timeLeft` stay accepted (every call site still passes them)
+// but are no longer rendered. No static bottom border under the header
+// — instead `elevated` (the caller's own scroll-position check) fades
+// in a soft shadow once the screen's content has scrolled out from
+// under it, so the header reads as a fixed surface without ever
+// drawing a hard line at rest.
 export function Header({
   percent,
-  timeLeft,
   onBack,
-  title = "Check-in",
+  elevated = false,
 }: {
   percent: number;
   timeLeft: string;
   onBack: () => void;
-  // Per-step section name (Health history, Coverage, Payment, ...) —
-  // replaces the old static "Check-in" label so the header always
-  // names the page the patient is actually on. Falls back to
-  // "Check-in" for any step without one mapped in HEADER_TITLE.
+  // Per-step section name (Health history, Coverage, Payment, ...) — no
+  // longer rendered here, kept accepted so callers don't need to change.
   title?: string;
+  elevated?: boolean;
 }) {
-  // Compressed further still — no close button to balance against, a
-  // smaller back chevron, and tighter padding all around. Target total
-  // header height ~105-112px: 12px top padding, a 36px back/Check-in
-  // row, 8px gap, the 4px progress bar, an 8px gap, a 20px "About 2 min
-  // left" row, 12px bottom padding.
   return (
-    <div className="border-b border-[var(--iv2-border-subtle)] bg-white px-6 pt-3 pb-3">
-      <div className="mb-2 flex h-9 items-center">
+    <div
+      className="bg-[var(--iv2-surface)] px-6 pt-3 pb-2 transition-shadow duration-200 ease-out"
+      style={{ boxShadow: elevated ? "0 4px 12px rgba(27,38,36,0.06)" : "0 0 0 rgba(27,38,36,0)" }}
+    >
+      <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={onBack}
           aria-label="Back"
-          className="-ml-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent p-0"
+          className="-ml-1 flex cursor-pointer items-center gap-2 border-none bg-transparent p-1 text-[15px] font-bold"
+          style={{ color: "#64748b" }}
         >
-          <ChevronLeftIcon size={9} />
+          <ChevronLeftIcon size={7} />
+          Back
         </button>
-        <div className="ml-2 truncate text-[17px] font-semibold text-[var(--iv2-text-primary)]">{title}</div>
+        <div className="text-[13.5px] font-bold" style={{ color: "#94a3b8" }}>{percent}%</div>
       </div>
-      <div className="flex items-center gap-3.5">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--iv2-border-subtle)]">
-          <div
-            className="h-1 rounded-full bg-[var(--iv2-brand)] transition-[width] duration-[240ms] ease-out"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-        <div className="text-[15px] leading-none font-semibold text-[var(--iv2-text-muted)]">{percent}%</div>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "#e7edf4" }}>
+        <div className="h-full rounded-full transition-[width] duration-[240ms] ease-out" style={{ width: `${percent}%`, background: "#2563eb" }} />
       </div>
-      <div className="mt-2 h-5 text-[15px] leading-5 text-[var(--iv2-text-secondary)]">{timeLeft} · Progress saved</div>
     </div>
   );
 }

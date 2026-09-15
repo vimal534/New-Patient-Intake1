@@ -1,90 +1,61 @@
 "use client";
 
-import { useRef } from "react";
 import { Ctx } from "../../ctx";
-import { US_STATE_OPTIONS } from "../../constants";
-import { formatDob } from "../../format";
-import { UserIcon } from "../Icons";
-import { SplitDobField } from "../SmartField";
-import { Card, Eyebrow, InputField, ScreenCopy, ScreenTitle, SelectField } from "../ui";
+import { GUARDIAN_RELATIONSHIP_OPTIONS } from "../../constants";
+import { InfoIcon } from "../Icons";
+import { EmailField, PhoneField } from "../SmartField";
+import { Card, InfoNote, InputField, OptionRow, ScreenCopy, ScreenTitle } from "../ui";
 
-// Patient Information wizard — Step 3 of 6, the parsed result of Step
-// 2's ID scan (or, if the patient chose "Enter details manually"
-// there, the same fields simply start blank with no "From ID" badge).
-// Every field stays directly editable — no separate confirm-then-edit
-// gate, same as every other step in this wizard.
+// Patient Information wizard — Step 2 of 3. A plain guardian-info
+// form — guardian1's name/relationship/phone (all already known from
+// scheduling, same as Step 1's patient basics) plus the guardian's
+// email, directly editable, no separate confirm-then-edit gate.
+// There's no ID-scan step anymore (removed per product direction), so
+// this is simply "tell us about the parent or guardian," never framed
+// as something read off a scanned card. No DOB/ID-number/issuing-state/
+// expiration fields either (dropped per product direction — this
+// screen is about how to reach the guardian, not verifying their ID).
 export function GuardianIdReviewScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
   const setGuardian1 = (patch: Partial<import("../../types").Guardian>) => update((s) => ({ guardian1: { ...s.guardian1, ...patch } }));
-  const cardRef = useRef<HTMLDivElement | null>(null);
+  const setEmail = (email: string) => update((s) => ({ personal: { ...s.personal, email } }));
+  const firstName = state.scheduling.patientName.split(" ")[0] || "the patient";
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>{state.reviewingFromPatientReview ? "Review identity verification" : "Identity verification · Step 3 of 6"}</Eyebrow>
-      <ScreenTitle className="mb-2 leading-[1.28]">We found this information</ScreenTitle>
-      <ScreenCopy className="mb-6">
-        {state.guardianIdManual ? "Enter the parent or guardian's details below." : "Please confirm the details from Maria's ID. You can edit anything that's incorrect."}
-      </ScreenCopy>
+    <div className="px-6 pt-5 pb-6">
+      <ScreenTitle className="mb-2 leading-[1.28]">Tell us about {firstName}&apos;s guardian</ScreenTitle>
+      <ScreenCopy className="mb-6">We&apos;ve pre-filled this from your appointment. Review and update anything that&apos;s changed.</ScreenCopy>
 
-      <div ref={cardRef}>
       <Card>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-              <UserIcon size={20} color="var(--iv2-brand)" />
-            </span>
-            <div>
-              <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Parent / guardian</div>
-              <div className="mt-0.5 text-[17px] font-semibold text-[var(--iv2-text-primary)]">{state.guardian1.name}</div>
-            </div>
-          </div>
-          {!state.guardianIdManual ? (
-            <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ backgroundColor: "var(--iv2-success-surface)", color: "var(--iv2-success)" }}>
-              From ID
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-4">
           <InputField label="Full name" value={state.guardian1.name} placeholder="Full name" onChange={(v) => setGuardian1({ name: v })} />
-          <SplitDobField label="Date of birth" value={state.guardian1.dob ?? ""} onChange={(v) => setGuardian1({ dob: v })} />
-          <InputField
-            label="ID number (optional)"
-            value={state.guardianIdNumber}
-            placeholder="TX-D447091523"
-            onChange={(v) => update({ guardianIdNumber: v })}
+          <OptionRow
+            label={`Relationship to ${firstName}`}
+            value={state.guardian1.relationship}
+            options={GUARDIAN_RELATIONSHIP_OPTIONS}
+            onChange={(v) => setGuardian1({ relationship: v, ...(v !== "Other" ? { relationshipOther: "" } : {}) })}
           />
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <SelectField
-                label="Issuing state"
-                value={state.guardianIdIssuingState}
-                options={US_STATE_OPTIONS}
-                placeholder="Select"
-                onChange={(v) => update({ guardianIdIssuingState: v })}
-              />
-            </div>
-            <div className="flex-1">
-              <InputField
-                label="Expiration date"
-                value={state.guardianIdExpiration}
-                placeholder="MM/DD/YYYY"
-                inputMode="numeric"
-                onChange={(v) => update({ guardianIdExpiration: formatDob(v) })}
-              />
-            </div>
-          </div>
+          {state.guardian1.relationship === "Other" && (
+            <InputField
+              label="Please specify"
+              value={state.guardian1.relationshipOther || ""}
+              placeholder="Relationship"
+              onChange={(v) => setGuardian1({ relationshipOther: v })}
+            />
+          )}
+          <PhoneField label="Phone number" value={state.guardian1.mobile} onChange={(v) => setGuardian1({ mobile: v })} />
+          <EmailField label="Email address" value={state.personal.email} onChange={setEmail} />
         </div>
       </Card>
-      </div>
 
-      <button
-        type="button"
-        onClick={() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        className="mt-4 cursor-pointer border-none bg-transparent text-[15px] font-semibold text-[var(--iv2-brand)]"
-      >
-        I&apos;ll update this information
-      </button>
+      <div className="mt-4">
+        <InfoNote>
+          <InfoIcon size={22} color="var(--iv2-brand)" />
+          <div className="text-sm leading-[1.5] text-[var(--iv2-text-primary)]">
+            We&apos;ll use this information to contact you about appointments, care updates, and important notifications.
+          </div>
+        </InfoNote>
+      </div>
     </div>
   );
 }

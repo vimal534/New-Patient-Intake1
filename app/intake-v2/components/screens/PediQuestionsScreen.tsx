@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import { Ctx } from "../../ctx";
 import { ACCOMPANYING_OPTIONS, HOME_LANGUAGE_OPTIONS } from "../../constants";
-import { Eyebrow, OptionPill, ScreenTitle, SelectField } from "../ui";
+import { OptionPill, ScreenTitle } from "../ui";
 
 const YES_NO = ["Yes", "No"];
 
@@ -12,7 +12,7 @@ const YES_NO = ["Yes", "No"];
 // per-question card layout instead of a bare stacked list.
 function QuestionCard({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--iv2-border)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
       <div className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{label}</div>
       <div className="mt-0.5 mb-3 text-sm text-[var(--iv2-text-muted)]">Select one</div>
       {children}
@@ -36,28 +36,15 @@ export function PediQuestionsScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
 
   return (
-    <div className="px-6 pt-8 pb-6">
-      <Eyebrow>General pediatric questions</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-6 leading-[1.28]">A few questions about today</ScreenTitle>
 
       <div className="flex flex-col gap-3.5">
         <QuestionCard label="Who's accompanying the patient today?">
-          <SelectField
-            ariaLabel="Who's accompanying the patient today?"
-            value={state.pediAccompanying}
-            options={ACCOMPANYING_OPTIONS}
-            placeholder="Select one"
-            onChange={(v) => update({ pediAccompanying: v })}
-          />
+          <PillRow options={ACCOMPANYING_OPTIONS} value={state.pediAccompanying} onChange={(v) => update({ pediAccompanying: v })} />
         </QuestionCard>
         <QuestionCard label="What language is spoken at home?">
-          <SelectField
-            ariaLabel="What language is spoken at home?"
-            value={state.pediHomeLanguage}
-            options={HOME_LANGUAGE_OPTIONS}
-            placeholder="Select one"
-            onChange={(v) => update({ pediHomeLanguage: v })}
-          />
+          <PillRow options={HOME_LANGUAGE_OPTIONS} value={state.pediHomeLanguage} onChange={(v) => update({ pediHomeLanguage: v })} />
         </QuestionCard>
         <QuestionCard label="Is your pool fenced? (If applicable)">
           <PillRow options={[...YES_NO, "No pool"]} value={state.pediPoolFenced} onChange={(v) => update({ pediPoolFenced: v })} />

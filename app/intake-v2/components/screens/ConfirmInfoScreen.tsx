@@ -1,9 +1,8 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { REVIEW_TITLE } from "../../constants";
 import { formatPhone } from "../../format";
-import { Card, Divider, Eyebrow, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
+import { Card, Divider, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
 
 // Confirm Your Information — spec Parts 4-5, item 3. Patient contact,
 // guardian contact and insurance — all shown as what's on file (never
@@ -16,8 +15,7 @@ export function ConfirmInfoScreen({ ctx }: { ctx: Ctx }) {
   const g = state.guardian1;
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.confirmInfo : "Confirm your information"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Is this still accurate?</ScreenTitle>
       <ScreenCopy className="mb-6">We have this on file from your last visit. Update only what&apos;s changed.</ScreenCopy>
 
@@ -88,14 +86,14 @@ export function ConfirmInfoScreen({ ctx }: { ctx: Ctx }) {
       <button
         type="button"
         onClick={() => update({ additionalOpen: !state.additionalOpen })}
-        className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-2xl border-none bg-white p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]"
+        className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-2xl border-none bg-[var(--iv2-surface)] p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]"
       >
         <span className="text-base font-semibold text-[var(--iv2-text-primary)]">Additional information</span>
         <span className="text-sm text-[var(--iv2-text-muted)]">{state.additionalOpen ? "−" : "+"}</span>
       </button>
 
       {state.additionalOpen ? (
-        <div className="mt-2 flex flex-col gap-3.5 rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]">
+        <div className="mt-2 flex flex-col gap-3.5 rounded-2xl bg-[var(--iv2-surface)] p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]">
           <ValueRow label="Preferred language" value="English" />
         </div>
       ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { StatusBar } from "@/app/components/StatusBar";
 
 // Device-preview bezel for /intake-v2 — full-bleed on an actual phone
 // (no border, fills the real viewport) but a black rounded phone frame
@@ -14,11 +15,12 @@ import { ReactNode } from "react";
 // stopping at it).
 export function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh justify-center bg-[#EAECF0] sm:px-6 sm:py-10">
+    <div className="flex min-h-dvh justify-center bg-[var(--canvas)] sm:px-6 sm:py-10">
       <div
-        className="iv2-root relative h-dvh w-full overflow-hidden bg-[#FBFBFC] font-[family-name:var(--font-inter)] sm:h-[932px] sm:w-[430px] sm:rounded-[52px] sm:border-[10px] sm:border-[#14161b] sm:shadow-[0_24px_60px_rgba(16,24,40,0.35)]"
+        className="iv2-root relative flex h-dvh w-full flex-col overflow-hidden bg-[var(--canvas)] font-[family-name:var(--font-inter)] sm:h-[932px] sm:w-[430px] sm:rounded-[52px] sm:border-[10px] sm:border-[#14161b] sm:shadow-[0_24px_60px_rgba(27,38,36,0.28)]"
       >
-        {children}
+        <StatusBar />
+        <div className="min-h-0 flex-1">{children}</div>
       </div>
     </div>
   );

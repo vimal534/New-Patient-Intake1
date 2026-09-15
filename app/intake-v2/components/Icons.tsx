@@ -5,7 +5,7 @@
 
 type IconProps = { size?: number; color?: string; className?: string };
 
-export function SearchIcon({ size = 18, color = "#98A2B3" }: IconProps) {
+export function SearchIcon({ size = 18, color = "var(--iv2-text-muted)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="11" cy="11" r="7" stroke={color} strokeWidth={2} />
@@ -27,7 +27,7 @@ export function AlertCircleIcon({ size = 18, color = "var(--iv2-danger)" }: Icon
   );
 }
 
-export function XIcon({ size = 18, color = "#667085" }: IconProps) {
+export function XIcon({ size = 18, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M6 6l12 12M18 6L6 18" stroke={color} strokeWidth={2} strokeLinecap="round" />
@@ -35,7 +35,7 @@ export function XIcon({ size = 18, color = "#667085" }: IconProps) {
   );
 }
 
-export function ChevronLeftIcon({ size = 13, color = "#101828", className }: IconProps) {
+export function ChevronLeftIcon({ size = 13, color = "var(--iv2-text-primary)", className }: IconProps) {
   return (
     <svg width={size} height={size * (22 / 13)} viewBox="0 0 13 22" fill="none" className={className}>
       <path d="M11 2L2 11l9 9" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
@@ -43,7 +43,7 @@ export function ChevronLeftIcon({ size = 13, color = "#101828", className }: Ico
   );
 }
 
-export function ShieldCheckIcon({ size = 26, color = "#1677E8", strokeWidth = 1.8 }: IconProps & { strokeWidth?: number }) {
+export function ShieldCheckIcon({ size = 26, color = "var(--iv2-brand)", strokeWidth = 1.8 }: IconProps & { strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path
@@ -66,7 +66,7 @@ export function CheckIcon({ size = 15, color = "#067647", strokeWidth = 2.6 }: I
   );
 }
 
-export function InfoIcon({ size = 18, color = "#1677E8" }: IconProps) {
+export function InfoIcon({ size = 18, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="9.5" stroke={color} strokeWidth={1.8} />
@@ -75,7 +75,7 @@ export function InfoIcon({ size = 18, color = "#1677E8" }: IconProps) {
   );
 }
 
-export function StethoscopeIcon({ size = 24, color = "#1677E8" }: IconProps) {
+export function StethoscopeIcon({ size = 24, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M7 3v6a5 5 0 0010 0V3" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
@@ -84,7 +84,7 @@ export function StethoscopeIcon({ size = 24, color = "#1677E8" }: IconProps) {
   );
 }
 
-export function UserIcon({ size = 16, color = "#667085" }: IconProps) {
+export function UserIcon({ size = 16, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="8" r="3.6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
@@ -93,7 +93,7 @@ export function UserIcon({ size = 16, color = "#667085" }: IconProps) {
   );
 }
 
-export function CalendarIcon({ size = 16, color = "#667085" }: IconProps) {
+export function CalendarIcon({ size = 16, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" stroke={color} strokeWidth={1.8} />
@@ -102,7 +102,7 @@ export function CalendarIcon({ size = 16, color = "#667085" }: IconProps) {
   );
 }
 
-export function LocationIcon({ size = 17, color = "#667085" }: IconProps) {
+export function LocationIcon({ size = 17, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path
@@ -117,7 +117,7 @@ export function LocationIcon({ size = 17, color = "#667085" }: IconProps) {
   );
 }
 
-export function ClockIcon({ size = 17, color = "#667085" }: IconProps) {
+export function ClockIcon({ size = 17, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="9" stroke={color} strokeWidth={1.8} />
@@ -135,7 +135,7 @@ export function CardIcon({ size = 19, color = "#B54708" }: IconProps) {
   );
 }
 
-export function UploadIcon({ size = 19, color = "#667085" }: IconProps) {
+export function UploadIcon({ size = 19, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M12 16V4M7 9l5-5 5 5" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
@@ -144,7 +144,7 @@ export function UploadIcon({ size = 19, color = "#667085" }: IconProps) {
   );
 }
 
-export function ScanCardIcon({ size = 28, color = "#1677E8" }: IconProps) {
+export function ScanCardIcon({ size = 28, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="2.5" y="5" width="19" height="14" rx="3" stroke={color} strokeWidth={1.7} />
@@ -159,11 +159,11 @@ export function ScanCardIcon({ size = 28, color = "#1677E8" }: IconProps) {
   );
 }
 
-export function ShieldPlainIcon({ size = 26, color = "#1677E8" }: IconProps) {
+export function ShieldPlainIcon({ size = 26, color = "var(--iv2-brand)" }: IconProps) {
   return <ShieldCheckIcon size={size} color={color} />;
 }
 
-export function LockIcon({ size = 12, color = "#667085" }: IconProps) {
+export function LockIcon({ size = 12, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="4" y="11" width="16" height="10" rx="2" stroke={color} strokeWidth={2} />
@@ -187,7 +187,7 @@ export function ShieldLockIcon({ size = 17, color = "#067647" }: IconProps) {
   );
 }
 
-export function MailIcon({ size = 18, color = "#667085" }: IconProps) {
+export function MailIcon({ size = 18, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke={color} strokeWidth={1.8} />
@@ -196,7 +196,7 @@ export function MailIcon({ size = 18, color = "#667085" }: IconProps) {
   );
 }
 
-export function ChevronRightIcon({ size = 16, color = "#98A2B3" }: IconProps) {
+export function ChevronRightIcon({ size = 16, color = "var(--iv2-text-muted)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M9 5l7 7-7 7" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
@@ -205,7 +205,7 @@ export function ChevronRightIcon({ size = 16, color = "#98A2B3" }: IconProps) {
 }
 
 // Native <select> affordance — SelectField's own dropdown caret (ui.tsx).
-export function ChevronDownIcon({ size = 16, color = "#667085" }: IconProps) {
+export function ChevronDownIcon({ size = 16, color = "var(--iv2-text-secondary)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M6 9l6 6 6-6" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
@@ -230,7 +230,7 @@ export function InsuranceBrandIcon({ size = 44 }: { size?: number }) {
 }
 
 // Plain document/file glyph — Consent screen's "Consent to treat" row.
-export function DocumentIcon({ size = 19, color = "#1677E8" }: IconProps) {
+export function DocumentIcon({ size = 19, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M6 3.5h9l3.5 3.5V20a1 1 0 01-1 1H6a1 1 0 01-1-1V4.5a1 1 0 011-1z" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
@@ -243,7 +243,7 @@ export function DocumentIcon({ size = 19, color = "#1677E8" }: IconProps) {
 // Verify-intro screen's hero glyph — a shield around a person silhouette
 // (device/identity trust), distinct from ShieldCheckIcon's plain
 // checkmark shield used on the OTP screen itself.
-export function ShieldUserIcon({ size = 40, color = "#1677E8" }: IconProps) {
+export function ShieldUserIcon({ size = 40, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path
@@ -262,7 +262,7 @@ export function ShieldUserIcon({ size = 40, color = "#1677E8" }: IconProps) {
 // hero halo (a pair of these, the second mirrored via CSS `scaleX(-1)`,
 // sit just outside the shield circle on each side, echoing "we're
 // sending you something").
-export function SignalWaveIcon({ size = 24, color = "#1677E8" }: IconProps) {
+export function SignalWaveIcon({ size = 24, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M1.75 8.97a4.7 4.7 0 010 6.06" stroke={color} strokeWidth={2} strokeLinecap="round" opacity={0.9} />
@@ -272,7 +272,7 @@ export function SignalWaveIcon({ size = 24, color = "#1677E8" }: IconProps) {
   );
 }
 
-export function PhoneIcon({ size = 20, color = "#1677E8" }: IconProps) {
+export function PhoneIcon({ size = 20, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" stroke={color} strokeWidth={1.8} />
@@ -299,7 +299,7 @@ export function ArrowRightIcon({ size = 17, color = "#fff" }: IconProps) {
 
 // Navigation-arrow (paper-plane) — SuccessScreen.tsx's "Get directions"
 // pill.
-export function SendIcon({ size = 15, color = "#1677E8" }: IconProps) {
+export function SendIcon({ size = 15, color = "var(--iv2-brand)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path

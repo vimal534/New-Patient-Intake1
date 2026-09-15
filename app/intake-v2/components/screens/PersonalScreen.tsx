@@ -16,7 +16,7 @@ export function PersonalScreen({ ctx }: { ctx: Ctx }) {
   ];
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>Review your information</ScreenTitle>
       <ScreenCopy className="mb-6">
         {isRet ? "Confirm what's on file. Update only what changed." : "Add the information we need for your visit."}
@@ -62,14 +62,14 @@ export function PersonalScreen({ ctx }: { ctx: Ctx }) {
       <button
         type="button"
         onClick={() => update({ additionalOpen: !state.additionalOpen })}
-        className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-2xl border-none bg-white p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]"
+        className="mt-3 flex w-full cursor-pointer items-center justify-between rounded-2xl border-none bg-[var(--iv2-surface)] p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]"
       >
         <span className="text-base font-semibold text-[var(--iv2-text-primary)]">Additional information</span>
         <span className="text-sm text-[var(--iv2-text-muted)]">{state.additionalOpen ? "−" : "+"}</span>
       </button>
 
       {state.additionalOpen ? (
-        <div className="mt-2 flex flex-col gap-3.5 rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]">
+        <div className="mt-2 flex flex-col gap-3.5 rounded-2xl bg-[var(--iv2-surface)] p-4 shadow-[0_1px_2px_rgba(16,24,43,0.06)]">
           <ValueRow label="Gender" value="Female" />
           <ValueRow label="Preferred language" value="English" />
           <ValueRow label="Marital status" value="Married" />

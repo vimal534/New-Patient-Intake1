@@ -1,9 +1,8 @@
 "use client";
 
 import { Ctx } from "../../ctx";
-import { REVIEW_TITLE } from "../../constants";
 import { CheckIcon, DocumentIcon } from "../Icons";
-import { Card, Eyebrow, ScreenCopy, ScreenTitle } from "../ui";
+import { Card, ScreenCopy, ScreenTitle } from "../ui";
 
 // Consent on File — spec Parts 4-5, item 6. Shown as already signed;
 // "Update" flips into the same checkbox + tap-to-sign flow the fresh
@@ -14,8 +13,7 @@ export function ConsentOnFileScreen({ ctx }: { ctx: Ctx }) {
   const signerName = state.guardian1.name.trim() || state.scheduling.patientName;
 
   return (
-    <div className="px-6 py-6">
-      <Eyebrow>{state.reviewingFromSuccess ? REVIEW_TITLE.consentOnFile : "Consent on file"}</Eyebrow>
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Consent to treat</ScreenTitle>
       <ScreenCopy className="mb-6">
         {editing ? "Re-sign below to update your consent on file." : "Signed and on file from a previous visit."}
@@ -46,7 +44,7 @@ export function ConsentOnFileScreen({ ctx }: { ctx: Ctx }) {
           <button
             type="button"
             onClick={() => update({ signed: !state.signed })}
-            className="flex h-[110px] w-full cursor-pointer items-center justify-center rounded-2xl border-[1.5px] bg-white"
+            className="flex h-[110px] w-full cursor-pointer items-center justify-center rounded-2xl border-[1.5px] bg-[var(--iv2-surface)]"
             style={{ borderColor: state.signed ? "var(--iv2-brand)" : "var(--iv2-border)" }}
           >
             {state.signed ? (
@@ -62,7 +60,7 @@ export function ConsentOnFileScreen({ ctx }: { ctx: Ctx }) {
         <Card>
           <div className="flex items-center gap-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-              <DocumentIcon color="#1677E8" />
+              <DocumentIcon color="var(--iv2-brand)" />
             </span>
             <div>
               <div className="text-base font-bold text-[var(--iv2-text-primary)]">Consent to treat</div>

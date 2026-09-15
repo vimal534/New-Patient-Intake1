@@ -16,7 +16,7 @@ export function ListReviewScreen({ ctx, kind }: { ctx: Ctx; kind: "medications" 
   const copy = kind === "medications" ? "What medications are you currently taking?" : "What are you allergic to?";
 
   return (
-    <div className="px-6 pt-8 pb-6">
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">{title}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {copy} Select all that apply. Search if it isn&apos;t listed.

@@ -7,7 +7,7 @@ import { Divider, ScreenCopy, ScreenTitle } from "../ui";
 const CORE_DOCS = [
   {
     key: "consent" as const,
-    icon: <DocumentIcon color="#1677E8" />,
+    icon: <DocumentIcon color="var(--iv2-brand)" />,
     iconBg: "var(--iv2-brand-tint)",
     title: "Consent to treat",
     subtitle: "Allows us to provide care",
@@ -79,13 +79,13 @@ export function ConsentScreen({ ctx }: { ctx: Ctx }) {
   };
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle>{onFile ? "Policies on file" : "Review & sign"}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {onFile ? "Signed and on file from a previous visit." : "Please read the following documents and agree to continue."}
       </ScreenCopy>
 
-      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {docs.map((doc, i) => (
           <div key={doc.key}>
             {i > 0 ? <Divider /> : null}
@@ -147,7 +147,7 @@ export function ConsentScreen({ ctx }: { ctx: Ctx }) {
           <button
             type="button"
             onClick={() => update({ signed: !state.signed })}
-            className="flex h-[110px] w-full cursor-pointer items-center justify-center rounded-2xl border-[1.5px] bg-white"
+            className="flex h-[110px] w-full cursor-pointer items-center justify-center rounded-2xl border-[1.5px] bg-[var(--iv2-surface)]"
             style={{ borderColor: state.signed ? "var(--iv2-brand)" : "var(--iv2-border)" }}
           >
             {state.signed ? (

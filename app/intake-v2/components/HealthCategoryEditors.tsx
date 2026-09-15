@@ -7,7 +7,7 @@ import { SurgeryItem, SurgeryOccurrence } from "../types";
 import { AllergiesSection } from "./AllergiesSection";
 import { ConditionAddSection } from "./ConditionAddSection";
 import { MedicationsSection } from "./MedicationsSection";
-import { Checkbox22, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection, highlightMatch } from "./ui";
+import { CatalogChip, Checkbox22, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
 
 const FAMILY_COND_CATALOG = [...COMMON_CONDS, ...MORE_CONDS];
 const CATALOG_VISIBLE = 4;
@@ -115,9 +115,6 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
   const commonHiddenCount = available.length - commonVisible.length;
   const searchMatches = searching ? available.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
 
-  const customName = trimmedQuery;
-  const customVisible = searching && !SURGERY_CATALOG.some((n) => n.toLowerCase() === customName.toLowerCase()) && !have.includes(customName);
-
   const openPanel = (name: string) => {
     setEditingIndex(null);
     setExpandedKey(name);
@@ -174,12 +171,12 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
   };
 
   const renderPanel = (mode: "add" | "edit") => (
-    <Reveal className="border-t border-[var(--iv2-border)] bg-white p-4">
+    <Reveal className="border-t border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
       <div className="mb-1 text-[15px] font-bold text-[var(--iv2-text-primary)]">When did it happen?</div>
       <div className="mb-3 text-[13px] text-[var(--iv2-text-secondary)]">Choose what you remember. The year alone is fine.</div>
       <div className="flex flex-col gap-3">
         {draftOccurrences.map((occ, i) => (
-          <div key={i} className="rounded-xl border border-[var(--iv2-border)] bg-white p-3.5">
+          <div key={i} className="rounded-xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-3.5">
             <div className="mb-2.5 flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)] text-[11px] font-bold text-[var(--iv2-brand)]">
@@ -205,7 +202,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
       <button
         type="button"
         onClick={addOcc}
-        className="mt-3 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--iv2-border-strong)] bg-white text-[15px] font-semibold text-[var(--iv2-brand)]"
+        className="mt-3 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--iv2-border-strong)] bg-[var(--iv2-surface)] text-[15px] font-semibold text-[var(--iv2-brand)]"
       >
         + {draftOccurrences.length > 1 ? "Add another date" : "I had this surgery more than once"}
       </button>
@@ -213,7 +210,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
         <button
           type="button"
           onClick={mode === "add" ? closePanel : cancelEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
         >
           Cancel
         </button>
@@ -228,41 +225,20 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
     </Reveal>
   );
 
-  const renderRow = (name: string) => {
-    const expanded = expandedKey === name;
-    return (
-      <div key={name} className={`overflow-hidden rounded-2xl border transition-colors ${expanded ? "border-[var(--iv2-brand)]" : "border-[var(--iv2-border)]"}`}>
-        <button
-          type="button"
-          onClick={() => (expanded ? closePanel() : openPanel(name))}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-3 bg-white px-4 py-3.5 text-left hover:border-[var(--iv2-brand)]"
-        >
-          <Checkbox22 checked={expanded} />
-          <span className="truncate text-[15px] font-semibold" style={{ color: expanded ? "var(--iv2-brand)" : "var(--iv2-text-primary)" }}>
-            {highlightMatch(name, trimmedQuery)}
-          </span>
-        </button>
-        {expanded ? renderPanel("add") : null}
-      </div>
-    );
-  };
+  const renderChip = (name: string) => <CatalogChip key={name} label={name} query={trimmedQuery} selected={expandedKey === name} onClick={() => (expandedKey === name ? closePanel() : openPanel(name))} />;
 
-  const renderCustomRow = () => {
-    const expanded = expandedKey === customName;
-    return (
-      <div className={`overflow-hidden rounded-2xl border transition-colors ${expanded ? "border-[var(--iv2-brand)]" : "border-dashed border-[var(--iv2-border-strong)]"}`}>
-        <button
-          type="button"
-          onClick={() => (expanded ? closePanel() : openPanel(customName))}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-2 bg-white px-4 py-3.5 text-left"
-        >
-          <Checkbox22 checked={expanded} />
-          <span className="truncate text-[15px] font-semibold text-[var(--iv2-brand)]">Add &ldquo;{customName}&rdquo;</span>
-        </button>
-        {expanded ? renderPanel("add") : null}
+  // The date-of-surgery panel now sits once below the whole chip group
+  // (not under whichever chip was tapped, which a wrapping row can't do
+  // cleanly) — its own header names the surgery being configured, since
+  // the chip itself no longer doubles as that label.
+  const expandedPanel = expandedKey ? (
+    <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
+      <div className="bg-[var(--iv2-surface)] px-4 py-3">
+        <span className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{expandedKey}</span>
       </div>
-    );
-  };
+      {renderPanel("add")}
+    </div>
+  ) : null;
 
   return (
     <div>
@@ -277,7 +253,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
                 forceVisible: true,
                 node: (
                   <div className="overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
-                    <div className="flex items-center justify-between gap-3 bg-white px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-3 bg-[var(--iv2-surface)] px-4 py-3.5">
                       <span className="truncate text-[15px] font-bold text-[var(--iv2-text-primary)]">{it.name}</span>
                     </div>
                     {renderPanel("edit")}
@@ -299,7 +275,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
                       <Checkbox22 checked />
                       <span className="truncate text-base font-bold text-[var(--iv2-text-primary)]">{it.name}</span>
                       {sorted.length > 1 ? (
-                        <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-bold text-[var(--iv2-brand)]">{sorted.length} times</span>
+                        <span className="shrink-0 rounded-full bg-[var(--iv2-surface)] px-2 py-0.5 text-[12px] font-bold text-[var(--iv2-brand)]">{sorted.length} times</span>
                       ) : null}
                     </button>
                     <button
@@ -316,7 +292,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
                         const f = formatOccurrence(occ);
                         return (
                           <div key={j} className="flex items-center gap-2">
-                            <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[var(--iv2-brand)]">
+                            <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)] text-[10px] font-bold text-[var(--iv2-brand)]">
                               {j + 1}
                             </span>
                             <span className={`text-sm ${f.unknown ? "text-[var(--iv2-text-muted)]" : "text-[var(--iv2-text-primary)]"}`}>{f.text}</span>
@@ -338,30 +314,37 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
         <SearchClearInput value={query} onChange={setQuery} placeholder="Search by surgery name" disabled={none} />
 
         {searching ? (
-          <div className="mt-2.5 max-h-[280px] overflow-y-auto">
-            <div className="flex flex-col gap-2.5 pr-0.5">
-              {searchMatches.map(renderRow)}
-              {customVisible ? renderCustomRow() : null}
-              {!searchMatches.length && !customVisible ? (
-                <div className="py-2 text-[15px] text-[var(--iv2-text-muted)]">No matches for &ldquo;{customName}&rdquo;.</div>
-              ) : null}
-            </div>
-          </div>
+          <>
+            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Search results</div>
+            {searchMatches.length ? (
+              <div className="max-h-[280px] overflow-y-auto">
+                <div className="flex flex-wrap gap-2 pr-0.5">{searchMatches.map(renderChip)}</div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[var(--iv2-border-strong)] px-5 py-8 text-center">
+                <div className="text-[15px] font-semibold text-[var(--iv2-text-primary)]">
+                  No matches for &ldquo;<span className="font-extrabold">{trimmedQuery}</span>&rdquo;.
+                </div>
+                <div className="mt-1 text-sm text-[var(--iv2-text-muted)]">Check the spelling or try the generic name.</div>
+              </div>
+            )}
+          </>
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-col gap-2.5">{commonVisible.map(renderRow)}</div>
+            <div className="flex flex-wrap gap-2">{commonVisible.map(renderChip)}</div>
             {commonHiddenCount > 0 ? (
               <button
                 type="button"
                 onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
               >
                 Show more ({commonHiddenCount})
               </button>
             ) : null}
           </>
         )}
+        {expandedPanel}
       </div>
 
       <div className="mt-3.5">
@@ -403,8 +386,6 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
   const commonVisible = showMore ? FAMILY_COND_CATALOG : FAMILY_COND_CATALOG.slice(0, CATALOG_VISIBLE);
   const commonHiddenCount = FAMILY_COND_CATALOG.length - commonVisible.length;
   const searchMatches = searching ? FAMILY_COND_CATALOG.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
-  const customName = trimmedQuery;
-  const customVisible = searching && !FAMILY_COND_CATALOG.some((n) => n.toLowerCase() === customName.toLowerCase());
 
   const openPanel = (condition: string) => {
     setEditingIndex(null);
@@ -466,11 +447,11 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
   const toggleNone = () => update((s) => ({ familyNone: !s.familyNone, familyHistory: s.familyNone ? s.familyHistory : [] }));
 
   const renderPanel = (mode: "add" | "edit") => (
-    <Reveal className="border-t border-[var(--iv2-border)] bg-white p-4">
+    <Reveal className="border-t border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
       <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-primary)]">
         Who in your family has this condition? <span className="text-[var(--iv2-danger)]">*</span>
       </div>
-      <div className={`max-h-[220px] overflow-y-auto rounded-xl border bg-white ${attempted && !draftRelations.length ? "border-[var(--iv2-danger)]" : "border-[var(--iv2-border)]"}`}>
+      <div className={`max-h-[220px] overflow-y-auto rounded-xl border bg-[var(--iv2-surface)] ${attempted && !draftRelations.length ? "border-[var(--iv2-danger)]" : "border-[var(--iv2-border)]"}`}>
         {FAMILY_RELATIONSHIPS.map((name, i) => (
           <button
             key={name}
@@ -490,7 +471,7 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
         <button
           type="button"
           onClick={mode === "add" ? closePanel : cancelEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
         >
           Cancel
         </button>
@@ -505,41 +486,20 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
     </Reveal>
   );
 
-  const renderRow = (name: string) => {
-    const expanded = expandedKey === name;
-    return (
-      <div key={name} className={`overflow-hidden rounded-2xl border transition-colors ${expanded ? "border-[var(--iv2-brand)]" : "border-[var(--iv2-border)]"}`}>
-        <button
-          type="button"
-          onClick={() => (expanded ? closePanel() : openPanel(name))}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-3 bg-white px-4 py-3.5 text-left hover:border-[var(--iv2-brand)]"
-        >
-          <Checkbox22 checked={expanded} />
-          <span className="truncate text-[15px] font-semibold" style={{ color: expanded ? "var(--iv2-brand)" : "var(--iv2-text-primary)" }}>
-            {highlightMatch(name, trimmedQuery)}
-          </span>
-        </button>
-        {expanded ? renderPanel("add") : null}
-      </div>
-    );
-  };
+  const renderChip = (name: string) => <CatalogChip key={name} label={name} query={trimmedQuery} selected={expandedKey === name} onClick={() => (expandedKey === name ? closePanel() : openPanel(name))} />;
 
-  const renderCustomRow = () => {
-    const expanded = expandedKey === customName;
-    return (
-      <div className={`overflow-hidden rounded-2xl border transition-colors ${expanded ? "border-[var(--iv2-brand)]" : "border-dashed border-[var(--iv2-border-strong)]"}`}>
-        <button
-          type="button"
-          onClick={() => (expanded ? closePanel() : openPanel(customName))}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-2 bg-white px-4 py-3.5 text-left"
-        >
-          <Checkbox22 checked={expanded} />
-          <span className="truncate text-[15px] font-semibold text-[var(--iv2-brand)]">Add &ldquo;{customName}&rdquo;</span>
-        </button>
-        {expanded ? renderPanel("add") : null}
+  // The relatives-picker panel now sits once below the whole chip group
+  // (not under whichever chip was tapped, which a wrapping row can't do
+  // cleanly) — its own header names the condition being configured,
+  // since the chip itself no longer doubles as that label.
+  const expandedPanel = expandedKey ? (
+    <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
+      <div className="bg-[var(--iv2-surface)] px-4 py-3">
+        <span className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{expandedKey}</span>
       </div>
-    );
-  };
+      {renderPanel("add")}
+    </div>
+  ) : null;
 
   return (
     <div>
@@ -553,7 +513,7 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
             node:
               editingIndex === i ? (
                 <div className="overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
-                  <div className="flex items-center justify-between gap-3 bg-white px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-3 bg-[var(--iv2-surface)] px-4 py-3.5">
                     <span className="truncate text-[15px] font-bold text-[var(--iv2-text-primary)]">{parseFamilyEntry(f).condition}</span>
                   </div>
                   {renderPanel("edit")}
@@ -578,30 +538,37 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
         <SearchClearInput value={query} onChange={setQuery} placeholder="Search by condition name" disabled={none} />
 
         {searching ? (
-          <div className="mt-2.5 max-h-[280px] overflow-y-auto">
-            <div className="flex flex-col gap-2.5 pr-0.5">
-              {searchMatches.map(renderRow)}
-              {customVisible ? renderCustomRow() : null}
-              {!searchMatches.length && !customVisible ? (
-                <div className="py-2 text-[15px] text-[var(--iv2-text-muted)]">No matches for &ldquo;{customName}&rdquo;.</div>
-              ) : null}
-            </div>
-          </div>
+          <>
+            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Search results</div>
+            {searchMatches.length ? (
+              <div className="max-h-[280px] overflow-y-auto">
+                <div className="flex flex-wrap gap-2 pr-0.5">{searchMatches.map(renderChip)}</div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[var(--iv2-border-strong)] px-5 py-8 text-center">
+                <div className="text-[15px] font-semibold text-[var(--iv2-text-primary)]">
+                  No matches for &ldquo;<span className="font-extrabold">{trimmedQuery}</span>&rdquo;.
+                </div>
+                <div className="mt-1 text-sm text-[var(--iv2-text-muted)]">Check the spelling or try the generic name.</div>
+              </div>
+            )}
+          </>
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-col gap-2.5">{commonVisible.map(renderRow)}</div>
+            <div className="flex flex-wrap gap-2">{commonVisible.map(renderChip)}</div>
             {commonHiddenCount > 0 ? (
               <button
                 type="button"
                 onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-white text-[15px] font-bold text-[var(--iv2-text-primary)]"
+                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
               >
                 Show more ({commonHiddenCount})
               </button>
             ) : null}
           </>
         )}
+        {expandedPanel}
       </div>
 
       <div className="mt-3.5">
@@ -633,7 +600,7 @@ function BottomSheetLike({
   if (!open) return null;
   return (
     <div className="absolute inset-0 z-[75] flex flex-col justify-end bg-[rgba(16,24,40,0.4)]" onClick={onClose}>
-      <div className="flex flex-col rounded-t-[24px] bg-white px-5 pt-3 pb-[30px]" onClick={(e) => e.stopPropagation()}>
+      <div className="flex flex-col rounded-t-[24px] bg-[var(--iv2-surface)] px-5 pt-3 pb-[30px]" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-4 h-[5px] w-11 shrink-0 rounded-full bg-[var(--iv2-border)]" />
         <div className="mb-5 text-xl leading-[1.35] font-bold text-[var(--iv2-text-primary)]">
           Remove {name} from your {noun}?
@@ -641,7 +608,7 @@ function BottomSheetLike({
         <button
           type="button"
           onClick={onClose}
-          className="h-[54px] w-full cursor-pointer rounded-2xl border-[1.5px] border-[var(--iv2-border)] bg-white text-base font-bold text-[var(--iv2-text-primary)]"
+          className="h-[54px] w-full cursor-pointer rounded-2xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-base font-bold text-[var(--iv2-text-primary)]"
         >
           Keep it
         </button>

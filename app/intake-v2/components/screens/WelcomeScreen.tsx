@@ -18,17 +18,17 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
   const readiness = state.intakeCompleted ? 100 : isRet ? 80 : 35;
   const chips = isRet
     ? [
-        { label: "Confirmed", color: "#1677E8", bg: "#EAF2FE" },
+        { label: "Confirmed", color: "var(--iv2-brand)", bg: "var(--iv2-brand-tint)" },
         { label: "Most info on file", color: "#067647", bg: "#ECFDF3" },
       ]
     : [
-        { label: "Confirmed", color: "#1677E8", bg: "#EAF2FE" },
+        { label: "Confirmed", color: "var(--iv2-brand)", bg: "var(--iv2-brand-tint)" },
         { label: "Complete intake", color: "#B54708", bg: "#FFFAEB" },
       ];
 
   return (
     <div className="min-h-full bg-[var(--iv2-surface-muted)]">
-      <div className="flex items-start justify-between gap-4 bg-white px-6 pt-6 pb-[22px]">
+      <div className="flex items-start justify-between gap-4 bg-[var(--iv2-surface)] px-6 pt-6 pb-[22px]">
         <div>
           <div className="text-[13px] font-semibold tracking-[0.08em] text-[var(--iv2-text-muted)] uppercase">Good morning</div>
           <div className="mt-1.5 text-[32px] leading-[1.15] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.patientName.split(" ")[0]}</div>
@@ -39,7 +39,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
       <div className="px-5 pt-5.5 pb-7">
         <div className="mb-2.5 text-xs font-semibold tracking-[0.08em] text-[var(--iv2-text-muted)] uppercase">Your visit</div>
 
-        <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-start gap-4 p-5.5">
             <div className="min-w-0 flex-1">
               <div className="text-2xl leading-[1.2] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.reason}</div>
@@ -67,8 +67,8 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
           </div>
 
           <div className="flex items-center gap-3.5 border-t border-[var(--iv2-border-subtle)] p-4">
-            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface-muted)]" style={{ height: 38, width: 38 }}>
-              <CalendarIcon />
+            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-brand-tint)]" style={{ height: 38, width: 38 }}>
+              <CalendarIcon color="var(--iv2-brand)" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Date</div>
@@ -77,8 +77,8 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
           </div>
 
           <div className="flex items-center gap-3.5 border-t border-[var(--iv2-border-subtle)] p-4">
-            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface-muted)]" style={{ height: 38, width: 38 }}>
-              <LocationIcon />
+            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-brand-tint)]" style={{ height: 38, width: 38 }}>
+              <LocationIcon color="var(--iv2-brand)" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Location</div>
@@ -87,8 +87,8 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
           </div>
 
           <div className="flex items-center gap-3.5 border-t border-[var(--iv2-border-subtle)] p-4">
-            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface-muted)]" style={{ height: 38, width: 38 }}>
-              <ClockIcon />
+            <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-brand-tint)]" style={{ height: 38, width: 38 }}>
+              <ClockIcon color="var(--iv2-brand)" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Start time</div>
@@ -96,7 +96,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
             </div>
             <button
               type="button"
-              className="shrink-0 cursor-pointer rounded-[10px] border border-[var(--iv2-border)] bg-white px-3.5 py-2.5 text-[15px] font-semibold text-[var(--iv2-brand)]"
+              className="shrink-0 cursor-pointer rounded-[10px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-3.5 py-2.5 text-[15px] font-semibold text-[var(--iv2-brand)]"
               onClick={() => ctx.update({ privacyOpen: true })}
             >
               Add
@@ -118,7 +118,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
         <div className="mt-6.5 mb-2.5 text-xs font-semibold tracking-[0.08em] text-[var(--iv2-text-muted)] uppercase">What to do</div>
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3.5 rounded-[18px] border border-[var(--iv2-border)] bg-white p-4">
+          <div className="flex items-center gap-3.5 rounded-[18px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iv2-warning-surface)]">
               <CardIcon />
             </div>
@@ -135,8 +135,8 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
             </button>
           </div>
 
-          <div className="flex items-center gap-3.5 rounded-[18px] border border-[var(--iv2-border)] bg-white p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iv2-surface-muted)]">
+          <div className="flex items-center gap-3.5 rounded-[18px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iv2-brand-tint)]">
               <ArrowUploadIcon />
             </div>
             <div className="min-w-0 flex-1">
@@ -148,13 +148,13 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
             <button
               type="button"
               onClick={ctx.next}
-              className="shrink-0 cursor-pointer rounded-[10px] border border-[var(--iv2-border)] bg-white px-4 py-2.5 text-[15px] font-semibold text-[var(--iv2-text-primary)]"
+              className="shrink-0 cursor-pointer rounded-[10px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-4 py-2.5 text-[15px] font-semibold text-[var(--iv2-text-primary)]"
             >
               {isRet ? "Review" : "Add"}
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-[18px] border border-[var(--iv2-border)] bg-white">
+          <div className="overflow-hidden rounded-[18px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)]">
             <div className="flex items-center gap-2.5 border-b border-[var(--iv2-border-subtle)] p-4">
               <InfoIcon size={22} />
               <div className="text-[17px] font-semibold text-[var(--iv2-text-primary)]">Before you arrive</div>
@@ -195,8 +195,8 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
 function ArrowUploadIcon() {
   return (
     <svg width={19} height={19} viewBox="0 0 24 24" fill="none">
-      <path d="M12 16V4M7 9l5-5 5 5" stroke="#667085" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 16v3.5h16V16" stroke="#667085" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 16V4M7 9l5-5 5 5" stroke="var(--iv2-brand)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 16v3.5h16V16" stroke="var(--iv2-brand)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -2,7 +2,7 @@
 
 :root {
   --background: #f4f6f9;
-  --foreground: #0d1f2d;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -47,38 +47,73 @@ body {
    languages coexist in this codebase on purpose, see that README's
    "About the Design Files" section. */
 :root {
-  --iv2-brand: #1677e8;
-  --iv2-brand-hover: #1257c4;
-  --iv2-brand-tint: #eaf2fe;
-  --iv2-brand-surface: #f5f9ff;
-  --iv2-brand-gradient: linear-gradient(135deg, #1a56b0, #1677e8);
-  --iv2-text-primary: #101828;
-  --iv2-text-secondary: #667085;
-  --iv2-text-muted: #98a2b3;
-  --iv2-border: #e4e7ec;
-  --iv2-border-subtle: #f2f4f7;
-  --iv2-border-strong: #d0d5dd;
-  --iv2-surface: #ffffff;
-  --iv2-surface-muted: #f7f8fa;
+  /* "Warm Clinical Calm" design system — the canonical named tokens
+     from the spec, plus every existing --iv2-* semantic token remapped
+     onto them. Component files keep referencing the same --iv2-*
+     names as always (Card, InputField, OptionPill, Footer, ...), so
+     the whole route restyles from this one place rather than needing
+     a per-component pass — only components that hard-coded a hex
+     value instead of a token (rare — PhoneFrame's own chrome, a couple
+     of gradients) need touching directly. */
+  --canvas: #fbfcfd;
+  --panel: #ffffff;
+  --ink: #1b2624;
+  --ink-soft: #66756e;
+  --ink-faint: #94a19b;
+  --hair: #dde4e0;
+  /* Primary swapped to Google blue (the brand's own #4285F4, with its
+     Material "hover" shade #3367D6) per direct request — every CTA
+     button, selected pill/radio, link, and focus ring routes through
+     this one --accent token via --iv2-brand below, so the swap
+     restyles the whole route's color theme from this one place rather
+     than needing a per-component pass. Tint/surface are this same
+     blue's own pale tonal steps (Material's blue-50/blue-25
+     equivalents) so icon-badge backgrounds and hover states stay in
+     the same hue family instead of reading as leftover neutral gray. */
+  --accent: #4285f4;
+  --accent-hover: #3367d6;
+  --accent-tint: #e8f0fe;
+  --font-serif-headline: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+
+  --iv2-brand: var(--accent);
+  --iv2-brand-hover: var(--accent-hover);
+  --iv2-brand-tint: var(--accent-tint);
+  --iv2-brand-surface: #f2f7fe;
+  --iv2-brand-gradient: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  --iv2-text-primary: var(--ink);
+  --iv2-text-secondary: var(--ink-soft);
+  --iv2-text-muted: var(--ink-faint);
+  --iv2-border: var(--hair);
+  --iv2-border-subtle: #eaefec;
+  --iv2-border-strong: #c7d1cb;
+  --iv2-surface: var(--panel);
+  --iv2-surface-muted: #fbfcfd;
+  /* The shared Card component's own border — a dedicated token (not
+     --iv2-border, which every other bordered element like InputField/
+     OptionPill still uses) so this only restyles Card, not every
+     border in the app. */
+  --iv2-card-border: #e7edf6;
   --iv2-success: #067647;
   --iv2-success-surface: #ecfdf3;
   --iv2-success-border: #abefc6;
+  /* Amber/terracotta stays its own register per spec — same-day-urgent
+     and "needs a quick look" states, never mixed with --accent on one
+     screen. */
   --iv2-warning: #b54708;
   --iv2-warning-surface: #fffaeb;
   --iv2-warning-border: #fedf89;
   --iv2-warning-border-strong: #fec84b;
   --iv2-danger: #b42318;
   --iv2-danger-surface: #fef3f2;
-  --iv2-disabled-bg: #eaecf0;
-  --iv2-disabled-fg: #98a2b3;
-  --iv2-scan-bg: #eff7fe;
-  --iv2-scan-border: #a9d3f5;
-  --iv2-scan-sub: #5a9bd8;
-  --iv2-card-gradient: linear-gradient(135deg, #0e5f63, #127c74);
+  --iv2-disabled-bg: #e6eae7;
+  --iv2-disabled-fg: var(--ink-faint);
+  --iv2-scan-bg: var(--accent-tint);
+  --iv2-scan-border: #a9b0b8;
+  --iv2-scan-sub: #5c6672;
+  --iv2-card-gradient: linear-gradient(135deg, var(--ink), var(--accent));
   /* Yosi Health's own wordmark teal (YosiHealthLogo.tsx) — deliberately
-     separate from --iv2-brand's blue; the practice-mark logo keeps its
-     own brand color even though the rest of this route is white-label
-     blue. */
+     separate from --iv2-brand; the practice-mark logo keeps its own
+     brand color even though the rest of this route is now charcoal-navy. */
   --iv2-yosi-teal: #0e9f8a;
 }
 

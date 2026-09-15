@@ -12,7 +12,7 @@ import { ScreenCopy, ScreenTitle } from "../ui";
 // here would just be noise.
 export function FamilyHistoryScreen({ ctx }: { ctx: Ctx }) {
   return (
-    <div className="px-6 pt-8 pb-6">
+    <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Family Health History</ScreenTitle>
       <ScreenCopy className="mb-6">Any conditions that run in the family? Immediate family: parents, siblings, grandparents.</ScreenCopy>
       <FamilyEditor ctx={ctx} />
