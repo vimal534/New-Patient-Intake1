@@ -36,7 +36,7 @@ export function ConsentOnFileScreen({ ctx }: { ctx: Ctx }) {
               {state.agreed ? "✓" : ""}
             </span>
             <div className="text-[15px] leading-[1.45] font-semibold text-[var(--iv2-text-primary)]">
-              I have read and agree to the consent to treat on behalf of {signerName}.
+              I have read and agree to the consent to treat on behalf of {state.scheduling.patientName}.
             </div>
           </button>
 

@@ -2,6 +2,7 @@
 
 import { Ctx } from "../../ctx";
 import { ArrowRightIcon, BoltIcon, LockIcon, PhoneIcon, ShieldCheckIcon } from "../Icons";
+import { Button } from "../ui";
 
 // Screen 0 (new) — Verify intro. Sits before the OTP auto-fill screen —
 // "Text me a code" advances into that existing flow; this screen only
@@ -68,22 +69,14 @@ export function VerifyIntroScreen({ ctx }: { ctx: Ctx }) {
       </div>
 
       <div className="mt-auto pt-8">
-        <button
-          type="button"
-          onClick={next}
-          className="flex h-14 w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl border-none bg-[var(--iv2-brand)] text-base font-bold text-white hover:bg-[var(--iv2-brand-hover)] active:scale-[0.98]"
-        >
+        <Button onClick={next} className="h-14 w-full">
           Text me a code
           <ArrowRightIcon />
-        </button>
+        </Button>
 
-        <button
-          type="button"
-          onClick={() => update({ identityFallbackOpen: true })}
-          className="mt-2 h-11 w-full cursor-pointer border-none bg-transparent text-[15px] font-semibold text-[var(--iv2-text-muted)] hover:text-[var(--iv2-brand)]"
-        >
+        <Button variant="tertiary" onClick={() => update({ identityFallbackOpen: true })} className="mt-2 h-11 w-full">
           That&apos;s not me
-        </button>
+        </Button>
       </div>
     </div>
   );

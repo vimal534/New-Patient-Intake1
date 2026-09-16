@@ -5,7 +5,7 @@ import { Ctx } from "../ctx";
 import { MED_DETAILS, MED_UNITS, PEDI_MED_CATALOG } from "../constants";
 import { formatDigits } from "../format";
 import { CatalogItem } from "../types";
-import { BottomSheet, CatalogChip, Checkbox22, InputField, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
+import { BottomSheet, Button, CatalogChip, Checkbox22, InputField, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
 
 const CATALOG_VISIBLE = 4;
 const SEARCH_MIN_CHARS = 2;
@@ -140,20 +140,12 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
         {attempted && !draft.frequency ? <div className="mt-1 text-xs font-semibold text-[var(--iv2-danger)]">Frequency is required</div> : null}
       </div>
       <div className="mt-4 flex gap-2.5">
-        <button
-          type="button"
-          onClick={mode === "add" ? closePanel : cancelEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-        >
+        <Button variant="secondary" size="sm" onClick={mode === "add" ? closePanel : cancelEdit} className="h-12 flex-1">
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={mode === "add" ? confirmAdd : confirmEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-none bg-[var(--iv2-brand)] text-[15px] font-bold text-white"
-        >
+        </Button>
+        <Button size="sm" onClick={mode === "add" ? confirmAdd : confirmEdit} className="h-12 flex-1">
           {mode === "edit" ? "Save changes" : "Confirm"}
-        </button>
+        </Button>
       </div>
     </Reveal>
   );

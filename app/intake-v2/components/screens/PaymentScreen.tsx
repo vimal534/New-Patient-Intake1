@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Ctx } from "../../ctx";
 import { CalendarIcon, CardIcon, ChevronRightIcon, LockIcon, MailIcon, ShieldCheckIcon } from "../Icons";
-import { Card, Divider, Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
+import { Button, Card, Divider, Eyebrow, InputField, ScreenCopy, ScreenTitle } from "../ui";
 
 const BRAND_LABEL: Record<string, string> = { MC: "Mastercard", AMEX: "Amex", VISA: "Visa" };
 const BRAND_MARK_BG: Record<string, string> = { AMEX: "#1677E8", MC: "#EB5C1E", VISA: "#1A56B0" };
@@ -164,23 +164,12 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
         <div className="rounded-[22px] border border-[var(--iv2-brand)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]" style={{ background: "var(--iv2-warning-surface)" }}>
           <InputField label="Email receipt" value={draftEmail} placeholder="name@email.com" inputMode="email" onChange={setDraftEmail} />
           <div className="mt-3.5 flex gap-2.5">
-            <button
-              type="button"
-              onClick={() => setEditingEmail(false)}
-              className="h-11 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setEditingEmail(false)} className="h-11 flex-1">
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={saveEmailEdit}
-              disabled={!draftEmail.trim()}
-              className={`h-11 flex-1 rounded-xl border-none text-[15px] font-bold ${
-                draftEmail.trim() ? "cursor-pointer bg-[var(--iv2-brand)] text-white" : "cursor-not-allowed bg-[var(--iv2-disabled-bg)] text-[var(--iv2-disabled-fg)]"
-              }`}
-            >
+            </Button>
+            <Button size="sm" onClick={saveEmailEdit} disabled={!draftEmail.trim()} className="h-11 flex-1">
               Save
-            </button>
+            </Button>
           </div>
         </div>
       ) : (

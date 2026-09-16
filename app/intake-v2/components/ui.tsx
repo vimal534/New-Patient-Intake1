@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, ReactNode, RefObject, useEffect, useId, useRef, useState } from "react";
+import { ButtonHTMLAttributes, CSSProperties, ReactNode, RefObject, useEffect, useId, useRef, useState } from "react";
 import gsap from "gsap";
 import { CheckIcon, ChevronDownIcon, PencilIcon, SearchIcon, TrashIcon, XIcon } from "./Icons";
 import {
@@ -41,6 +41,66 @@ export function Card({ children, className = "", padded = true }: { children: Re
 
 export function Divider({ className = "", style }: { className?: string; style?: CSSProperties }) {
   return <div className={`h-px bg-[var(--iv2-border-subtle)] ${className}`} style={style} />;
+}
+
+// The one shared button primitive for every screen outside the sticky
+// Footer (which keeps its own primary/secondary/tertiary markup — it's
+// the busiest, most performance-sensitive spot and already matches
+// this exact visual spec). Before this, every other screen that needed
+// a CTA hand-rolled its own copy — a full-page primary/secondary/
+// tertiary trio (VerifyIntroScreen, WelcomeScreen, IdentityFallbackScreen)
+// and, separately, an in-card Cancel/Confirm pair (ConsentDiscloseScreen,
+// ConsentScreen's signature step, MedicationsSection/HealthCategoryEditors'
+// detail-panel actions, PaymentScreen's email edit, ...) — each drifting
+// slightly (17px vs 16px label, h-11 vs h-12, rounded-2xl vs rounded-xl,
+// missing hover/disabled states). `size` captures those as two
+// deliberate, named weights instead of one more ad hoc mix:
+//   - "lg" — a page-level CTA (rounded-2xl, 16px label). Pair with
+//     h-14 (primary/secondary alone) or h-12 (side-by-side in a row).
+//   - "sm" — an in-card panel action (rounded-xl, 15px label, h-12).
+// Callers still own height/width via `className` (h-12, h-14, flex-1,
+// w-full, ...) — this only owns color, border, radius, label size/
+// weight, and the tap/disabled states, so a variant is never fought
+// with an override to fit a given spot.
+const BUTTON_SIZES: Record<"lg" | "sm", string> = {
+  lg: "rounded-2xl text-base font-bold",
+  sm: "rounded-xl text-[15px] font-bold",
+};
+const BUTTON_VARIANTS: Record<"primary" | "secondary" | "tertiary" | "danger", string> = {
+  primary: "border-none bg-[var(--iv2-brand)] text-white hover:bg-[var(--iv2-brand-hover)]",
+  secondary:
+    "border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:text-[var(--iv2-brand)]",
+  tertiary: "border-none bg-transparent text-[15px] font-semibold text-[var(--iv2-text-muted)] hover:text-[var(--iv2-brand)] active:scale-100",
+  danger: "border-none bg-[var(--iv2-danger)] text-white hover:opacity-90",
+};
+const BUTTON_DISABLED = "cursor-not-allowed bg-[var(--iv2-disabled-bg)] text-[var(--iv2-disabled-fg)] active:scale-100";
+
+export function Button({
+  variant = "primary",
+  size = "lg",
+  disabled = false,
+  className = "",
+  children,
+  ...rest
+}: {
+  variant?: "primary" | "secondary" | "tertiary" | "danger";
+  size?: "lg" | "sm";
+  disabled?: boolean;
+  className?: string;
+  children: ReactNode;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "disabled">) {
+  const sizeClasses = variant === "tertiary" ? "" : BUTTON_SIZES[size];
+  const colorClasses = disabled && variant !== "tertiary" ? BUTTON_DISABLED : BUTTON_VARIANTS[variant];
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={`flex cursor-pointer items-center justify-center gap-2 transition-colors duration-150 active:scale-[0.98] ${sizeClasses} ${colorClasses} ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
 }
 
 // Wraps a field/panel that only exists because an earlier answer

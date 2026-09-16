@@ -58,7 +58,7 @@ export function ShieldCheckIcon({ size = 26, color = "var(--iv2-brand)", strokeW
   );
 }
 
-export function CheckIcon({ size = 15, color = "#067647", strokeWidth = 2.6 }: IconProps & { strokeWidth?: number }) {
+export function CheckIcon({ size = 15, color = "var(--iv2-success)", strokeWidth = 2.6 }: IconProps & { strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M4 12.5l5 5L20 6.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -126,7 +126,7 @@ export function ClockIcon({ size = 17, color = "var(--iv2-text-secondary)" }: Ic
   );
 }
 
-export function CardIcon({ size = 19, color = "#B54708" }: IconProps) {
+export function CardIcon({ size = 19, color = "var(--iv2-warning)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="2.5" y="6" width="19" height="12" rx="2.5" stroke={color} strokeWidth={1.8} />
@@ -172,7 +172,7 @@ export function LockIcon({ size = 12, color = "var(--iv2-text-secondary)" }: Ico
   );
 }
 
-export function ShieldLockIcon({ size = 17, color = "#067647" }: IconProps) {
+export function ShieldLockIcon({ size = 17, color = "var(--iv2-success)" }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path

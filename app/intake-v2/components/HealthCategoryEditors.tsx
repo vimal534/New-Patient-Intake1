@@ -7,7 +7,7 @@ import { SurgeryItem, SurgeryOccurrence } from "../types";
 import { AllergiesSection } from "./AllergiesSection";
 import { ConditionAddSection } from "./ConditionAddSection";
 import { MedicationsSection } from "./MedicationsSection";
-import { CatalogChip, Checkbox22, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
+import { Button, CatalogChip, Checkbox22, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
 
 const FAMILY_COND_CATALOG = [...COMMON_CONDS, ...MORE_CONDS];
 const CATALOG_VISIBLE = 4;
@@ -207,20 +207,12 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
         + {draftOccurrences.length > 1 ? "Add another date" : "I had this surgery more than once"}
       </button>
       <div className="mt-4 flex gap-2.5">
-        <button
-          type="button"
-          onClick={mode === "add" ? closePanel : cancelEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-        >
+        <Button variant="secondary" size="sm" onClick={mode === "add" ? closePanel : cancelEdit} className="h-12 flex-1">
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={mode === "add" ? confirmAdd : confirmEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-none bg-[var(--iv2-brand)] text-[15px] font-bold text-white"
-        >
+        </Button>
+        <Button size="sm" onClick={mode === "add" ? confirmAdd : confirmEdit} className="h-12 flex-1">
           {mode === "edit" ? "Save changes" : "Confirm"}
-        </button>
+        </Button>
       </div>
     </Reveal>
   );
@@ -468,20 +460,12 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
       </div>
       {attempted && !draftRelations.length ? <div className="mt-1 text-xs font-semibold text-[var(--iv2-danger)]">Select at least one relative</div> : null}
       <div className="mt-4 flex gap-2.5">
-        <button
-          type="button"
-          onClick={mode === "add" ? closePanel : cancelEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-        >
+        <Button variant="secondary" size="sm" onClick={mode === "add" ? closePanel : cancelEdit} className="h-12 flex-1">
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={mode === "add" ? confirmAdd : confirmEdit}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-none bg-[var(--iv2-brand)] text-[15px] font-bold text-white"
-        >
+        </Button>
+        <Button size="sm" onClick={mode === "add" ? confirmAdd : confirmEdit} className="h-12 flex-1">
           {mode === "edit" ? "Save changes" : "Confirm"}
-        </button>
+        </Button>
       </div>
     </Reveal>
   );

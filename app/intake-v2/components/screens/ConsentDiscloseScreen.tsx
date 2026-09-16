@@ -5,7 +5,7 @@ import { EMERGENCY_RELATIONSHIP_OPTIONS } from "../../constants";
 import { ShieldUserIcon } from "../Icons";
 import { PhoneField } from "../SmartField";
 import { AuthorizedPerson } from "../../types";
-import { CloseCircleButton, IconActionButton, InputField, OptionRow, RadioRow, Reveal, ScreenCopy, ScreenTitle } from "../ui";
+import { Button, CloseCircleButton, IconActionButton, InputField, OptionRow, RadioRow, Reveal, ScreenCopy, ScreenTitle } from "../ui";
 
 const EMPTY_DRAFT: AuthorizedPerson = { name: "", relationship: "", phone: "" };
 
@@ -165,26 +165,12 @@ function AuthPersonPanel({
         <PhoneField label="Phone number" value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
       </div>
       <div className="mt-4 flex gap-2.5">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="h-12 flex-1 cursor-pointer rounded-xl border-[1.5px] border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-        >
+        <Button variant="secondary" size="sm" onClick={onCancel} className="h-12 flex-1">
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={!ready}
-          className="h-12 flex-1 rounded-xl border-none text-[15px] font-bold"
-          style={{
-            backgroundColor: ready ? "var(--iv2-brand)" : "var(--iv2-disabled-bg)",
-            color: ready ? "#fff" : "var(--iv2-disabled-fg)",
-            cursor: ready ? "pointer" : "not-allowed",
-          }}
-        >
+        </Button>
+        <Button size="sm" onClick={onConfirm} disabled={!ready} className="h-12 flex-1">
           {mode === "edit" ? "Save changes" : "Add person"}
-        </button>
+        </Button>
       </div>
     </Reveal>
   );

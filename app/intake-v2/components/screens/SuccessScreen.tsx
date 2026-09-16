@@ -44,7 +44,7 @@ const CHECKLIST: { label: string; detail: string; candidates: FlowKey[] }[] = [
 // carrying on to whatever's next in the original flow order. See
 // IntakeState.reviewingFromSuccess and page.tsx's footerFor override.
 export function SuccessScreen({ ctx }: { ctx: Ctx }) {
-  const { go, update, reviewSection, flow } = ctx;
+  const { state, go, update, reviewSection, flow } = ctx;
   const checklist = CHECKLIST.map((item) => ({ ...item, target: item.candidates.find((c) => flow.includes(c)) })).filter(
     (item): item is (typeof CHECKLIST)[number] & { target: FlowKey } => item.target != null
   );
@@ -85,53 +85,55 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
       <div className="mb-2 text-[26px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">You&apos;re all set!</div>
       <div className="mb-7 text-base leading-[1.5] text-[var(--iv2-text-secondary)]">We&apos;ll see you soon.</div>
 
-      <div
-        className="rounded-[28px] border border-white/70 p-4 text-left shadow-[0_16px_40px_rgba(15,23,42,0.12)] backdrop-blur-xl"
-        style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.75), var(--iv2-brand-tint) 120%)" }}
-      >
+      <div className="rounded-[24px] border border-[var(--iv2-border-subtle)] bg-[var(--iv2-surface)] p-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md">
-            <CalendarIcon size={20} color="var(--iv2-brand)" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
+            <CalendarIcon size={18} color="var(--iv2-brand)" />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-[11px] font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Your appointment</div>
-            <div className="mt-0.5 text-lg leading-[1.3] font-bold text-[var(--iv2-text-primary)]">Wednesday, June 11</div>
-            <div className="text-[15px] text-[var(--iv2-text-secondary)]">8:00 AM · In-person visit</div>
+            <div className="text-base leading-[1.3] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.dateLong}</div>
+            <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.startTime}</div>
           </div>
+          <span className="mt-0.5 flex shrink-0 items-center gap-1 rounded-full bg-[var(--iv2-success-surface)] px-3 py-1 text-[13px] font-bold text-[var(--iv2-success)]">
+            Confirmed
+          </span>
         </div>
 
-        <div className="my-4 h-px bg-white/60" />
+        <div className="my-4 h-px bg-[var(--iv2-border-subtle)]" />
 
         <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md">
-            <UserIcon size={20} color="var(--iv2-brand)" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#F3E8FF" }}>
+            <UserIcon size={18} color="#7C3AED" />
           </span>
-          <div>
-            <div className="text-base font-bold text-[var(--iv2-text-primary)]">Dr. Sarah Jenkins</div>
-            <div className="text-[15px] text-[var(--iv2-text-secondary)]">Family Medicine</div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Provider</div>
+            <div className="text-base leading-[1.3] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.providerName}</div>
+            <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.providerSpecialty}</div>
           </div>
         </div>
 
-        <div className="my-4 h-px bg-white/60" />
+        <div className="my-4 h-px bg-[var(--iv2-border-subtle)]" />
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 backdrop-blur-md">
-              <LocationIcon size={19} color="var(--iv2-brand)" />
-            </span>
-            <div>
-              <div className="text-base font-bold text-[var(--iv2-text-primary)]">Main St. Clinic</div>
-              <div className="text-[13px] text-[var(--iv2-text-secondary)]">123 Main Street, Anytown, TX 78701</div>
-            </div>
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#FFEDD5" }}>
+            <LocationIcon size={17} color="#F97316" />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Location</div>
+            <div className="text-base leading-[1.3] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.clinicName}</div>
+            <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.clinicAddress}</div>
           </div>
-          <button
-            type="button"
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-none bg-[var(--iv2-surface)] px-3 py-1.5 text-[13px] font-bold whitespace-nowrap text-[var(--iv2-brand)]"
-          >
-            <SendIcon size={13} color="var(--iv2-brand)" />
-            Get directions
-          </button>
         </div>
+
+        <button
+          type="button"
+          className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[var(--iv2-brand-tint)] py-3.5 text-[15px] font-bold text-[var(--iv2-brand)]"
+        >
+          <SendIcon size={15} color="var(--iv2-brand)" />
+          Get directions
+          <ChevronRightIcon color="var(--iv2-brand)" />
+        </button>
       </div>
 
       <div className="mt-7 mb-3 flex items-center justify-between">
@@ -142,20 +144,20 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        {checklist.map((item, i) => (
+      <div className="flex flex-col gap-2">
+        {checklist.map((item) => (
           <button
             key={item.label}
             type="button"
             onClick={() => reviewSection(item.target)}
-            className={`flex w-full cursor-pointer items-center gap-3 p-4 text-left ${i > 0 ? "border-t border-[var(--iv2-border-subtle)]" : ""}`}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-4 py-2.5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-success-surface)]">
-              <CheckIcon size={13} color="var(--iv2-success)" strokeWidth={3} />
+            <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-success-surface)]">
+              <CheckIcon size={12} color="var(--iv2-success)" strokeWidth={3} />
             </span>
             <span className="min-w-0 flex-1">
-              <div className="text-base font-semibold text-[var(--iv2-text-primary)]">{item.label}</div>
-              <div className="mt-0.5 text-[13px] text-[var(--iv2-text-secondary)]">{item.detail}</div>
+              <div className="text-[15px] font-semibold text-[var(--iv2-text-primary)]">{item.label}</div>
+              <div className="text-[12px] text-[var(--iv2-text-secondary)]">{item.detail}</div>
             </span>
             <ChevronRightIcon />
           </button>

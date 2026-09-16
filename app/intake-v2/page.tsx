@@ -630,7 +630,16 @@ function footerFor(ctx: Ctx): FooterConfig {
     }
     return {
       primaryLabel: "Pay $40.00",
-      primary: () => { update({ paid: true }); ctx.showToast("Payment successful"); next(); },
+      // The toast has to resolve on THIS screen — the one the payment
+      // action actually happened on — before advancing, or it reads as
+      // confirming whatever the next screen is instead. A short beat
+      // (not the toast's own full display time) is enough for the
+      // patient to register it before the transition.
+      primary: () => {
+        update({ paid: true });
+        ctx.showToast("Payment successful");
+        window.setTimeout(next, 900);
+      },
       secondaryLabel: "Pay at the visit",
       secondary: next,
     };

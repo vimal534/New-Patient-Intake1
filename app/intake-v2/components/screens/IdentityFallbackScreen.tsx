@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Ctx } from "../../ctx";
 import { CalendarIcon, ShieldCheckIcon } from "../Icons";
 import { DobField } from "../SmartField";
-import { InputField } from "../ui";
+import { Button, InputField } from "../ui";
 
 // "That's not me," reached from VerifyIntroScreen — the identified
 // PATIENT is wrong (as opposed to "I can't access this number," where
@@ -42,7 +42,7 @@ export function IdentityFallbackScreen({ ctx }: { ctx: Ctx }) {
         <ShieldCheckIcon size={36} />
       </div>
 
-      <div className="mb-3 text-[26px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">Verify a different way</div>
+      <div className="mb-3 text-[28px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">Verify a different way</div>
       <div className="mx-auto mb-7 max-w-[300px] text-base leading-[1.5] text-[var(--iv2-text-secondary)]">
         That number isn&apos;t you. Share a few details to verify your identity.
       </div>
@@ -58,22 +58,13 @@ export function IdentityFallbackScreen({ ctx }: { ctx: Ctx }) {
       </div>
 
       <div className="mt-auto pt-8">
-        <button
-          type="button"
-          onClick={continueVerified}
-          disabled={!ready}
-          className={`h-14 w-full rounded-2xl border-none text-base font-bold active:scale-[0.98] ${
-            ready
-              ? "cursor-pointer bg-[var(--iv2-brand)] text-white hover:bg-[var(--iv2-brand-hover)]"
-              : "cursor-not-allowed bg-[var(--iv2-disabled-bg)] text-[var(--iv2-disabled-fg)]"
-          }`}
-        >
+        <Button onClick={continueVerified} disabled={!ready} className="h-14 w-full">
           Continue
-        </button>
+        </Button>
 
-        <button type="button" onClick={close} className="mt-2 h-11 w-full cursor-pointer border-none bg-transparent text-[15px] font-semibold text-[var(--iv2-text-muted)] hover:text-[var(--iv2-brand)]">
+        <Button variant="tertiary" onClick={close} className="mt-2 h-11 w-full">
           Back to sign in
-        </button>
+        </Button>
       </div>
     </div>
   );

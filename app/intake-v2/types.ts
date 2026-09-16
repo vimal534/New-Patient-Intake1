@@ -215,9 +215,26 @@ export type IntakeState = {
   demoCategoryOpen: "new" | "returning" | null;
 
   // Appointment/scheduling details — sourced from the appointment
-  // request, used by VerifyIntroScreen, WelcomeScreen and others.
-  // Never re-asked anywhere in the flow.
-  scheduling: { patientName: string; age: string; reason: string; providerName: string; providerEmail: string };
+  // request, used by VerifyIntroScreen, WelcomeScreen, SuccessScreen
+  // and others. Never re-asked anywhere in the flow. One record for
+  // the whole visit — `dateLong`/`dateShort` are two display formats
+  // of the same date (not two dates), and every screen that shows the
+  // provider/clinic/date pulls from here rather than keeping its own
+  // copy, so the dashboard and the confirmation screen can't drift
+  // apart the way separately hardcoded copies did.
+  scheduling: {
+    patientName: string;
+    age: string;
+    reason: string;
+    providerName: string;
+    providerEmail: string;
+    providerSpecialty: string;
+    dateLong: string;
+    dateShort: string;
+    startTime: string;
+    clinicName: string;
+    clinicAddress: string;
+  };
 
   otp: string;
   acked: boolean;

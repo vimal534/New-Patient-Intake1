@@ -3,6 +3,7 @@
 import { Ctx } from "../../ctx";
 import { CalendarIcon, InfoIcon, LocationIcon, ClockIcon, ArrowRightIcon, CardIcon, UserIcon } from "../Icons";
 import { ReadinessRing } from "../ReadinessRing";
+import { Button } from "../ui";
 import { YosiHealthLogo } from "../YosiHealthLogo";
 
 const INSTRUCTIONS = [
@@ -19,11 +20,11 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
   const chips = isRet
     ? [
         { label: "Confirmed", color: "var(--iv2-brand)", bg: "var(--iv2-brand-tint)" },
-        { label: "Most info on file", color: "#067647", bg: "#ECFDF3" },
+        { label: "Most info on file", color: "var(--iv2-success)", bg: "var(--iv2-success-surface)" },
       ]
     : [
         { label: "Confirmed", color: "var(--iv2-brand)", bg: "var(--iv2-brand-tint)" },
-        { label: "Complete intake", color: "#B54708", bg: "#FFFAEB" },
+        { label: "Complete intake", color: "var(--iv2-warning)", bg: "var(--iv2-warning-surface)" },
       ];
 
   return (
@@ -56,7 +57,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
                 </div>
                 <div>
                   <div className="text-base font-semibold text-[var(--iv2-text-primary)]">{state.scheduling.providerName}</div>
-                  <div className="text-[15px] text-[var(--iv2-text-secondary)]">Primary Care</div>
+                  <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.providerSpecialty}</div>
                 </div>
               </div>
             </div>
@@ -72,7 +73,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Date</div>
-              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">11 June 2026</div>
+              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">{state.scheduling.dateShort}</div>
             </div>
           </div>
 
@@ -82,7 +83,9 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Location</div>
-              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">102 E 30th St, New York, NY 10016</div>
+              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">
+                {state.scheduling.clinicName}, {state.scheduling.clinicAddress}
+              </div>
             </div>
           </div>
 
@@ -92,7 +95,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Start time</div>
-              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">8:00 AM</div>
+              <div className="mt-0.5 text-base text-[var(--iv2-text-primary)]">{state.scheduling.startTime}</div>
             </div>
             <button
               type="button"
@@ -104,14 +107,10 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
           </div>
 
           <div className="p-5.5 pt-5">
-            <button
-              type="button"
-              onClick={ctx.next}
-              className="flex h-14 w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl border-none bg-[var(--iv2-brand)] text-[17px] font-semibold text-white"
-            >
+            <Button onClick={ctx.next} className="h-14 w-full">
               {isRet ? "Resume check-in" : "Start check-in"}
               <ArrowRightIcon />
-            </button>
+            </Button>
           </div>
         </div>
 

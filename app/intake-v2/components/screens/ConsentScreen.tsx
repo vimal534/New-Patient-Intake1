@@ -14,7 +14,7 @@ const CORE_DOCS = [
   },
   {
     key: "privacy" as const,
-    icon: <ShieldLockIcon size={19} color="#067647" />,
+    icon: <ShieldLockIcon size={19} color="var(--iv2-success)" />,
     iconBg: "var(--iv2-success-surface)",
     title: "Notice of privacy practices",
     subtitle: "How we protect your information",
@@ -41,7 +41,7 @@ const PEDS_NEW_DOCS = [
   },
   {
     key: "immunization" as const,
-    icon: <ShieldCheckIcon size={19} color="#B54708" />,
+    icon: <ShieldCheckIcon size={19} color="var(--iv2-warning)" />,
     iconBg: "var(--iv2-warning-surface)",
     title: "Immunization policy",
     subtitle: "Our vaccine schedule and requirements",
@@ -135,7 +135,7 @@ export function ConsentScreen({ ctx }: { ctx: Ctx }) {
             </span>
             <div>
               <div className="text-[15px] leading-[1.45] font-semibold text-[var(--iv2-text-primary)]">
-                I have read and agree to the policies above on behalf of {signerName}.
+                I have read and agree to the policies above on behalf of {state.scheduling.patientName}.
               </div>
               <div className="mt-1 text-sm leading-[1.45] text-[var(--iv2-text-secondary)]">
                 By checking this box, I confirm that I understand and accept these documents electronically.
