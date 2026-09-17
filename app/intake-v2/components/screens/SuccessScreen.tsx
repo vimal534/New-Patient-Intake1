@@ -85,7 +85,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
       <div className="mb-2 text-[26px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">You&apos;re all set!</div>
       <div className="mb-7 text-base leading-[1.5] text-[var(--iv2-text-secondary)]">We&apos;ll see you soon.</div>
 
-      <div className="rounded-[24px] border border-[var(--iv2-border-subtle)] bg-[var(--iv2-surface)] p-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="rounded-[24px] border border-[var(--iv2-border-subtle)] bg-[var(--iv2-surface)] p-4 text-left transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
             <CalendarIcon size={18} color="var(--iv2-brand)" />
@@ -150,7 +150,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
             key={item.label}
             type="button"
             onClick={() => reviewSection(item.target)}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-4 py-2.5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-4 py-2.5 text-left transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
           >
             <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-success-surface)]">
               <CheckIcon size={12} color="var(--iv2-success)" strokeWidth={3} />

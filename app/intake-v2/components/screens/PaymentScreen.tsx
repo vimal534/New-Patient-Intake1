@@ -62,7 +62,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
 
       {applePaySelected || selCard ? (
         <div
-          className="overflow-hidden rounded-[22px] border border-[var(--iv2-card-border)] shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+          className="overflow-hidden rounded-[22px] border border-[var(--iv2-card-border)] transition-shadow duration-150 hover:shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
           style={{ background: "var(--iv2-brand-surface)" }}
         >
           {applePaySelected ? (
@@ -113,7 +113,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
           <button
             type="button"
             onClick={() => update({ cardSheetOpen: true })}
-            className="flex w-full cursor-pointer items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 text-left shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+            className="flex w-full cursor-pointer items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 text-left transition-shadow duration-150 hover:shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
             style={{ background: "var(--iv2-brand-surface)" }}
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)]">
@@ -129,7 +129,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
           <button
             type="button"
             onClick={() => update({ selectedCardId: "applepay" })}
-            className="mt-2.5 flex w-full cursor-pointer items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 text-left shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+            className="mt-2.5 flex w-full cursor-pointer items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 text-left transition-shadow duration-150 hover:shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
             style={{ background: "var(--iv2-surface-muted)" }}
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)] text-[11px] font-bold text-[var(--iv2-text-primary)]">
@@ -145,7 +145,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
       )}
 
       <div
-        className="mt-3 flex items-start gap-3 rounded-[22px] border border-[var(--iv2-card-border)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
+        className="mt-3 flex items-start gap-3 rounded-[22px] border border-[var(--iv2-card-border)] p-4"
         style={{ background: "var(--iv2-success-surface)" }}
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)]">
@@ -161,7 +161,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
         <Eyebrow muted>Receipt</Eyebrow>
       </div>
       {editingEmail ? (
-        <div className="rounded-[22px] border border-[var(--iv2-brand)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]" style={{ background: "var(--iv2-warning-surface)" }}>
+        <div className="rounded-[22px] border border-[var(--iv2-brand)] bg-[var(--iv2-surface)] p-4">
           <InputField label="Email receipt" value={draftEmail} placeholder="name@email.com" inputMode="email" onChange={setDraftEmail} />
           <div className="mt-3.5 flex gap-2.5">
             <Button variant="secondary" size="sm" onClick={() => setEditingEmail(false)} className="h-11 flex-1">
@@ -173,10 +173,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
       ) : (
-        <div
-          className="flex items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] p-4 shadow-[0_16px_40px_rgba(27,38,36,0.08)]"
-          style={{ background: "var(--iv2-warning-surface)" }}
-        >
+        <div className="flex items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] bg-[var(--iv2-surface)] p-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface)]">
             <MailIcon color="var(--iv2-brand)" />
           </div>

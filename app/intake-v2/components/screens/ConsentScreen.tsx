@@ -85,7 +85,7 @@ export function ConsentScreen({ ctx }: { ctx: Ctx }) {
         {onFile ? "Signed and on file from a previous visit." : "Please read the following documents and agree to continue."}
       </ScreenCopy>
 
-      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {docs.map((doc, i) => (
           <div key={doc.key}>
             {i > 0 ? <Divider /> : null}

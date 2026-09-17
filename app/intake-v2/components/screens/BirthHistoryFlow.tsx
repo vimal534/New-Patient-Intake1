@@ -71,7 +71,7 @@ function YesNoInline({ label, value, onChange }: { label: string; hint?: string;
   return (
     <div>
       <div className="text-base font-bold text-[var(--iv2-text-primary)]">{label}</div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <OptionPill label="Yes" selected={value === "Yes"} onClick={() => onChange("Yes")} />
         <OptionPill label="No" selected={value === "No"} onClick={() => onChange("No")} />
       </div>
@@ -85,7 +85,10 @@ function YesNoInline({ label, value, onChange }: { label: string; hint?: string;
 // one Card with dividers, matching that section's reference design.
 function FieldCard({ children, fieldRef }: { children: ReactNode; fieldRef?: RefObject<HTMLDivElement | null> }) {
   return (
-    <div ref={fieldRef} className="rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
+    <div
+      ref={fieldRef}
+      className="rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4 transition-shadow duration-150 hover:shadow-[0_6px_16px_rgba(27,38,36,0.10)]"
+    >
       {children}
     </div>
   );
@@ -165,7 +168,7 @@ function FieldNote({ text }: { text: string }) {
 // single-select question (Yes/No, Yes/No/Unknown, ...).
 function PillOptionRow({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   return (
-    <div className="flex flex-wrap gap-2.5">
+    <div className="grid grid-cols-2 gap-2.5">
       {options.map((opt) => (
         <OptionPill key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} />
       ))}

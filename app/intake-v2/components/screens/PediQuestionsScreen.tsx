@@ -12,7 +12,7 @@ const YES_NO = ["Yes", "No"];
 // per-question card layout instead of a bare stacked list.
 function QuestionCard({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4">
+    <div className="rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4 transition-shadow duration-150 hover:shadow-[0_6px_16px_rgba(27,38,36,0.10)]">
       <div className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{label}</div>
       <div className="mt-0.5 mb-3 text-sm text-[var(--iv2-text-muted)]">Select one</div>
       {children}
@@ -22,7 +22,7 @@ function QuestionCard({ label, children }: { label: string; children: ReactNode 
 
 function PillRow({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-2.5">
+    <div className="grid grid-cols-2 gap-2.5">
       {options.map((opt) => (
         <OptionPill key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} />
       ))}

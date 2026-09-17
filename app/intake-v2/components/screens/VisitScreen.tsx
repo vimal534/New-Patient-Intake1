@@ -18,7 +18,7 @@ export function VisitScreen({ ctx }: { ctx: Ctx }) {
       <ScreenTitle className="mb-3.5 leading-[1.28]">A few details</ScreenTitle>
       <ScreenCopy className="mb-7">Just a couple quick questions to help us prepare for your visit.</ScreenCopy>
 
-      <div className="flex items-center gap-4 rounded-[18px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="flex items-center gap-4 rounded-[18px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4.5 transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
           <CalendarIcon size={22} color="var(--iv2-brand)" />
         </div>

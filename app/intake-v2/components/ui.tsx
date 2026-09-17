@@ -27,7 +27,7 @@ import {
 // tinted with --ink rather than pure black so it reads as material,
 // not a generic box-shadow default. 0/16/40 offset-y/blur per the
 // design panel's own single Shadow row.
-const CARD_SHADOW = "shadow-[0_16px_40px_rgba(27,38,36,0.08)]";
+const CARD_SHADOW = "transition-shadow duration-150 hover:shadow-[0_16px_40px_rgba(27,38,36,0.08)]";
 
 export function Card({ children, className = "", padded = true }: { children: ReactNode; className?: string; padded?: boolean }) {
   return (
@@ -592,7 +592,7 @@ export function OptionPill({ label, selected, onClick }: { label: string; select
       onClick={onClick}
       onFocus={onCardFocus}
       onBlur={onCardBlur}
-      className={`inline-flex h-12 cursor-pointer items-center justify-center rounded-full border px-5 text-[15px] transition-colors duration-150 ${
+      className={`inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-center text-sm leading-tight transition-colors duration-150 ${
         selected
           ? "border-transparent bg-[var(--iv2-brand)] font-bold text-white"
           : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] font-semibold text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
@@ -610,7 +610,7 @@ export function OptionRow({ label, value, options, onChange }: { label: string; 
   return (
     <div>
       <div className="mb-3 text-[15px] font-semibold text-[var(--iv2-text-primary)]">{label}</div>
-      <div className="flex flex-wrap gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5">
         {options.map((opt) => (
           <OptionPill key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} />
         ))}

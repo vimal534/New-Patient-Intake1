@@ -40,7 +40,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
       <div className="px-5 pt-5.5 pb-7">
         <div className="mb-2.5 text-xs font-semibold tracking-[0.08em] text-[var(--iv2-text-muted)] uppercase">Your visit</div>
 
-        <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="overflow-hidden rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           <div className="flex items-start gap-4 p-5.5">
             <div className="min-w-0 flex-1">
               <div className="text-2xl leading-[1.2] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.reason}</div>
