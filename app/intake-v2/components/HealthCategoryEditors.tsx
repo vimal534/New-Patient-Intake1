@@ -310,7 +310,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Search results</div>
             {searchMatches.length ? (
               <div className="max-h-[280px] overflow-y-auto">
-                <div className="flex flex-wrap gap-2 pr-0.5">{searchMatches.map(renderChip)}</div>
+                <div className="grid grid-cols-2 gap-2.5 pr-0.5">{searchMatches.map(renderChip)}</div>
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-[var(--iv2-border-strong)] px-5 py-8 text-center">
@@ -324,7 +324,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-wrap gap-2">{commonVisible.map(renderChip)}</div>
+            <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
             {commonHiddenCount > 0 ? (
               <button
                 type="button"
@@ -526,7 +526,7 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Search results</div>
             {searchMatches.length ? (
               <div className="max-h-[280px] overflow-y-auto">
-                <div className="flex flex-wrap gap-2 pr-0.5">{searchMatches.map(renderChip)}</div>
+                <div className="grid grid-cols-2 gap-2.5 pr-0.5">{searchMatches.map(renderChip)}</div>
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-[var(--iv2-border-strong)] px-5 py-8 text-center">
@@ -540,7 +540,7 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-wrap gap-2">{commonVisible.map(renderChip)}</div>
+            <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
             {commonHiddenCount > 0 ? (
               <button
                 type="button"

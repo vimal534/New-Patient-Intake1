@@ -67,7 +67,7 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Search results</div>
             {searchMatches.length ? (
               <div className="max-h-[280px] overflow-y-auto">
-                <div className="flex flex-wrap gap-2 pr-0.5">
+                <div className="grid grid-cols-2 gap-2.5 pr-0.5">
                   {searchMatches.map((name) => (
                     <CatalogChip key={name} label={name} query={query} selected={false} onClick={() => addCond(name)} />
                   ))}
@@ -85,7 +85,7 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
         ) : (
           <>
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {commonVisible.map((name) => (
                 <CatalogChip key={name} label={name} selected={false} onClick={() => addCond(name)} />
               ))}

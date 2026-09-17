@@ -986,12 +986,12 @@ export function CatalogChip({
       onClick={onClick}
       onFocus={onCardFocus}
       onBlur={onCardBlur}
-      className={`inline-flex h-11 shrink-0 cursor-pointer items-center rounded-full border px-4 text-[15px] font-semibold transition-colors ${
+      className={`inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-center text-sm leading-tight transition-colors duration-150 ${
         selected
-          ? "border-transparent bg-[var(--iv2-brand)] text-white"
+          ? "border-transparent bg-[var(--iv2-brand)] font-bold text-white"
           : dashed
-            ? "border-dashed border-[var(--iv2-border-strong)] bg-[var(--iv2-surface)] text-[var(--iv2-brand)]"
-            : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
+            ? "border-dashed border-[var(--iv2-border-strong)] bg-[var(--iv2-surface)] font-semibold text-[var(--iv2-brand)]"
+            : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] font-semibold text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
       }`}
     >
       {query ? highlightMatch(label, query) : label}

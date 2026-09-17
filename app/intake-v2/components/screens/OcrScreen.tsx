@@ -5,7 +5,48 @@ import { Ctx } from "../../ctx";
 import { POLICYHOLDER_RELATIONSHIPS, POLICYHOLDER_SCENARIOS } from "../../constants";
 import { formatDob } from "../../format";
 import { InsuranceBrandIcon } from "../Icons";
-import { CheckIcon, InputField, RadioRow, ScreenCopy, ScreenTitle, SelectField } from "../ui";
+import { CheckIcon, InputField, OptionPill, ScreenCopy, ScreenTitle, SelectField } from "../ui";
+
+// Apple-style wheel-picker feel via the app's own shared dropdown
+// trigger (SelectField) — three short lists (Month/Day/Year) instead
+// of the free-text SplitDobField, since a policyholder is filled in
+// rarely enough that recognizing a value beats typing digits.
+// Abbreviated (not full month names) — this select sits in a
+// three-column row next to Day/Year, and a full name like "September"
+// truncates inside that narrow a trigger.
+const DOB_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DOB_DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1));
+// Static range (not derived from `new Date()`) so server and client
+// render the same list — same anchor/length as the surgery date
+// picker (HealthCategoryEditors.tsx), which covers any patient alive
+// today.
+const DOB_YEARS = Array.from({ length: 111 }, (_, i) => String(2030 - i));
+
+function PolicyholderDobFields({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  const mm = digits.slice(0, 2);
+  const dd = digits.slice(2, 4);
+  const yyyy = digits.slice(4, 8);
+  const month = mm && Number(mm) >= 1 && Number(mm) <= 12 ? DOB_MONTHS[Number(mm) - 1] : "";
+  const day = dd ? String(Number(dd)) : "";
+
+  const combine = (nextMonth: string, nextDay: string, nextYear: string) => {
+    const mmDigits = nextMonth ? String(DOB_MONTHS.indexOf(nextMonth) + 1).padStart(2, "0") : "";
+    const ddDigits = nextDay ? nextDay.padStart(2, "0") : "";
+    return formatDob(`${mmDigits}${ddDigits}${nextYear}`);
+  };
+
+  return (
+    <div>
+      <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-primary)]">Date of birth</div>
+      <div className="grid grid-cols-3 gap-2">
+        <SelectField ariaLabel="Birth month" value={month} onChange={(v) => onChange(combine(v, day, yyyy))} options={DOB_MONTHS} placeholder="Month" />
+        <SelectField ariaLabel="Birth day" value={day} onChange={(v) => onChange(combine(month, v, yyyy))} options={DOB_DAYS} placeholder="Day" />
+        <SelectField ariaLabel="Birth year" value={yyyy} onChange={(v) => onChange(combine(month, day, v))} options={DOB_YEARS} placeholder="Year" />
+      </div>
+    </div>
+  );
+}
 
 // Is the policyholder question (new-patient minors only) answered
 // enough to actually run an eligibility check with? "Yes" needs
@@ -188,33 +229,33 @@ function PolicyholderQuestion({ ctx }: { ctx: Ctx }) {
   return (
     <div className="mt-3 rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4 transition-shadow duration-150 hover:shadow-[0_6px_16px_rgba(27,38,36,0.10)]">
       <div className="mb-2.5 text-base font-bold text-[var(--iv2-text-primary)]">Is {guardianName} the policyholder?</div>
-      <div className="flex flex-col gap-2.5">
-        <RadioRow
+      <div className="grid grid-cols-2 gap-2.5">
+        <OptionPill
           label="Yes"
           selected={state.policyholderIsGuardian === true}
           onClick={() => update({ policyholderIsGuardian: true, policyholderName: "", policyholderDob: "", policyholderRelationship: "" })}
         />
-        <RadioRow label="No" selected={state.policyholderIsGuardian === false} onClick={() => update({ policyholderIsGuardian: false })} />
+        <OptionPill label="No" selected={state.policyholderIsGuardian === false} onClick={() => update({ policyholderIsGuardian: false })} />
       </div>
       {state.policyholderIsGuardian === false ? (
         <div className="mt-4">
           <div className="mb-3 text-sm font-bold text-[var(--iv2-text-primary)]">Policyholder information</div>
           <div className="flex flex-col gap-3.5">
             <InputField label="Full name" value={state.policyholderName} placeholder="Enter full name" onChange={(v) => update({ policyholderName: v })} />
-            <InputField
-              label="Date of birth"
-              value={state.policyholderDob}
-              placeholder="MM/DD/YYYY"
-              inputMode="numeric"
-              onChange={(v) => update({ policyholderDob: formatDob(v) })}
-            />
-            <SelectField
-              label="Relationship"
-              value={state.policyholderRelationship}
-              options={POLICYHOLDER_RELATIONSHIPS}
-              placeholder="Select relationship"
-              onChange={(v) => update({ policyholderRelationship: v })}
-            />
+            <PolicyholderDobFields value={state.policyholderDob} onChange={(v) => update({ policyholderDob: v })} />
+            <div>
+              <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-primary)]">Relationship</div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {POLICYHOLDER_RELATIONSHIPS.map((opt) => (
+                  <OptionPill
+                    key={opt}
+                    label={opt}
+                    selected={state.policyholderRelationship === opt}
+                    onClick={() => update({ policyholderRelationship: opt })}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
