@@ -4,11 +4,12 @@ import { Ctx } from "../../ctx";
 import { formatPhone } from "../../format";
 import { Card, Divider, InputField, ScreenCopy, ScreenTitle, ValueRow } from "../ui";
 
-// Confirm Your Information — spec Parts 4-5, item 3. Patient contact,
-// guardian contact and insurance — all shown as what's on file (never
-// a blank field), one screen-level "Update" toggle flips the whole
-// thing into editable fields (same convention as the existing
-// PersonalScreen/EmergencyScreen).
+// Confirm Your Information — spec Parts 4-5, item 3. Patient contact
+// and guardian contact — both shown as what's on file (never a blank
+// field), one screen-level "Update" toggle flips the whole thing into
+// editable fields (same convention as the existing PersonalScreen/
+// EmergencyScreen). Insurance is its own step right after this one
+// (CoverageScreen.tsx), not a third section here.
 export function ConfirmInfoScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
   const editing = state.confirmInfoEditing;
@@ -63,22 +64,6 @@ export function ConfirmInfoScreen({ ctx }: { ctx: Ctx }) {
             <ValueRow label={g.relationship || "Guardian"} value={g.name} />
             <ValueRow label="Mobile" value={g.mobile} />
             <ValueRow label="Address" value={g.address} />
-          </div>
-        )}
-
-        <Divider className="my-4.5" />
-
-        <div className="mb-1 text-xs font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Insurance</div>
-        {editing ? (
-          <div className="flex flex-col gap-3.5">
-            <InputField label="Insurance carrier" value={state.carrier} placeholder="Blue Shield PPO" onChange={(v) => update({ carrier: v })} />
-            <InputField label="Member ID" value={state.memberId} placeholder="VZ48213" onChange={(v) => update({ memberId: v })} />
-            <InputField label="Group number" value={state.groupValue} placeholder="00921" onChange={(v) => update({ groupValue: v })} />
-          </div>
-        ) : (
-          <div className="mt-2 flex flex-col gap-3">
-            <ValueRow label="Carrier" value={state.carrier || "Blue Shield PPO"} />
-            <ValueRow label="Member ID" value={state.memberId || "••••8213"} />
           </div>
         )}
       </Card>

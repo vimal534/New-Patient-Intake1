@@ -40,12 +40,11 @@ import { ConfirmAdditionalScreen } from "./components/screens/ConfirmAdditionalS
 import { ConsentOnFileScreen } from "./components/screens/ConsentOnFileScreen";
 import { InsuranceManualScreen } from "./components/screens/InsuranceManualScreen";
 import { PpeFormScreen } from "./components/screens/PpeFormScreen";
-import { PaymentMethodsSheet } from "./components/sheets/PaymentMethodsSheet";
-import { AddCardSheet } from "./components/sheets/AddCardSheet";
 import { RemoveConfirmSheet } from "./components/sheets/RemoveConfirmSheet";
 import { TextSheet } from "./components/sheets/TextSheet";
 import { DemoButton, DemoSheet } from "./components/sheets/DemoSheet";
 import { Toast } from "./components/Toast";
+import { CompletionOverlay } from "./components/CompletionOverlay";
 
 const CONSENT_TEXT =
   "I authorize the clinicians of Main St. Clinic to provide the medical care I request. Assignment of benefits: I authorize payment of insurance benefits directly to the practice and accept responsibility for amounts not covered by my plan. Privacy: I acknowledge receipt of the notice of privacy practices describing how my health information may be used and disclosed for treatment, payment and health-care operations.";
@@ -193,22 +192,41 @@ export default function IntakeV2Page() {
 
   // PCT is a flat, hand-tuned map keyed by FlowKey — fine for a step
   // that only ever appears in roughly one relative position across the
-  // scenarios that use it, but "payment" now sits right after Insurance
-  // in four differently-shaped flows (early for the two new-patient
+  // scenarios that use it, but "payment" sits right after Insurance in
+  // four differently-shaped flows (early for the two new-patient
   // scenarios, mid-flow for returning well/sick, early-mid for sports),
-  // so one static number can't fit all of them. Interpolate it instead,
-  // from whatever sits immediately before/after it in THIS flow —
-  // falling back to the static table (its old near-the-end position)
-  // for the legacy FLOW_RET/FLOW_NEW fallbacks, which are unreachable
-  // from the demo picker but keep their own payment placement.
-  const paymentPercent = (): number => {
-    const prev = PCT[flow[state.idx - 1]];
-    const next = PCT[flow[state.idx + 1]];
+  // and "coverage" now does too now that the returning flow shows it as
+  // its own step (previously folded into confirmInfo) rather than late
+  // like the new-patient wizards — so one static number can't fit all
+  // of them for either key. Interpolate both instead, from whatever
+  // sits immediately before/after in THIS flow — falling back to the
+  // static table (each key's own old fixed position) for the legacy
+  // FLOW_RET/FLOW_NEW fallbacks, which are unreachable from the demo
+  // picker but keep their own placement.
+  //
+  // The two dynamic keys sit right next to each other in the returning
+  // flow (confirmInfo → coverage → payment → health), so a neighbor
+  // lookup that stops at the immediately-adjacent step would have
+  // payment reading coverage's *flat*, near-the-end fallback (or vice
+  // versa) rather than a value that fits their shared position here —
+  // walking past any other dynamic key to the next fixed one on each
+  // side keeps both readings anchored to the same two real posts
+  // (confirmInfo and health) instead of to each other.
+  const nearestFixedPercent = (fromIdx: number, dir: 1 | -1): number | undefined => {
+    for (let i = fromIdx; i >= 0 && i < flow.length; i += dir) {
+      const k = flow[i];
+      if (k !== "coverage" && k !== "payment") return PCT[k];
+    }
+    return undefined;
+  };
+  const interpolatedPercent = (k: FlowKey): number => {
+    const prev = nearestFixedPercent(state.idx - 1, -1);
+    const next = nearestFixedPercent(state.idx + 1, 1);
     if (prev != null && next != null) return Math.round((prev + next) / 2);
     if (prev != null) return prev;
-    return PCT.payment ?? 0;
+    return PCT[k] ?? 0;
   };
-  const percent = key === "payment" ? paymentPercent() : (PCT[key] ?? 0);
+  const percent = key === "payment" || key === "coverage" ? interpolatedPercent(key) : (PCT[key] ?? 0);
   const showHeader = !state.identityFallbackOpen && !["verifyIntro", "otp", "welcome", "success"].includes(key);
 
   // Moving to a new section/screen (forward via Continue, or back)
@@ -261,11 +279,21 @@ export default function IntakeV2Page() {
   // section": tracked here, from state (`reviewingFromSuccess` flipping
   // off while landing back on "success"), rather than a ref set inside
   // back()/returnToSummary() — those are ctx-bundled too.
+  // A step's entrance reads as "the next/previous section sliding
+  // into place," not a loading screen or an intermediate "Next
+  // section" beat in between — no separate transitional screen ever
+  // mounts, just this one GSAP tween on the very content that's
+  // replacing what was there. Direction follows `idx` (forward tips
+  // right, Back tips left) — prevIdxRef is what lets that comparison
+  // survive from one step to the next without going through state.
   const wasReviewingRef = useRef(false);
+  const prevIdxRef = useRef(state.idx);
   useEffect(() => {
     if (!scrollAreaRef.current) return;
     const wasReviewing = wasReviewingRef.current;
     wasReviewingRef.current = state.reviewingFromSuccess;
+    const direction = state.idx >= prevIdxRef.current ? 1 : -1;
+    prevIdxRef.current = state.idx;
     if (key === "success" && wasReviewing && !state.reviewingFromSuccess) {
       scrollAreaRef.current.scrollTop = successScrollRef.current;
       return;
@@ -274,11 +302,11 @@ export default function IntakeV2Page() {
     if (contentRef.current) {
       gsap.fromTo(
         contentRef.current,
-        { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: dur(0.28), ease: MOTION_EASE }
+        { opacity: 0, x: direction * 28 },
+        { opacity: 1, x: 0, duration: dur(0.5), ease: MOTION_EASE }
       );
     }
-  }, [key, state.reviewingFromSuccess]);
+  }, [key, state.idx, state.reviewingFromSuccess]);
 
   // Footer configuration per screen — ported 1:1 from the prototype's
   // renderVals() footer block.
@@ -344,8 +372,6 @@ export default function IntakeV2Page() {
         />
       </div>
 
-      <PaymentMethodsSheet ctx={ctx} />
-      <AddCardSheet ctx={ctx} />
       <RemoveConfirmSheet ctx={ctx} />
       <TextSheet open={state.consentFullOpen} title="Consent to treatment" body={CONSENT_TEXT} onClose={() => update({ consentFullOpen: false })} zIndex={74} />
       <TextSheet open={state.privacyOpen} title="How your information is used" body={PRIVACY_TEXT} onClose={() => update({ privacyOpen: false })} zIndex={74} />
@@ -354,6 +380,14 @@ export default function IntakeV2Page() {
       <DemoSheet ctx={ctx} />
       {state.toastMessage ? (
         <Toast key={state.toastId} message={state.toastMessage} onDone={() => update({ toastMessage: null })} />
+      ) : null}
+      {state.completing ? (
+        <CompletionOverlay
+          onDone={() => {
+            update({ completing: false, intakeCompleted: true });
+            go("welcome");
+          }}
+        />
       ) : null}
     </PhoneFrame>
   );

@@ -5,7 +5,7 @@ import { Ctx } from "../ctx";
 import { MED_DETAILS, MED_UNITS, PEDI_MED_CATALOG } from "../constants";
 import { formatDigits } from "../format";
 import { CatalogItem } from "../types";
-import { BottomSheet, Button, CatalogChip, Checkbox22, InputField, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
+import { BottomSheet, Button, CatalogChip, Checkbox22, CloseCircleButton, InputField, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectField, SelectedListSection, ShowMoreLink } from "./ui";
 
 const CATALOG_VISIBLE = 4;
 const SEARCH_MIN_CHARS = 2;
@@ -39,7 +39,6 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
   const have = items.map((i) => i.name);
   const available = PEDI_MED_CATALOG.filter((n) => !have.includes(n));
   const commonVisible = showMore ? available : available.slice(0, CATALOG_VISIBLE);
-  const commonHiddenCount = available.length - commonVisible.length;
 
   const searchMatches = searching ? available.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
 
@@ -150,20 +149,27 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
     </Reveal>
   );
 
-  const renderChip = (name: string) => <CatalogChip key={name} label={name} query={trimmedQuery} selected={expandedKey === name} onClick={() => (expandedKey === name ? closePanel() : openPanel(name))} />;
-
-  // The Dose/Unit/Frequency panel now sits once below the whole chip
-  // group (not under whichever chip was tapped, which a wrapping row
-  // can't do cleanly) — its own header names the medication being
-  // configured, since the chip itself no longer doubles as that label.
-  const expandedPanel = expandedKey ? (
-    <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
-      <div className="bg-[var(--iv2-surface)] px-4 py-3">
-        <span className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{expandedKey}</span>
-      </div>
-      {renderPanel("add")}
-    </div>
-  ) : null;
+  // Now a grid.js — the chip that's expanded turns into a full-width
+  // (col-span-2) card, with its Dose/Unit/Frequency panel attached
+  // directly underneath in the same bordered box, right where that
+  // chip sat in the grid. Reads as one unit opening up in place,
+  // rather than a chip staying selected somewhere above while an
+  // unrelated-looking panel appears in a completely different spot
+  // below the whole list.
+  const renderChip = (name: string) => {
+    if (expandedKey === name) {
+      return (
+        <div key={name} className="col-span-2 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <span className="text-[15px] font-bold text-[var(--iv2-brand)]">{name}</span>
+            <CloseCircleButton onClick={closePanel} />
+          </div>
+          {renderPanel("add")}
+        </div>
+      );
+    }
+    return <CatalogChip key={name} label={name} query={trimmedQuery} selected={false} onClick={() => openPanel(name)} />;
+  };
 
   return (
     <div>
@@ -208,8 +214,6 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
       ) : null}
 
       <div className={none ? "pointer-events-none opacity-40" : ""}>
-        <div className="mb-2.5 text-sm font-bold text-[var(--iv2-text-primary)]">{items.length ? "Add another" : "Search or select medication"}</div>
-
         <SearchClearInput value={query} onChange={setQuery} placeholder="Search by drug name" disabled={none} />
 
         {searching ? (
@@ -233,22 +237,27 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
             <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
 
-            {commonHiddenCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-              >
-                Show more ({commonHiddenCount})
-              </button>
+            {available.length > CATALOG_VISIBLE ? (
+              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
             ) : null}
           </>
         )}
-        {expandedPanel}
       </div>
 
       <div className="mt-3.5">
-        <NoneCheckRow label="I don't take any of these" checked={none} disabled={items.length > 0} onClick={toggleNone} />
+        <NoneCheckRow
+          label="I don't take any of these"
+          hint={
+            expandedKey !== null || editingIndex !== null
+              ? "Not available while a medication is expanded."
+              : items.length > 0
+                ? "Remove your added medications first."
+                : "Select this if you're not currently taking any of these medications."
+          }
+          checked={none}
+          disabled={expandedKey !== null || editingIndex !== null || items.length > 0}
+          onClick={toggleNone}
+        />
       </div>
 
       <BottomSheet open={deleteIndex !== null} onClose={() => setDeleteIndex(null)} zIndex={75} maxHeight="none">

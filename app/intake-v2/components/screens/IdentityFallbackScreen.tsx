@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Ctx } from "../../ctx";
 import { CalendarIcon, ShieldCheckIcon } from "../Icons";
-import { DobField } from "../SmartField";
+import { DobWheelSheet } from "../sheets/DobWheelSheet";
 import { Button, InputField } from "../ui";
 
 // "That's not me," reached from VerifyIntroScreen — the identified
@@ -27,6 +27,7 @@ export function IdentityFallbackScreen({ ctx }: { ctx: Ctx }) {
   const { update, go } = ctx;
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const ready = name.trim().length > 0 && dob.length === 10;
   const close = () => update({ identityFallbackOpen: false });
@@ -49,13 +50,21 @@ export function IdentityFallbackScreen({ ctx }: { ctx: Ctx }) {
 
       <div className="flex flex-col gap-3.5 text-left">
         <InputField label="Patient's full name" value={name} placeholder="Full name" onChange={setName} />
-        <div className="relative">
-          <DobField label="Date of birth" value={dob} onChange={setDob} />
-          <span className="pointer-events-none absolute right-3.5 bottom-[13px]">
+        <div>
+          <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">Date of birth</div>
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="flex h-13 w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] px-3.5 text-left outline-none transition-colors hover:border-[var(--iv2-text-muted)]"
+            style={{ height: 52 }}
+          >
+            <span className={`text-[17px] font-semibold ${dob ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{dob || "MM/DD/YYYY"}</span>
             <CalendarIcon size={18} />
-          </span>
+          </button>
         </div>
       </div>
+
+      <DobWheelSheet open={pickerOpen} onClose={() => setPickerOpen(false)} value={dob} onConfirm={setDob} />
 
       <div className="mt-auto pt-8">
         <Button onClick={continueVerified} disabled={!ready} className="h-14 w-full">

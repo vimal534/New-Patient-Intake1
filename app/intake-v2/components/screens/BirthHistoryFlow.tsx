@@ -205,7 +205,7 @@ function SuffixInput({
 }) {
   return (
     <div
-      className="flex h-13 w-full min-w-0 overflow-hidden rounded-xl border border-[var(--iv2-border)] transition-colors focus-within:border-[var(--iv2-brand)] focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-[var(--iv2-brand)] hover:border-[var(--iv2-text-muted)]"
+      className="flex h-13 w-full min-w-0 overflow-hidden rounded-xl border border-[var(--iv2-border)] transition-colors focus-within:border-[var(--iv2-brand)] focus-within:shadow-[0_0_0_4px_#E3EDFB] hover:border-[var(--iv2-text-muted)]"
       style={{ height: 52 }}
     >
       <input

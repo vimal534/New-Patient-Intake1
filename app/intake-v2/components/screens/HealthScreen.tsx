@@ -36,7 +36,7 @@ export function HealthScreen({ ctx }: { ctx: Ctx }) {
   return (
     <div className="px-6 pt-5 pb-6">
       <ScreenTitle className="font-semibold">Past Medical Conditions</ScreenTitle>
-      <ScreenCopy className="mb-7">Which conditions have you been diagnosed with? Select any that apply, now or in the past.</ScreenCopy>
+      <ScreenCopy className="mb-4">Which conditions have you been diagnosed with? Select any that apply, now or in the past.</ScreenCopy>
       <ConditionAddSection ctx={ctx} showNoneOption />
     </div>
   );

@@ -163,12 +163,33 @@ body {
     transform: translateY(0);
   }
 }
+/* A button's own trailing arrow icon (Footer's primary action,
+   "Text me a code", "Start check-in") nudges a few px further along
+   its direction of travel on hover/press — a small "this is about to
+   move you forward" cue on top of the whole button's existing
+   scale-down active state, not a replacement for it. */
+.iv2-arrow-nudge {
+  transition: transform 200ms ease;
+}
+@media (hover: hover) {
+  .iv2-root button:hover .iv2-arrow-nudge {
+    transform: translateX(4px);
+  }
+}
+.iv2-root button:active .iv2-arrow-nudge {
+  transform: translateX(6px);
+}
 @media (prefers-reduced-motion: reduce) {
   .iv2-root button,
-  .iv2-hover-card {
+  .iv2-hover-card,
+  .iv2-arrow-nudge {
     transition: none;
   }
   .iv2-hover-card:hover {
+    transform: none;
+  }
+  .iv2-root button:hover .iv2-arrow-nudge,
+  .iv2-root button:active .iv2-arrow-nudge {
     transform: none;
   }
 }

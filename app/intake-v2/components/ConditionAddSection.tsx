@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Ctx } from "../ctx";
 import { COMMON_CONDS, MORE_CONDS } from "../constants";
-import { CatalogChip, CatalogCheckRow, NoneCheckRow, SearchClearInput, SelectedListSection } from "./ui";
+import { CatalogChip, CatalogCheckRow, NoneCheckRow, SearchClearInput, SelectedListSection, ShowMoreLink } from "./ui";
 
 const CATALOG_VISIBLE = 5;
 const SEARCH_MIN_CHARS = 2;
@@ -32,7 +32,6 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
   const available = ALL_CONDS.filter((c) => !have.includes(c));
   const commonVisibleCount = showMore ? available.length : Math.min(CATALOG_VISIBLE, available.length);
   const commonVisible = available.slice(0, commonVisibleCount);
-  const commonHiddenCount = available.length - commonVisible.length;
 
   const searchMatches = searching ? available.filter((c) => c.toLowerCase().includes(q)) : [];
 
@@ -59,7 +58,6 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
       ) : null}
 
       <div className={none ? "pointer-events-none opacity-40" : ""}>
-        <div className="mb-2.5 text-sm font-bold text-[var(--iv2-text-primary)]">{have.length ? "Add another" : "Search or select condition"}</div>
         <SearchClearInput placeholder="Search conditions, like migraine" value={query} onChange={setQuery} disabled={none} />
 
         {searching ? (
@@ -90,14 +88,8 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
                 <CatalogChip key={name} label={name} selected={false} onClick={() => addCond(name)} />
               ))}
             </div>
-            {commonHiddenCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-              >
-                Show more ({commonHiddenCount})
-              </button>
+            {available.length > CATALOG_VISIBLE ? (
+              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
             ) : null}
           </>
         )}
@@ -105,7 +97,13 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
 
       {showNoneOption ? (
         <div className="mt-6">
-          <NoneCheckRow label="I don't have any of these" checked={none} disabled={have.length > 0} onClick={toggleNone} />
+          <NoneCheckRow
+            label="I don't have any of these"
+            hint="Select this if you haven't been diagnosed with any of these conditions."
+            checked={none}
+            disabled={have.length > 0}
+            onClick={toggleNone}
+          />
         </div>
       ) : null}
 

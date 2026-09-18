@@ -71,7 +71,9 @@ export function VerifyIntroScreen({ ctx }: { ctx: Ctx }) {
       <div className="mt-auto pt-8">
         <Button onClick={next} className="h-14 w-full">
           Text me a code
-          <ArrowRightIcon />
+          <span className="iv2-arrow-nudge">
+            <ArrowRightIcon />
+          </span>
         </Button>
 
         <Button variant="tertiary" onClick={() => update({ identityFallbackOpen: true })} className="mt-2 h-11 w-full">

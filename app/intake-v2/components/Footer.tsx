@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowRightIcon } from "./Icons";
+
 // Sticky footer — README "Sticky footer" section. `null` labels hide that
 // tier entirely (used on otp/welcome/success screens, matching
 // the prototype's `hasFooter = !!primaryLabel`).
@@ -38,7 +40,7 @@ export function Footer({
         onClick={onPrimary}
         disabled={primaryDisabled}
         className={[
-          "h-14 w-full rounded-2xl border-none text-base font-bold active:scale-[0.98]",
+          "flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-none text-base font-bold active:scale-[0.98]",
           secondaryLabel ? "mt-2" : "",
           primaryDisabled
             ? "cursor-not-allowed bg-[var(--iv2-disabled-bg)] text-[var(--iv2-disabled-fg)]"
@@ -46,6 +48,9 @@ export function Footer({
         ].join(" ")}
       >
         {primaryLabel}
+        <span className="iv2-arrow-nudge">
+          <ArrowRightIcon color={primaryDisabled ? "var(--iv2-disabled-fg)" : "#fff"} />
+        </span>
       </button>
       {tertiaryLabel ? (
         <button

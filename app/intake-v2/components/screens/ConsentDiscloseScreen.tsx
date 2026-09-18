@@ -5,7 +5,7 @@ import { EMERGENCY_RELATIONSHIP_OPTIONS } from "../../constants";
 import { ShieldUserIcon } from "../Icons";
 import { PhoneField } from "../SmartField";
 import { AuthorizedPerson } from "../../types";
-import { Button, CloseCircleButton, IconActionButton, InputField, OptionRow, RadioRow, Reveal, ScreenCopy, ScreenTitle } from "../ui";
+import { Button, CloseCircleButton, IconActionButton, InputField, OptionPill, OptionRow, Reveal, ScreenCopy, ScreenTitle } from "../ui";
 
 const EMPTY_DRAFT: AuthorizedPerson = { name: "", relationship: "", phone: "" };
 
@@ -68,13 +68,23 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
         </div>
       </div>
 
-      <div className="mb-7 flex flex-col gap-2.5">
+      <div className="mb-7 grid grid-cols-2 gap-2.5">
         {["Yes", "No"].map((opt) => (
-          <RadioRow
+          <OptionPill
             key={opt}
             label={opt}
             selected={state.consentDiscloseYes === (opt === "Yes")}
-            onClick={() => update({ consentDiscloseYes: opt === "Yes" })}
+            onClick={() => {
+              const yes = opt === "Yes";
+              // Picking "Yes" with no one added yet jumps straight into
+              // the add-person panel — skip the intermediate dashed
+              // "+ Add an authorized person" button for that first tap.
+              if (yes && people.length === 0) {
+                update({ consentDiscloseYes: true, authPersonAdding: true, authPersonEditingIndex: null, authPersonDraft: { ...EMPTY_DRAFT } });
+              } else {
+                update({ consentDiscloseYes: yes });
+              }
+            }}
           />
         ))}
       </div>

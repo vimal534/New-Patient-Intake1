@@ -49,6 +49,14 @@ export const ELEVATE_SCALE = 1.015;
 export const ELEVATE_SHADOW = "0 6px 16px rgba(27,38,36,0.10)";
 export const ELEVATE_REST_SHADOW = "0 1px 2px rgba(27,38,36,0)";
 
+// Text-input focus ring — every free-text field (name, email, card
+// details, search, ...) gets this same blue glow the instant it's
+// focused, in place of the generic ELEVATE_SHADOW elevation chips/
+// buttons/cards use. Border color pairs with it via each field's own
+// `focus:border-[var(--iv2-brand)]` class (kept in Tailwind, not GSAP,
+// since it's a flat color swap with no lift to animate).
+export const FIELD_FOCUS_SHADOW = "0 0 0 4px #E3EDFB";
+
 // No hook/helper wraps the actual onFocus/onBlur pair — the
 // react-hooks/refs lint rule flags any function that receives a ref
 // as a parameter when it might be called during render, even a plain

@@ -54,7 +54,7 @@ export function Header({
         <div className="text-[13.5px] font-bold" style={{ color: "#94a3b8" }}>{percent}%</div>
       </div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "#e7edf4" }}>
-        <div className="h-full rounded-full transition-[width] duration-[240ms] ease-out" style={{ width: `${percent}%`, background: "#2563eb" }} />
+        <div className="h-full rounded-full transition-[width] duration-[500ms] ease-out" style={{ width: `${percent}%`, background: "#2563eb" }} />
       </div>
     </div>
   );

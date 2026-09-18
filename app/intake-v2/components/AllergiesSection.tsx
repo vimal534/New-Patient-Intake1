@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Ctx } from "../ctx";
 import { ALLERGY_CATALOG, ALLERGY_DETAILS, ALLERGY_REACTIONS } from "../constants";
 import { CatalogItem } from "../types";
-import { BottomSheet, Button, CatalogChip, Checkbox22, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectedListSection, SeverityBadge } from "./ui";
+import { BottomSheet, Button, CatalogChip, Checkbox22, CloseCircleButton, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectedListSection, SeverityBadge, ShowMoreLink } from "./ui";
 
 const CATALOG_VISIBLE = 4;
 const SEARCH_MIN_CHARS = 2;
@@ -38,7 +38,6 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
   const have = items.map((i) => i.name);
   const available = ALLERGY_CATALOG.filter((n) => !have.includes(n));
   const commonVisible = showMore ? available : available.slice(0, CATALOG_VISIBLE);
-  const commonHiddenCount = available.length - commonVisible.length;
 
   const searchMatches = searching ? available.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
   const customName = trimmedQuery;
@@ -140,24 +139,31 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
     </Reveal>
   );
 
-  const renderChip = (name: string) => <CatalogChip key={name} label={name} query={trimmedQuery} selected={expandedKey === name} onClick={() => (expandedKey === name ? closePanel() : openPanel(name))} />;
-
-  const renderCustomChip = () => (
-    <CatalogChip label={`Add "${customName}"`} dashed selected={expandedKey === customName} onClick={() => (expandedKey === customName ? closePanel() : openPanel(customName))} />
-  );
-
-  // The Reaction/Severity panel now sits once below the whole chip
-  // group (not under whichever chip was tapped, which a wrapping row
-  // can't do cleanly) — its own header names the allergen being
-  // configured, since the chip itself no longer doubles as that label.
-  const expandedPanel = expandedKey ? (
-    <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
-      <div className="bg-[var(--iv2-surface)] px-4 py-3">
-        <span className="text-[15px] font-bold text-[var(--iv2-text-primary)]">{expandedKey}</span>
+  // The chip that's expanded turns into a full-width (col-span-2) card
+  // with its Reaction/Severity panel attached directly underneath,
+  // right where that chip sat in the grid — reads as one unit opening
+  // up in place, instead of the panel appearing in a different spot
+  // below the whole list while an unrelated-looking chip stays lit
+  // above it.
+  const renderExpanded = (name: string) => (
+    <div key={name} className="col-span-2 overflow-hidden rounded-2xl border border-[var(--iv2-brand)]">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <span className="text-[15px] font-bold text-[var(--iv2-brand)]">{name}</span>
+        <CloseCircleButton onClick={closePanel} />
       </div>
       {renderPanel("add")}
     </div>
-  ) : null;
+  );
+
+  const renderChip = (name: string) =>
+    expandedKey === name ? renderExpanded(name) : <CatalogChip key={name} label={name} query={trimmedQuery} selected={false} onClick={() => openPanel(name)} />;
+
+  const renderCustomChip = () =>
+    expandedKey === customName ? (
+      renderExpanded(customName)
+    ) : (
+      <CatalogChip key={customName} label={`Add "${customName}"`} dashed selected={false} onClick={() => openPanel(customName)} />
+    );
 
   return (
     <div>
@@ -205,8 +211,6 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
       ) : null}
 
       <div className={none ? "pointer-events-none opacity-40" : ""}>
-        <div className="mb-2.5 text-sm font-bold text-[var(--iv2-text-primary)]">{items.length ? "Add another" : "Search or select allergy"}</div>
-
         <SearchClearInput value={query} onChange={setQuery} placeholder="Search by allergen name" disabled={none} />
 
         {searching ? (
@@ -225,22 +229,27 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
             <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
             <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
 
-            {commonHiddenCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowMore(true)}
-                className="mt-2.5 flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] text-[15px] font-bold text-[var(--iv2-text-primary)]"
-              >
-                Show more ({commonHiddenCount})
-              </button>
+            {available.length > CATALOG_VISIBLE ? (
+              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
             ) : null}
           </>
         )}
-        {expandedPanel}
       </div>
 
       <div className="mt-3.5">
-        <NoneCheckRow label="I don't have any of these" checked={none} disabled={items.length > 0} onClick={toggleNone} />
+        <NoneCheckRow
+          label="I don't have any of these"
+          hint={
+            expandedKey !== null || editingIndex !== null
+              ? "Not available while an allergy is expanded."
+              : items.length > 0
+                ? "Remove your added allergies first."
+                : "Select this if you don't have any known allergies."
+          }
+          checked={none}
+          disabled={expandedKey !== null || editingIndex !== null || items.length > 0}
+          onClick={toggleNone}
+        />
       </div>
 
       <BottomSheet open={deleteIndex !== null} onClose={() => setDeleteIndex(null)} zIndex={75} maxHeight="none">

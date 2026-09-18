@@ -10,21 +10,33 @@ import { useEffect, useState } from "react";
 // if `percent` changes again mid-transition, and respects
 // `prefers-reduced-motion` automatically via the `transition` media guard
 // below.
-export function ReadinessRing({ percent, size = 92, stroke = 9 }: { percent: number; size?: number; stroke?: number }) {
-  const [animated, setAnimated] = useState(0);
+//
+// `animate={false}` skips that empty-to-percent sweep entirely, landing
+// straight on the final value — for when this exact climb to 100 was
+// just shown a moment ago (CompletionOverlay's counting ring, right
+// before this screen mounts) and replaying it here would just be the
+// same motion twice.
+export function ReadinessRing({ percent, size = 92, stroke = 9, animate = true }: { percent: number; size?: number; stroke?: number; animate?: boolean }) {
+  const [animated, setAnimated] = useState(animate ? 0 : percent);
 
   useEffect(() => {
+    if (!animate) return;
     // Start the sweep on the frame after mount/update, not the same
     // frame — starting from 0 and immediately jumping to `percent` in
     // one paint would skip the transition entirely.
     const raf = requestAnimationFrame(() => setAnimated(percent));
     return () => cancelAnimationFrame(raf);
-  }, [percent]);
+  }, [percent, animate]);
 
   const radius = (size - stroke) / 2;
   const center = size / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - animated / 100);
+  // Without animation, always reflect `percent` directly rather than
+  // the `animated` state — that state exists purely to drive the sweep
+  // transition, and staying keyed to it here would freeze the ring at
+  // whatever `percent` was on this render's first mount if a later
+  // render changes `percent` again while still not animating.
+  const offset = circumference * (1 - (animate ? animated : percent) / 100);
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>

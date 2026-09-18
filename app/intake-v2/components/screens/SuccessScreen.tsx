@@ -44,7 +44,7 @@ const CHECKLIST: { label: string; detail: string; candidates: FlowKey[] }[] = [
 // carrying on to whatever's next in the original flow order. See
 // IntakeState.reviewingFromSuccess and page.tsx's footerFor override.
 export function SuccessScreen({ ctx }: { ctx: Ctx }) {
-  const { state, go, update, reviewSection, flow } = ctx;
+  const { state, update, reviewSection, flow } = ctx;
   const checklist = CHECKLIST.map((item) => ({ ...item, target: item.candidates.find((c) => flow.includes(c)) })).filter(
     (item): item is (typeof CHECKLIST)[number] & { target: FlowKey } => item.target != null
   );
@@ -178,10 +178,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
 
       <button
         type="button"
-        onClick={() => {
-          update({ intakeCompleted: true });
-          go("welcome");
-        }}
+        onClick={() => update({ completing: true })}
         className="mt-6 h-14 w-full cursor-pointer rounded-2xl border-none bg-[var(--iv2-brand)] text-base font-bold text-white"
       >
         Done

@@ -7,6 +7,7 @@ import {
   ELEVATE_REST_SHADOW,
   ELEVATE_SCALE,
   ELEVATE_SHADOW,
+  FIELD_FOCUS_SHADOW,
   MOTION_DURATION,
   MOTION_EASE,
   REVEAL_DURATION,
@@ -172,7 +173,7 @@ export function InputField({
   ariaLabel,
   inputMode,
   tone = "default",
-  boldLabel = true,
+  boldLabel = false,
   rightAdornment,
   errorText,
   valueColor,
@@ -204,22 +205,22 @@ export function InputField({
   // — unset leaves the usual dark text-primary.
   valueColor?: string;
 }) {
-  // Elevation only — border/background/colors are untouched, still
-  // the plain CSS :focus outline above; this just layers a soft
-  // shadow + a hair of scale on top via GSAP, same feel as every
-  // other interactive field/card in the app.
+  // Focus ring: a flat blue border swap (plain Tailwind `focus:`, no
+  // lift to animate) plus a soft blue glow layered on via GSAP — same
+  // FIELD_FOCUS_SHADOW every text input in the app now uses, in place
+  // of the generic card/chip ELEVATE_SHADOW elevation.
   const fieldRef = useRef<HTMLInputElement>(null);
   const onFieldFocus = () => {
-    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: ELEVATE_SHADOW, scale: ELEVATE_SCALE, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
+    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: FIELD_FOCUS_SHADOW, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
   };
   const onFieldBlur = () => {
-    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: ELEVATE_REST_SHADOW, scale: 1, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
+    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: ELEVATE_REST_SHADOW, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
     onBlur?.();
   };
   return (
     <div>
       {label ? (
-        <div className={`mb-1.5 text-sm ${boldLabel ? "font-semibold text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{label}</div>
+        <div className={`mb-1.5 text-sm font-semibold ${boldLabel ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{label}</div>
       ) : null}
       <div className="relative">
         <input
@@ -231,14 +232,14 @@ export function InputField({
           placeholder={placeholder}
           aria-label={ariaLabel || label}
           inputMode={inputMode}
-          className={`h-13 w-full rounded-xl border bg-[var(--iv2-surface)] px-3.5 text-[17px] font-semibold outline-none transition-colors focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 ${
+          className={`h-13 w-full rounded-xl border bg-[var(--iv2-surface)] px-3.5 text-[17px] font-semibold outline-none transition-colors ${
             valueColor ? "" : "text-[var(--iv2-text-primary)]"
           } ${rightAdornment ? "pr-11" : ""} ${
             tone === "warning"
               ? "border-[var(--iv2-warning-border-strong)] bg-[var(--iv2-surface)]"
               : tone === "danger"
-                ? "border-[var(--iv2-danger)] bg-[var(--iv2-surface)] focus:outline-[var(--iv2-danger)]"
-                : "border-[var(--iv2-border)] hover:border-[var(--iv2-text-muted)]"
+                ? "border-[var(--iv2-danger)] bg-[var(--iv2-surface)]"
+                : "border-[var(--iv2-border)] hover:border-[var(--iv2-text-muted)] focus:border-[var(--iv2-brand)] focus:bg-[#F4F9FE]"
           }`}
           style={{ height: 52, boxShadow: ELEVATE_REST_SHADOW, color: valueColor }}
         />
@@ -291,7 +292,7 @@ export function SelectField({
   options,
   placeholder,
   ariaLabel,
-  boldLabel = true,
+  boldLabel = false,
   tone = "default",
   fieldRef,
   nextRef,
@@ -410,7 +411,7 @@ export function SelectField({
   return (
     <div ref={rootRef} className="relative">
       {label ? (
-        <div className={`mb-1.5 text-sm ${boldLabel ? "font-semibold text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{label}</div>
+        <div className={`mb-1.5 text-sm font-semibold ${boldLabel ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{label}</div>
       ) : null}
 
       <button
@@ -609,7 +610,7 @@ export function OptionPill({ label, selected, onClick }: { label: string; select
 export function OptionRow({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
   return (
     <div>
-      <div className="mb-3 text-[15px] font-semibold text-[var(--iv2-text-primary)]">{label}</div>
+      <div className="mb-3 text-[15px] font-semibold text-[var(--iv2-text-muted)]">{label}</div>
       <div className="grid grid-cols-2 gap-2.5">
         {options.map((opt) => (
           <OptionPill key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} />
@@ -869,13 +870,16 @@ export function SearchClearInput({
 }) {
   const fieldRef = useRef<HTMLInputElement>(null);
   const onFieldFocus = () => {
-    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: ELEVATE_SHADOW, scale: ELEVATE_SCALE, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
+    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: FIELD_FOCUS_SHADOW, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
   };
   const onFieldBlur = () => {
-    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: ELEVATE_REST_SHADOW, scale: 1, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
+    if (fieldRef.current) gsap.to(fieldRef.current, { boxShadow: ELEVATE_REST_SHADOW, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
   };
   return (
     <div className="relative">
+      <span className="absolute top-1/2 left-3.5 -translate-y-1/2">
+        <SearchIcon />
+      </span>
       <input
         ref={fieldRef}
         value={value}
@@ -885,24 +889,40 @@ export function SearchClearInput({
         placeholder={placeholder}
         aria-label={ariaLabel || placeholder}
         disabled={disabled}
-        className="h-13 w-full rounded-xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] py-3.5 pr-11 pl-3.5 text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors focus:outline-2 focus:outline-[var(--iv2-brand)] focus:-outline-offset-2 disabled:opacity-50"
-        style={{ height: 52, boxShadow: ELEVATE_REST_SHADOW }}
+        className="w-full rounded-xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] py-3.5 pr-11 pl-11 text-[17px] leading-normal font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors focus:border-[var(--iv2-brand)] disabled:opacity-50"
+        style={{ boxShadow: ELEVATE_REST_SHADOW }}
       />
-      <span className="absolute top-1/2 right-3.5 -translate-y-1/2">
-        {value ? (
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            aria-label="Clear search"
-            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-none bg-transparent p-0"
-          >
-            <XIcon size={16} />
-          </button>
-        ) : (
-          <SearchIcon />
-        )}
-      </span>
+      {value ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+          className="absolute top-1/2 right-3.5 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border-none bg-transparent p-0"
+        >
+          <XIcon size={16} />
+        </button>
+      ) : null}
     </div>
+  );
+}
+
+// A plain text link, not a bordered button — "N more items exist but
+// aren't shown yet," revealed on tap. Every catalog list (conditions,
+// allergies, medications, surgeries, family history) that caps its
+// visible rows and needs a way to reveal (and re-hide) the rest uses
+// this same one — `expanded` flips it to "Show less" (chevron pointed
+// back up) once the list is already fully open, rather than the link
+// just vanishing with no way back to the shorter list.
+export function ShowMoreLink({ count, expanded, onToggle }: { count: number; expanded: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="mt-2.5 flex w-full cursor-pointer items-center justify-center gap-1 border-none bg-transparent py-2 text-[15px] font-semibold text-[var(--iv2-brand)]"
+    >
+      {expanded ? "Show less" : `Show ${count} more`}
+      <ChevronDownIcon size={16} color="var(--iv2-brand)" className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+    </button>
   );
 }
 

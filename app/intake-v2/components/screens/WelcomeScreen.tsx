@@ -62,7 +62,7 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
               </div>
             </div>
             <div className="shrink-0 text-center">
-              <ReadinessRing percent={readiness} />
+              <ReadinessRing percent={readiness} animate={!state.intakeCompleted} />
               <div className="mt-2.5 text-[11px] font-semibold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Readiness</div>
             </div>
           </div>
@@ -109,7 +109,9 @@ export function WelcomeScreen({ ctx }: { ctx: Ctx }) {
           <div className="p-5.5 pt-5">
             <Button onClick={ctx.next} className="h-14 w-full">
               {isRet ? "Resume check-in" : "Start check-in"}
-              <ArrowRightIcon />
+              <span className="iv2-arrow-nudge">
+                <ArrowRightIcon />
+              </span>
             </Button>
           </div>
         </div>

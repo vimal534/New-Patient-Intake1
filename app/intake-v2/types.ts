@@ -343,13 +343,11 @@ export type IntakeState = {
   // actually looked at it this visit).
   hhConfirmed: Record<HealthCategory, boolean>;
 
-  cardSheetOpen: boolean;
   cardNumber: string;
   paid: boolean;
 
   cards: SavedCard[];
   selectedCardId: string | null;
-  methodsOpen: boolean;
   authSheetOpen: boolean;
   cardExp: string;
   cardCvc: string;
@@ -445,6 +443,13 @@ export type IntakeState = {
   // SuccessScreen.tsx) — WelcomeScreen.tsx's readiness ring reads this
   // to jump to 100% once back on the landing/hub screen.
   intakeCompleted: boolean;
+
+  // True for the brief moment between that "Done" tap and actually
+  // landing on the hub — page.tsx renders CompletionOverlay's counting
+  // ring in place of the normal screen while this is true, and the
+  // overlay itself flips it back off (alongside intakeCompleted and the
+  // "welcome" navigation) once its count finishes.
+  completing: boolean;
 };
 
 export type Patch = Partial<IntakeState> | ((s: IntakeState) => Partial<IntakeState>);

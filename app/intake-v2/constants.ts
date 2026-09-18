@@ -235,18 +235,20 @@ export const FLOW_NEW_ADOLESCENT: FlowKey[] = [
 // on file, "Update" per screen). Well Visit (Office Visit) includes
 // Financial Policies; Sick Visit does not — ConsentScreen.tsx filters
 // that doc out for "returning-sick" specifically.
-// "confirmInfo" is where insurance-on-file is confirmed (it's a
-// section within that screen, not its own step) — Payment follows
-// right after it, same "insurance confirmed → copay collected" pairing
-// as the new-patient flows above, before "confirmAdditional" moves on
-// to the rest of what's on file.
+// "coverage" is its own step here (CoverageScreen.tsx's "known"
+// branch — just the card on file plus "Still using this insurance?"),
+// not folded into confirmInfo as a section — Payment follows right
+// after it, same "insurance confirmed → copay collected" pairing as
+// the new-patient flows above. Parent/guardian details on file
+// (ConfirmAdditionalScreen) was removed from this flow — a returning
+// patient's own visit doesn't need that screen re-confirmed here.
 export const FLOW_RETURNING_WELL: FlowKey[] = [
   "verifyIntro",
   "otp",
   "welcome",
   "confirmInfo",
+  "coverage",
   "payment",
-  "confirmAdditional",
   "health",
   "consentOnFile",
   "consent",
@@ -534,12 +536,7 @@ export const SCENARIO_SEEDS: Record<
     scheduling: {
       patientName: "Emma Rodriguez",
       age: "3 months old (DOB 03/11/2026)",
-      // Newborn/well-child, not a Sick Visit — the intake this scenario
-      // actually collects (pregnancy, delivery, newborn feeding/diaper
-      // history) is a well-child pattern, so the reason patients see on
-      // the dashboard and confirmation has to say that too, not
-      // contradict it.
-      reason: "Newborn Visit, New Patient",
+      reason: "Sick Visit",
       providerName: "Dr. Sarah Jenkins",
       providerEmail: "s.jenkins@healthproclinic.com",
       providerSpecialty: "Primary Care",
@@ -734,13 +731,11 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
     hhEditing: null,
     hhConfirmed: { conditions: false, medications: false, surgeries: false, allergies: false, family: false },
 
-    cardSheetOpen: false,
     cardNumber: "",
     paid: false,
 
     cards: scenario === "returning" ? [...SEED_CARDS] : [],
     selectedCardId: scenario === "returning" ? "v1" : null,
-    methodsOpen: false,
     authSheetOpen: false,
     cardExp: "",
     cardCvc: "",
@@ -848,5 +843,6 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
     toastId: 0,
 
     intakeCompleted: false,
+    completing: false,
   };
 }

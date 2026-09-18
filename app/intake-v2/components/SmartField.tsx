@@ -15,7 +15,7 @@ import {
   isValidEmailFormat,
   validateDob,
 } from "../format";
-import { ELEVATE_REST_SHADOW, ELEVATE_SCALE, ELEVATE_SHADOW, dur, focusNextIfEmpty } from "./motion";
+import { ELEVATE_REST_SHADOW, FIELD_FOCUS_SHADOW, dur, focusNextIfEmpty } from "./motion";
 
 // Color tokens mirrored 1:1 from app/globals.css's --iv2-* custom
 // properties. Duplicated here as literal hex rather than read via
@@ -23,11 +23,14 @@ import { ELEVATE_REST_SHADOW, ELEVATE_SCALE, ELEVATE_SHADOW, dur, focusNextIfEmp
 // — it can't animate an unresolved CSS custom-property reference.
 const C = {
   border: "#DDE4E0",
-  borderFocus: "#2B3440",
+  borderFocus: "#4285F4",
   borderError: "#B42318",
   borderSuccess: "#067647",
   bgDefault: "#FFFFFF",
-  bgFocus: "#FFFFFF",
+  // Matches InfoNote's "quiet" tone (app/globals.css/ui.tsx) — a
+  // barely-there blue tint, lighter than --iv2-brand-tint, so a
+  // focused field reads as "gently lit" rather than visibly filled.
+  bgFocus: "#F4F9FE",
   bgSuccess: "#ECFDF3",
 };
 
@@ -90,7 +93,7 @@ export function SmartTextField({
   placeholder,
   ariaLabel,
   inputMode,
-  boldLabel = true,
+  boldLabel = false,
   required,
   format,
   validate,
@@ -109,7 +112,7 @@ export function SmartTextField({
   // a screen re-mounting this field (e.g. re-entering a section) would
   // visibly replay the focus tween on first paint.
   useEffect(() => {
-    if (wrapRef.current) gsap.set(wrapRef.current, { borderColor: C.border, backgroundColor: C.bgDefault, boxShadow: ELEVATE_REST_SHADOW, scale: 1 });
+    if (wrapRef.current) gsap.set(wrapRef.current, { borderColor: C.border, backgroundColor: C.bgDefault, boxShadow: ELEVATE_REST_SHADOW });
   }, []);
 
   const settle = (tone: "default" | "error") => {
@@ -118,7 +121,6 @@ export function SmartTextField({
       borderColor: tone === "error" ? C.borderError : C.border,
       backgroundColor: C.bgDefault,
       boxShadow: ELEVATE_REST_SHADOW,
-      scale: 1,
       duration: dur(FOCUS_DURATION),
       ease: "power1.out",
     });
@@ -137,7 +139,6 @@ export function SmartTextField({
         borderColor: C.border,
         backgroundColor: C.bgDefault,
         boxShadow: ELEVATE_REST_SHADOW,
-        scale: 1,
         duration: dur(CONFIRM_SETTLE),
         ease: "power1.inOut",
         delay: dur(CONFIRM_HOLD),
@@ -168,8 +169,7 @@ export function SmartTextField({
     gsap.to(wrapRef.current, {
       borderColor: C.borderFocus,
       backgroundColor: C.bgFocus,
-      boxShadow: ELEVATE_SHADOW,
-      scale: ELEVATE_SCALE,
+      boxShadow: FIELD_FOCUS_SHADOW,
       duration: dur(FOCUS_DURATION),
       ease: "power1.out",
     });
@@ -194,7 +194,7 @@ export function SmartTextField({
   return (
     <div>
       {label ? (
-        <div className={`mb-1.5 text-sm ${boldLabel ? "font-semibold text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>
+        <div className={`mb-1.5 text-sm font-semibold ${boldLabel ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>
           {label} {required ? <span className="text-[var(--iv2-danger)]">*</span> : null}
         </div>
       ) : null}
@@ -425,12 +425,12 @@ export function SplitDobField({
   const borderColor = error ? SPLIT_DOB_C.borderError : SPLIT_DOB_C.border;
 
   const boxClass =
-    "h-13 w-full rounded-xl border bg-[var(--iv2-surface)] px-3 text-center text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--iv2-brand)] focus:bg-[var(--iv2-surface)] hover:border-[var(--iv2-text-muted)]";
+    "h-13 w-full rounded-xl border bg-[var(--iv2-surface)] px-3 text-center text-[17px] font-semibold text-[var(--iv2-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--iv2-brand)] focus:bg-[#F4F9FE] focus:shadow-[0_0_0_4px_#E3EDFB] hover:border-[var(--iv2-text-muted)]";
 
   return (
     <div>
       {label ? (
-        <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-primary)]">
+        <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">
           {label} {required ? <span className="text-[var(--iv2-danger)]">*</span> : null}
         </div>
       ) : null}

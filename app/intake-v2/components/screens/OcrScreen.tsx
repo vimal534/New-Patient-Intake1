@@ -38,7 +38,7 @@ function PolicyholderDobFields({ value, onChange }: { value: string; onChange: (
 
   return (
     <div>
-      <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-primary)]">Date of birth</div>
+      <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">Date of birth</div>
       <div className="grid grid-cols-3 gap-2">
         <SelectField ariaLabel="Birth month" value={month} onChange={(v) => onChange(combine(v, day, yyyy))} options={DOB_MONTHS} placeholder="Month" />
         <SelectField ariaLabel="Birth day" value={day} onChange={(v) => onChange(combine(month, v, yyyy))} options={DOB_DAYS} placeholder="Day" />
@@ -244,7 +244,7 @@ function PolicyholderQuestion({ ctx }: { ctx: Ctx }) {
             <InputField label="Full name" value={state.policyholderName} placeholder="Enter full name" onChange={(v) => update({ policyholderName: v })} />
             <PolicyholderDobFields value={state.policyholderDob} onChange={(v) => update({ policyholderDob: v })} />
             <div>
-              <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-primary)]">Relationship</div>
+              <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">Relationship</div>
               <div className="grid grid-cols-2 gap-2.5">
                 {POLICYHOLDER_RELATIONSHIPS.map((opt) => (
                   <OptionPill
