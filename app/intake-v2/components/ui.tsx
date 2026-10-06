@@ -24,19 +24,20 @@ import {
 // white-label visual system (own brand-blue accent, own radii/shadow
 // scale), not a re-skin. See that README's "About the Design Files".
 
-// "Soft tinted" shadow signature — never a flat/hard black shadow, and
-// tinted with --ink rather than pure black so it reads as material,
-// not a generic box-shadow default. 0/16/40 offset-y/blur per the
-// design panel's own single Shadow row.
-const CARD_SHADOW = "transition-shadow duration-150 hover:shadow-[0_16px_40px_rgba(27,38,36,0.08)]";
+// Cards separate from the page by elevation, not a stroke — an
+// always-on soft shadow (not just on hover) rather than the border
+// this used to draw, for a flatter, more minimal read against the
+// (now lighter/less saturated) page background. Still deepens a touch
+// further on hover, same "this responded to you" cue as before.
+// Shared form-label treatment — one size/weight/color for every field
+// and option-group label so forms read the same on every screen.
+export const FORM_LABEL = "text-[18px] font-semibold text-[#1b2624]";
+
+const CARD_SHADOW = "shadow-[var(--iv2-card-shadow)] transition-shadow duration-150 hover:shadow-[var(--iv2-card-shadow-hover)]";
 
 export function Card({ children, className = "", padded = true }: { children: ReactNode; className?: string; padded?: boolean }) {
   return (
-    <div
-      className={`rounded-[22px] border border-[var(--iv2-card-border)] bg-[var(--iv2-surface)] ${CARD_SHADOW} ${padded ? "p-6" : ""} ${className}`}
-    >
-      {children}
-    </div>
+    <div className={`rounded-[22px] bg-[var(--iv2-surface)] ${CARD_SHADOW} ${padded ? "p-6" : ""} ${className}`}>{children}</div>
   );
 }
 
@@ -173,12 +174,15 @@ export function InputField({
   ariaLabel,
   inputMode,
   tone = "default",
-  boldLabel = false,
+  labelClassName,
   rightAdornment,
   errorText,
   valueColor,
 }: {
   label?: string;
+  // Replaces the label's default size/weight/color wholesale (not
+  // merged) for a screen that wants its own label treatment.
+  labelClassName?: string;
   value: string;
   onChange: (v: string) => void;
   // Free-text fields have no natural "done typing" signal to advance
@@ -190,7 +194,6 @@ export function InputField({
   ariaLabel?: string;
   inputMode?: "text" | "numeric" | "tel" | "email";
   tone?: "default" | "warning" | "danger";
-  boldLabel?: boolean;
   // Sits inside the field's right edge (a detected card brand mark, an
   // AlertCircleIcon on an invalid value) — AddCardSheet's own need,
   // generic enough other bespoke-validation fields can reuse it.
@@ -220,7 +223,7 @@ export function InputField({
   return (
     <div>
       {label ? (
-        <div className={`mb-1.5 text-sm font-semibold ${boldLabel ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{label}</div>
+        <div className={`mb-1.5 ${labelClassName ?? FORM_LABEL}`}>{label}</div>
       ) : null}
       <div className="relative">
         <input
@@ -292,7 +295,6 @@ export function SelectField({
   options,
   placeholder,
   ariaLabel,
-  boldLabel = false,
   tone = "default",
   fieldRef,
   nextRef,
@@ -303,7 +305,6 @@ export function SelectField({
   options: string[];
   placeholder?: string;
   ariaLabel?: string;
-  boldLabel?: boolean;
   tone?: "default" | "danger";
   // Same chaining shape as SmartField: `fieldRef` lets a caller capture
   // this field's own trigger to use as an earlier field's `nextRef`;
@@ -411,7 +412,7 @@ export function SelectField({
   return (
     <div ref={rootRef} className="relative">
       {label ? (
-        <div className={`mb-1.5 text-sm font-semibold ${boldLabel ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>{label}</div>
+        <div className={`mb-1.5 ${FORM_LABEL}`}>{label}</div>
       ) : null}
 
       <button
@@ -578,7 +579,17 @@ const YES_NO_UNKNOWN = ["Yes", "No", "Unknown"];
 // Compact, content-sized pill — not a full-width row. Unselected: thin
 // border, white fill. Selected: solid brand fill, white bold text, no
 // border. Matches the marketing site's "What brings you by" picker.
-export function OptionPill({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+export function OptionPill({
+  label,
+  selected,
+  onClick,
+  textSizeClassName = "text-base",
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  textSizeClassName?: string;
+}) {
   const cardRef = useRef<HTMLButtonElement>(null);
   const onCardFocus = () => {
     if (cardRef.current) gsap.to(cardRef.current, { boxShadow: ELEVATE_SHADOW, scale: ELEVATE_SCALE, duration: dur(MOTION_DURATION), ease: MOTION_EASE });
@@ -593,7 +604,7 @@ export function OptionPill({ label, selected, onClick }: { label: string; select
       onClick={onClick}
       onFocus={onCardFocus}
       onBlur={onCardBlur}
-      className={`inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-center text-sm leading-tight transition-colors duration-150 ${
+      className={`inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-center ${textSizeClassName} leading-tight transition-colors duration-150 ${
         selected
           ? "border-transparent bg-[var(--iv2-brand)] font-bold text-white"
           : "border-[var(--iv2-border)] bg-[var(--iv2-surface)] font-semibold text-[var(--iv2-text-primary)] hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
@@ -607,13 +618,27 @@ export function OptionPill({ label, selected, onClick }: { label: string; select
 // Bold question + a row of compact pills below it, wrapping as needed
 // — the shared shape for every short single-select question across
 // the app (Birth & Prenatal History, Social History, etc.).
-export function OptionRow({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
+export function OptionRow({
+  label,
+  value,
+  options,
+  onChange,
+  labelClassName,
+  optionTextSizeClassName,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  labelClassName?: string;
+  optionTextSizeClassName?: string;
+}) {
   return (
     <div>
-      <div className="mb-3 text-[15px] font-semibold text-[var(--iv2-text-muted)]">{label}</div>
+      <div className={`mb-3 ${labelClassName ?? FORM_LABEL}`}>{label}</div>
       <div className="grid grid-cols-2 gap-2.5">
         {options.map((opt) => (
-          <OptionPill key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} />
+          <OptionPill key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} textSizeClassName={optionTextSizeClassName} />
         ))}
       </div>
     </div>

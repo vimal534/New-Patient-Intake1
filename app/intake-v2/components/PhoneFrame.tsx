@@ -19,7 +19,9 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
       <div
         className="iv2-root relative flex h-dvh w-full flex-col overflow-hidden bg-[var(--canvas)] font-[family-name:var(--font-inter)] sm:h-[932px] sm:w-[430px] sm:rounded-[52px] sm:border-[10px] sm:border-[#14161b] sm:shadow-[0_24px_60px_rgba(27,38,36,0.28)]"
       >
-        <StatusBar />
+        <div className="bg-[var(--iv2-surface)]">
+          <StatusBar />
+        </div>
         <div className="min-h-0 flex-1">{children}</div>
       </div>
     </div>

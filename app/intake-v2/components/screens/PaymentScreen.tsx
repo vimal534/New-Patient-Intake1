@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Ctx } from "../../ctx";
+import { SavedCard } from "../../types";
 import {
   detectCardBrand,
   formatCardExpiry,
@@ -23,6 +24,74 @@ function GreenCheckBadge() {
     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-success)]">
       <CheckIcon size={11} color="#fff" strokeWidth={3} />
     </span>
+  );
+}
+
+// One saved card's full detail tile — used standalone when there's
+// only one card on file, or as one snap-scroll item in a horizontal
+// row when there's more than one (see the `savedCards` render below).
+// Tapping the tile selects that card; its own "Edit" link (separate
+// tap target, stops propagation) drops back into the inline card form
+// pre-filled with that specific card's details, same as before.
+function CardTile({
+  card,
+  selected,
+  cardholderName,
+  onSelect,
+  onEdit,
+  className = "",
+}: {
+  card: SavedCard;
+  selected: boolean;
+  cardholderName: string;
+  onSelect: () => void;
+  onEdit: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`cursor-pointer rounded-2xl p-4 text-left transition-colors duration-150 ${className}`}
+      style={{
+        border: `1.5px solid ${selected ? "var(--iv2-brand)" : "var(--iv2-border)"}`,
+        backgroundColor: selected ? "var(--iv2-brand-surface)" : "var(--iv2-surface)",
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="text-xs font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">{selected ? "Selected card" : "Saved card"}</div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          className="shrink-0 cursor-pointer border-none bg-transparent text-sm font-semibold text-[var(--iv2-brand)]"
+        >
+          Edit
+        </button>
+      </div>
+      <div className="flex items-center gap-3.5">
+        <span
+          className="flex h-9 w-12 shrink-0 items-center justify-center rounded-lg text-[11px] font-extrabold text-white"
+          style={{ backgroundColor: BRAND_MARK_BG[card.brand] }}
+        >
+          {card.brand}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-bold text-[var(--iv2-text-primary)]">
+            {BRAND_LABEL[card.brand]} ending in {card.last4}
+          </div>
+          <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">Expires {card.exp}</div>
+          <div className="text-sm text-[var(--iv2-text-secondary)]">{cardholderName}</div>
+        </div>
+        {selected ? (
+          <GreenCheckBadge />
+        ) : (
+          <span className="h-6 w-6 shrink-0 rounded-full border-2 border-[var(--iv2-border-strong)]" />
+        )}
+      </div>
+    </button>
   );
 }
 
@@ -73,8 +142,16 @@ function MethodTile({ selected, onClick, title, subtitle, icon }: { selected: bo
 // multi-card switcher sheet.
 export function PaymentScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
-  const selCard = state.cards.find((c) => c.id === state.selectedCardId && !c.expired) || null;
+  const activeCards = state.cards.filter((c) => !c.expired);
+  const selCard = activeCards.find((c) => c.id === state.selectedCardId) || null;
+  // With a card on file, the method area is just that one card (the
+  // default, or whichever is selected) plus Apple Pay as the
+  // alternative — no side-by-side method toggle and no card carousel.
+  // Falls back to the toggle + inline card form when there's no card
+  // yet or the saved one is being edited (selectedCardId cleared).
   const applePaySelected = state.selectedCardId === "applepay";
+  const savedMode = activeCards.length > 0 && (applePaySelected || !!selCard);
+  const primaryCard = selCard ?? activeCards.find((c) => c.isDefault) ?? activeCards[0] ?? null;
   const cardholderName = state.guardian1.name.trim() || state.scheduling.patientName;
 
   const chooseApple = () => update({ selectedCardId: "applepay" });
@@ -122,7 +199,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
   };
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle>Your copay</ScreenTitle>
       <ScreenCopy className="mb-6">Review your copay and payment method.</ScreenCopy>
 
@@ -146,54 +223,56 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <MethodTile selected={applePaySelected} onClick={chooseApple} title="Pay" subtitle="Pay quickly and securely" />
-        <MethodTile
-          selected={!applePaySelected}
-          onClick={chooseCard}
-          title="Card"
-          subtitle="Visa, Mastercard, Amex, Discover"
-          icon={<CardIcon size={17} color="var(--iv2-text-primary)" />}
-        />
-      </div>
-
-      {!applePaySelected && selCard ? (
-        <div className="mt-3 rounded-2xl border border-[var(--iv2-card-border)] bg-[var(--iv2-surface)] p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-xs font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Selected card</div>
-            <button
-              type="button"
-              onClick={() => update({ selectedCardId: null, cardName: cardholderName, cardExp: formatCardExpiry(selCard.exp), cardNumber: "", cardCvc: "" })}
-              className="cursor-pointer border-none bg-transparent text-sm font-semibold text-[var(--iv2-brand)]"
-            >
-              Edit
-            </button>
-          </div>
-          <div className="flex items-center gap-3.5">
-            <span
-              className="flex h-9 w-12 shrink-0 items-center justify-center rounded-lg text-[11px] font-extrabold text-white"
-              style={{ backgroundColor: BRAND_MARK_BG[selCard.brand] }}
-            >
-              {selCard.brand}
+      {savedMode && primaryCard ? (
+        <div className="flex flex-col gap-3">
+          <CardTile
+            card={primaryCard}
+            selected={!applePaySelected}
+            cardholderName={cardholderName}
+            onSelect={() => update({ selectedCardId: primaryCard.id })}
+            onEdit={() => update({ selectedCardId: null, cardName: cardholderName, cardExp: formatCardExpiry(primaryCard.exp), cardNumber: "", cardCvc: "" })}
+            className="w-full"
+          />
+          <button
+            type="button"
+            onClick={() => update({ selectedCardId: null, cardName: cardholderName, cardExp: "", cardNumber: "", cardCvc: "" })}
+            className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-[var(--iv2-border-strong)] bg-[var(--iv2-surface)] px-4 py-3 text-left transition-colors hover:border-[var(--iv2-brand)] hover:bg-[var(--iv2-brand-surface)]"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)] text-base leading-none font-bold text-[var(--iv2-brand)]">
+              +
             </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-base font-bold text-[var(--iv2-text-primary)]">
-                {BRAND_LABEL[selCard.brand]} ending in {selCard.last4}
-              </div>
-              <div className="mt-0.5 text-sm text-[var(--iv2-text-secondary)]">Expires {selCard.exp}</div>
-              <div className="text-sm text-[var(--iv2-text-secondary)]">{cardholderName}</div>
-            </div>
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-success)]">
-              <CheckIcon size={13} color="#fff" strokeWidth={3} />
-            </span>
-          </div>
+            <span className="text-base font-semibold text-[var(--iv2-brand)]">Add new card</span>
+          </button>
+          <MethodTile selected={applePaySelected} onClick={chooseApple} title="Apple Pay" subtitle="Pay quickly and securely" />
         </div>
-      ) : null}
+      ) : activeCards.length > 0 ? null : (
+        <div className="grid grid-cols-2 gap-2.5">
+          <MethodTile selected={applePaySelected} onClick={chooseApple} title="Apple Pay" subtitle="Pay quickly and securely" />
+          <MethodTile
+            selected={!applePaySelected}
+            onClick={chooseCard}
+            title="Card"
+            subtitle="Visa, Mastercard, Amex, Discover"
+            icon={<CardIcon size={17} color="var(--iv2-text-primary)" />}
+          />
+        </div>
+      )}
 
       {!applePaySelected && !selCard ? (
-        <div className="mt-3 rounded-2xl border border-[var(--iv2-card-border)] bg-[var(--iv2-surface)] p-4">
-          <div className="mb-3.5 text-base font-bold text-[var(--iv2-text-primary)]">Card details</div>
-          <div className="flex flex-col gap-3.5">
+        <div className="mt-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="text-[18px] font-bold text-[#1b2624]">Card details</div>
+            {primaryCard ? (
+              <button
+                type="button"
+                onClick={() => update({ selectedCardId: primaryCard.id })}
+                className="cursor-pointer border-none bg-transparent text-[15px] font-semibold text-[var(--iv2-brand)]"
+              >
+                Cancel
+              </button>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-8">
             <InputField
               label="Name on card"
               value={state.cardName}
@@ -263,10 +342,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
         </div>
       ) : null}
 
-      <div
-        className="mt-3 flex items-start gap-3 rounded-[22px] border border-[var(--iv2-card-border)] p-4"
-        style={{ background: "var(--iv2-success-surface)" }}
-      >
+      <div className="mt-3 flex items-start gap-3 rounded-[22px] p-4" style={{ background: "var(--iv2-success-surface)" }}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-surface)]">
           <ShieldCheckIcon size={18} />
         </span>
@@ -292,7 +368,7 @@ export function PaymentScreen({ ctx }: { ctx: Ctx }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3.5 rounded-[22px] border border-[var(--iv2-card-border)] bg-[var(--iv2-surface)] p-4">
+        <div className="flex items-center gap-3.5 rounded-[22px] bg-[var(--iv2-surface)] p-4 shadow-[var(--iv2-card-shadow)]">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--iv2-surface)]">
             <MailIcon color="var(--iv2-brand)" />
           </div>

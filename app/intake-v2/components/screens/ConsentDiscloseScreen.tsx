@@ -2,7 +2,6 @@
 
 import { Ctx } from "../../ctx";
 import { EMERGENCY_RELATIONSHIP_OPTIONS } from "../../constants";
-import { ShieldUserIcon } from "../Icons";
 import { PhoneField } from "../SmartField";
 import { AuthorizedPerson } from "../../types";
 import { Button, CloseCircleButton, IconActionButton, InputField, OptionPill, OptionRow, Reveal, ScreenCopy, ScreenTitle } from "../ui";
@@ -56,16 +55,11 @@ export function ConsentDiscloseScreen({ ctx }: { ctx: Ctx }) {
   const setDraft = (patch: Partial<AuthorizedPerson>) => update((s) => ({ authPersonDraft: { ...s.authPersonDraft, ...patch } }));
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
 
-      <div className="mb-6 flex items-start gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--iv2-brand-tint)]">
-          <ShieldUserIcon size={24} />
-        </span>
-        <div className="pt-0.5">
-          <ScreenTitle className="mb-1 leading-[1.28]">Share {firstName}&apos;s info with others?</ScreenTitle>
-          <ScreenCopy>Beyond the guardian on this visit.</ScreenCopy>
-        </div>
+      <div className="mb-6">
+        <ScreenTitle className="mb-1 leading-[1.28]">Share {firstName}&apos;s info with others?</ScreenTitle>
+        <ScreenCopy>Beyond the guardian on this visit.</ScreenCopy>
       </div>
 
       <div className="mb-7 grid grid-cols-2 gap-2.5">
@@ -164,17 +158,17 @@ function AuthPersonPanel({
   ready: boolean;
 }) {
   return (
-    <Reveal className="rounded-2xl border-[1.5px] border-[var(--iv2-brand)] bg-[var(--iv2-surface)] p-4">
-      <div className="mb-3.5 flex items-center justify-between gap-3">
-        <div className="text-base font-bold text-[var(--iv2-text-primary)]">{mode === "edit" ? "Edit authorized person" : "Add authorized person"}</div>
+    <Reveal>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="text-[18px] font-bold text-[#1b2624]">{mode === "edit" ? "Edit authorized person" : "Add authorized person"}</div>
         <CloseCircleButton onClick={onCancel} />
       </div>
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-8">
         <InputField label="Name" value={draft.name} onChange={(v) => setDraft({ name: v })} />
         <OptionRow label="Relationship" value={draft.relationship} options={EMERGENCY_RELATIONSHIP_OPTIONS} onChange={(v) => setDraft({ relationship: v })} />
         <PhoneField label="Phone number" value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
       </div>
-      <div className="mt-4 flex gap-2.5">
+      <div className="mt-8 flex gap-2.5">
         <Button variant="secondary" size="sm" onClick={onCancel} className="h-12 flex-1">
           Cancel
         </Button>

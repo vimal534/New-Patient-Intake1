@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Ctx } from "../ctx";
-import { MED_DETAILS, MED_UNITS, PEDI_MED_CATALOG } from "../constants";
+import { MED_DETAILS, MED_UNITS, PEDI_MED_CATALOG, PEDI_MED_CATEGORIES } from "../constants";
 import { formatDigits } from "../format";
 import { CatalogItem } from "../types";
-import { BottomSheet, Button, CatalogChip, Checkbox22, CloseCircleButton, InputField, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectField, SelectedListSection, ShowMoreLink } from "./ui";
+import { BottomSheet, Button, CatalogChip, Checkbox22, CloseCircleButton, InputField, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
+import { BrowseByCategory } from "./CategoryBrowser";
 
-const CATALOG_VISIBLE = 4;
 const SEARCH_MIN_CHARS = 2;
 
 type Draft = { dose: string; unit: string; frequency: string };
@@ -25,7 +25,6 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
   const none = state.medsNone;
 
   const [query, setQuery] = useState("");
-  const [showMore, setShowMore] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -38,7 +37,6 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
 
   const have = items.map((i) => i.name);
   const available = PEDI_MED_CATALOG.filter((n) => !have.includes(n));
-  const commonVisible = showMore ? available : available.slice(0, CATALOG_VISIBLE);
 
   const searchMatches = searching ? available.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
 
@@ -233,14 +231,11 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
             )}
           </>
         ) : (
-          <>
-            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
-
-            {available.length > CATALOG_VISIBLE ? (
-              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
-            ) : null}
-          </>
+          <BrowseByCategory
+            categories={PEDI_MED_CATEGORIES.map((c) => ({ name: c.name, items: c.items.filter((n) => available.includes(n)) }))}
+            selectedCount={(name) => (PEDI_MED_CATEGORIES.find((c) => c.name === name)?.items ?? []).filter((n) => have.includes(n)).length}
+            renderItem={renderChip}
+          />
         )}
       </div>
 
@@ -252,7 +247,7 @@ export function MedicationsSection({ ctx }: { ctx: Ctx }) {
               ? "Not available while a medication is expanded."
               : items.length > 0
                 ? "Remove your added medications first."
-                : "Select this if you're not currently taking any of these medications."
+                : "Select this if none apply."
           }
           checked={none}
           disabled={expandedKey !== null || editingIndex !== null || items.length > 0}

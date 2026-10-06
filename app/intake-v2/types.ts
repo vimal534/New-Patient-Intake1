@@ -416,11 +416,17 @@ export type IntakeState = {
 
   // Scenarios 3 & 4 (Returning Patient, Well/Sick Visit) — confirm-
   // pattern screens, each one screen-level edit toggle (see
-  // ConfirmInfoScreen.tsx, ConfirmAdditionalScreen.tsx,
-  // ConsentOnFileScreen.tsx). The returning-patient Health History
-  // step reuses HealthScreen.tsx (key "health") instead — see its own
-  // hhEditing/hhConfirmed state below.
-  confirmInfoEditing: boolean;
+  // ConfirmAdditionalScreen.tsx, ConsentOnFileScreen.tsx). The
+  // returning-patient Health History step reuses HealthScreen.tsx (key
+  // "health") instead — see its own hhEditing/hhConfirmed state below.
+  // ConfirmInfoScreen.tsx's three sections (Patient information,
+  // Contact information, Guardian information) confirm one at a time,
+  // accordion-style — each stays read-only until the one before it is
+  // confirmed, then collapses to a checkmark summary once its own
+  // "Looks right" is tapped. Order (not a stored "which is open" flag)
+  // is what determines which section is currently active: the first
+  // one in this fixed sequence that isn't confirmed yet.
+  confirmInfoConfirmed: { identity: boolean; contact: boolean; guardian: boolean };
   confirmAdditionalEditing: boolean;
   consentOnFileEditing: boolean;
   policiesEditing: boolean;

@@ -142,7 +142,6 @@ export default function IntakeV2Page() {
         ...s,
         reviewingFromSuccess: true,
         idx: i,
-        ...(target === "confirmInfo" ? { confirmInfoEditing: true } : {}),
         ...(target === "confirmAdditional" ? { confirmAdditionalEditing: true } : {}),
         ...(target === "consentOnFile" ? { consentOnFileEditing: true } : {}),
         ...(target === "personal" && s.scenario === "returning" ? { editingPersonal: true } : {}),
@@ -445,9 +444,12 @@ function footerFor(ctx: Ctx): FooterConfig {
   if (key === "healthFamily") {
     return { primaryLabel: "Continue", primaryDisabled: !(state.familyHistory.length || state.familyNone), primary: next };
   }
+  // One question at a time (see PediQuestionsScreen.tsx) — its own
+  // inline "Continue" advances between questions and, on the last one,
+  // calls ctx.next() itself, so there's nothing left for the shared
+  // bottom footer to do here.
   if (key === "pediQuestions") {
-    const ready = state.pediAccompanying.trim() && state.pediHomeLanguage.trim() && state.pediPoolFenced && state.pediGunsSafe;
-    return { primaryLabel: "Continue", primaryDisabled: !ready, primary: next };
+    return { primaryLabel: null };
   }
   if (key === "birthHistory") {
     // Sections reveal themselves progressively as each one's answered
@@ -482,13 +484,13 @@ function footerFor(ctx: Ctx): FooterConfig {
         g.lastPeriodDate.length === 10);
     return { primaryLabel: "Continue", primaryDisabled: !ready, primary: next };
   }
+  // Each of this screen's three sections (identity/contact/guardian)
+  // carries its own "Looks right"/"Update" action inline — see
+  // ConfirmInfoScreen.tsx — so there's nothing left for the shared
+  // bottom footer to do here; confirming the last section calls
+  // ctx.next() directly instead.
   if (key === "confirmInfo") {
-    return {
-      primaryLabel: state.confirmInfoEditing ? "Save and continue" : "Everything looks correct",
-      primary: state.confirmInfoEditing ? () => { update({ confirmInfoEditing: false }); next(); } : next,
-      secondaryLabel: state.confirmInfoEditing ? "Done editing" : "Update",
-      secondary: () => update({ confirmInfoEditing: !state.confirmInfoEditing }),
-    };
+    return { primaryLabel: null };
   }
   if (key === "confirmAdditional") {
     return {

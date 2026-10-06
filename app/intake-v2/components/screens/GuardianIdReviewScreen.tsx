@@ -4,7 +4,7 @@ import { Ctx } from "../../ctx";
 import { GUARDIAN_RELATIONSHIP_OPTIONS } from "../../constants";
 import { InfoIcon } from "../Icons";
 import { EmailField, PhoneField } from "../SmartField";
-import { Card, InfoNote, InputField, OptionRow, ScreenCopy, ScreenTitle } from "../ui";
+import { InfoNote, InputField, OptionRow, ScreenCopy, ScreenTitle } from "../ui";
 
 // Patient Information wizard — Step 2 of 3. A plain guardian-info
 // form — guardian1's name/relationship/phone (all already known from
@@ -20,33 +20,41 @@ export function GuardianIdReviewScreen({ ctx }: { ctx: Ctx }) {
   const setGuardian1 = (patch: Partial<import("../../types").Guardian>) => update((s) => ({ guardian1: { ...s.guardian1, ...patch } }));
   const setEmail = (email: string) => update((s) => ({ personal: { ...s.personal, email } }));
   const firstName = state.scheduling.patientName.split(" ")[0] || "the patient";
+  const labelClassName = "text-[18px] font-semibold text-[#1b2624]";
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Tell us about {firstName}&apos;s guardian</ScreenTitle>
       <ScreenCopy className="mb-6">We&apos;ve pre-filled this from your appointment. Review and update anything that&apos;s changed.</ScreenCopy>
 
-      <Card>
-        <div className="flex flex-col gap-4">
-          <InputField label="Full name" value={state.guardian1.name} placeholder="Full name" onChange={(v) => setGuardian1({ name: v })} />
-          <OptionRow
-            label={`Relationship to ${firstName}`}
-            value={state.guardian1.relationship}
-            options={GUARDIAN_RELATIONSHIP_OPTIONS}
-            onChange={(v) => setGuardian1({ relationship: v, ...(v !== "Other" ? { relationshipOther: "" } : {}) })}
+      <div className="flex flex-col gap-8">
+        <InputField
+          label="Full name"
+          labelClassName={labelClassName}
+          value={state.guardian1.name}
+          placeholder="Full name"
+          onChange={(v) => setGuardian1({ name: v })}
+        />
+        <OptionRow
+          label={`Relationship to ${firstName}`}
+          labelClassName={labelClassName}
+          optionTextSizeClassName="text-base"
+          value={state.guardian1.relationship}
+          options={GUARDIAN_RELATIONSHIP_OPTIONS}
+          onChange={(v) => setGuardian1({ relationship: v, ...(v !== "Other" ? { relationshipOther: "" } : {}) })}
+        />
+        {state.guardian1.relationship === "Other" && (
+          <InputField
+            label="Please specify"
+            labelClassName={labelClassName}
+            value={state.guardian1.relationshipOther || ""}
+            placeholder="Relationship"
+            onChange={(v) => setGuardian1({ relationshipOther: v })}
           />
-          {state.guardian1.relationship === "Other" && (
-            <InputField
-              label="Please specify"
-              value={state.guardian1.relationshipOther || ""}
-              placeholder="Relationship"
-              onChange={(v) => setGuardian1({ relationshipOther: v })}
-            />
-          )}
-          <PhoneField label="Phone number" value={state.guardian1.mobile} onChange={(v) => setGuardian1({ mobile: v })} />
-          <EmailField label="Email address" value={state.personal.email} onChange={setEmail} />
-        </div>
-      </Card>
+        )}
+        <PhoneField label="Phone number" labelClassName={labelClassName} value={state.guardian1.mobile} onChange={(v) => setGuardian1({ mobile: v })} />
+        <EmailField label="Email address" labelClassName={labelClassName} value={state.personal.email} onChange={setEmail} />
+      </div>
 
       <div className="mt-4">
         <InfoNote>

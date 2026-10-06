@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Ctx } from "../../ctx";
 import { CalendarIcon, ShieldCheckIcon } from "../Icons";
 import { DobWheelSheet } from "../sheets/DobWheelSheet";
-import { Button, InputField } from "../ui";
+import { Button, FORM_LABEL, InputField } from "../ui";
 
 // "That's not me," reached from VerifyIntroScreen — the identified
 // PATIENT is wrong (as opposed to "I can't access this number," where
@@ -38,7 +38,7 @@ export function IdentityFallbackScreen({ ctx }: { ctx: Ctx }) {
   };
 
   return (
-    <div className="flex min-h-full flex-col px-6 pt-10 pb-6 text-center">
+    <div className="flex min-h-full flex-col bg-[var(--iv2-surface)] px-6 pt-10 pb-6 text-center">
       <div className="mx-auto mb-4 flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
         <ShieldCheckIcon size={36} />
       </div>
@@ -48,10 +48,10 @@ export function IdentityFallbackScreen({ ctx }: { ctx: Ctx }) {
         That number isn&apos;t you. Share a few details to verify your identity.
       </div>
 
-      <div className="flex flex-col gap-3.5 text-left">
+      <div className="flex flex-col gap-8 text-left">
         <InputField label="Patient's full name" value={name} placeholder="Full name" onChange={setName} />
         <div>
-          <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">Date of birth</div>
+          <div className={`mb-1.5 ${FORM_LABEL}`}>Date of birth</div>
           <button
             type="button"
             onClick={() => setPickerOpen(true)}

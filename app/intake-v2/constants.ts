@@ -473,30 +473,48 @@ export const ACCOMPANYING_OPTIONS = [
 ];
 export const HOME_LANGUAGE_OPTIONS = ["English", "Spanish", "English + Spanish", "Creole", "French", "Other"];
 
-export const COMMON_CONDS = [
-  "High blood pressure",
-  "Diabetes",
-  "Asthma",
-  "Thyroid condition",
-  "Depression or anxiety",
-  "PCOS",
-  "Endometriosis",
-  "Uterine fibroids",
+// Past Medical Conditions browse-by-category list — shared by
+// ConditionAddSection and the Family History editor. Each condition
+// lives in exactly one category; order is the order they render in.
+export const CONDITION_CATEGORIES: { name: string; conditions: string[] }[] = [
+  { name: "Lungs & breathing", conditions: ["Asthma", "COPD", "Sleep apnea", "Seasonal allergies"] },
+  { name: "Heart & circulation", conditions: ["High blood pressure", "High cholesterol", "Heart disease", "Heart murmur"] },
+  { name: "Hormones & metabolism", conditions: ["Diabetes", "Thyroid condition", "PCOS", "Endometriosis", "Uterine fibroids", "Obesity"] },
+  { name: "Cancer", conditions: ["Leukemia", "Lymphoma", "Skin cancer", "Other cancer"] },
+  { name: "Brain & nerves", conditions: ["Migraine", "Epilepsy", "Cerebral palsy", "Concussion"] },
+  { name: "Mental health", conditions: ["Depression or anxiety", "ADHD", "Autism spectrum"] },
+  { name: "Digestion & liver", conditions: ["Acid reflux", "Celiac disease", "Crohn's disease or colitis", "Liver disease"] },
+  { name: "Bones, joints & muscles", conditions: ["Arthritis", "Chronic pain", "Scoliosis"] },
+  { name: "Other conditions", conditions: ["Anemia", "Kidney disease", "Eczema", "Sickle cell disease"] },
 ];
 
-export const MORE_CONDS = [
-  "Migraine",
-  "Arthritis",
-  "High cholesterol",
-  "Sleep apnea",
-  "Acid reflux",
-  "Anemia",
-  "Kidney disease",
-  "Heart disease",
-  "Epilepsy",
-  "Chronic pain",
-  "COPD",
-  "Eczema",
+// Browse-by-category groupings for the other Health History catalogs
+// (see components/CategoryBrowser.tsx). Each name appears in exactly
+// one category and every catalog entry is covered, so nothing the old
+// flat "Commonly used" list offered is lost.
+export const SURGERY_CATEGORIES: { name: string; items: string[] }[] = [
+  { name: "Abdomen & digestive", items: ["Appendectomy", "Gallbladder removal", "Hernia repair"] },
+  { name: "Ear, nose & throat", items: ["Tonsillectomy"] },
+  { name: "Bones & joints", items: ["Knee replacement", "Hip replacement"] },
+  { name: "Women's health", items: ["C-section"] },
+  { name: "Eyes", items: ["Cataract surgery"] },
+  { name: "Dental", items: ["Wisdom teeth removal"] },
+  { name: "Other", items: ["Other"] },
+];
+
+export const ALLERGY_CATEGORIES: { name: string; items: string[] }[] = [
+  { name: "Medications", items: ["Penicillin", "Sulfa drugs", "Aspirin", "Iodine contrast"] },
+  { name: "Food", items: ["Peanuts", "Shellfish", "Eggs"] },
+  { name: "Environmental", items: ["Pollen", "Bee stings"] },
+  { name: "Materials", items: ["Latex"] },
+];
+
+export const PEDI_MED_CATEGORIES: { name: string; items: string[] }[] = [
+  { name: "Pain & fever", items: ["Acetaminophen (Tylenol)", "Ibuprofen (Children's)"] },
+  { name: "Antibiotics", items: ["Amoxicillin", "Azithromycin"] },
+  { name: "Allergy & cold", items: ["Cetirizine (Zyrtec)", "Diphenhydramine (Benadryl)"] },
+  { name: "Breathing", items: ["Albuterol"] },
+  { name: "Vitamins & supplements", items: ["Vitamin D drops", "Multivitamin", "Probiotic drops"] },
 ];
 
 export const SEED_CARDS: SavedCard[] = [
@@ -777,12 +795,12 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
       pregnancyMeds: "",
       pregnancyMedsList: "",
       pregnancySubstances: "",
-      deliveryGestationalAge: "39",
-      deliveryHospital: "Mount Sinai Miami",
-      deliveryType: "Vaginal",
-      deliveryComplications: "No",
+      deliveryGestationalAge: "",
+      deliveryHospital: "",
+      deliveryType: "",
+      deliveryComplications: "",
       deliveryComplicationsDetails: "",
-      hospitalizationComplications: "No",
+      hospitalizationComplications: "",
       hospitalizationComplicationsDetails: "",
       birthWeightLb: "",
       birthWeightOz: "",
@@ -832,7 +850,7 @@ export function initialState(scenario: Scenario, demoScenarioId?: DemoScenarioId
       birthControlMethod: "",
     },
 
-    confirmInfoEditing: false,
+    confirmInfoConfirmed: { identity: false, contact: false, guardian: false },
     confirmAdditionalEditing: false,
     consentOnFileEditing: false,
     policiesEditing: false,

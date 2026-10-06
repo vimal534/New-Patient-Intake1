@@ -55,7 +55,7 @@ body {
      a per-component pass — only components that hard-coded a hex
      value instead of a token (rare — PhoneFrame's own chrome, a couple
      of gradients) need touching directly. */
-  --canvas: #fbfcfd;
+  --canvas: #f6f8fa;
   --panel: #ffffff;
   --ink: #1b2624;
   --ink-soft: #66756e;
@@ -88,11 +88,15 @@ body {
   --iv2-border-strong: #c7d1cb;
   --iv2-surface: var(--panel);
   --iv2-surface-muted: #fbfcfd;
-  /* The shared Card component's own border — a dedicated token (not
-     --iv2-border, which every other bordered element like InputField/
-     OptionPill still uses) so this only restyles Card, not every
-     border in the app. */
+  /* The shared Card component no longer draws a border at all — cards
+     separate from the page by elevation (a soft, always-on drop
+     shadow) instead of a stroke, for a flatter/more minimal read.
+     --iv2-card-border is kept defined (rather than deleted) in case a
+     future one-off still wants a hairline outline, but nothing in the
+     app currently applies it. */
   --iv2-card-border: #e7edf6;
+  --iv2-card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 24px rgba(16, 24, 40, 0.06);
+  --iv2-card-shadow-hover: 0 2px 4px rgba(16, 24, 40, 0.05), 0 18px 36px rgba(16, 24, 40, 0.09);
   --iv2-success: #067647;
   --iv2-success-surface: #ecfdf3;
   --iv2-success-border: #abefc6;

@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import { Ctx } from "../ctx";
-import { FAMILY_RELATIONSHIPS, SURGERY_CATALOG, COMMON_CONDS, MORE_CONDS } from "../constants";
+import { FAMILY_RELATIONSHIPS, SURGERY_CATALOG, SURGERY_CATEGORIES, CONDITION_CATEGORIES } from "../constants";
 import { SurgeryItem, SurgeryOccurrence } from "../types";
 import { AllergiesSection } from "./AllergiesSection";
 import { ConditionAddSection } from "./ConditionAddSection";
 import { MedicationsSection } from "./MedicationsSection";
-import { Button, CatalogChip, Checkbox22, CloseCircleButton, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection, ShowMoreLink } from "./ui";
+import { Button, CatalogChip, Checkbox22, CloseCircleButton, NoneCheckRow, Reveal, SearchClearInput, SelectField, SelectedListSection } from "./ui";
+import { BrowseByCategory } from "./CategoryBrowser";
 
-const FAMILY_COND_CATALOG = [...COMMON_CONDS, ...MORE_CONDS];
-const CATALOG_VISIBLE = 4;
+const FAMILY_COND_CATALOG = CONDITION_CATEGORIES.flatMap((c) => c.conditions);
 const SEARCH_MIN_CHARS = 2;
 
 const MONTHS = [
@@ -100,7 +100,6 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
   const have = items.map((i) => i.name);
 
   const [query, setQuery] = useState("");
-  const [showMore, setShowMore] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -111,7 +110,6 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
   const searching = trimmedQuery.length >= SEARCH_MIN_CHARS;
 
   const available = SURGERY_CATALOG.filter((n) => !have.includes(n));
-  const commonVisible = showMore ? available : available.slice(0, CATALOG_VISIBLE);
   const searchMatches = searching ? available.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
 
   const openPanel = (name: string) => {
@@ -325,13 +323,11 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
             )}
           </>
         ) : (
-          <>
-            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
-            {available.length > CATALOG_VISIBLE ? (
-              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
-            ) : null}
-          </>
+          <BrowseByCategory
+            categories={SURGERY_CATEGORIES.map((c) => ({ name: c.name, items: c.items.filter((n) => available.includes(n)) }))}
+            selectedCount={(name) => (SURGERY_CATEGORIES.find((c) => c.name === name)?.items ?? []).filter((n) => have.includes(n)).length}
+            renderItem={renderChip}
+          />
         )}
       </div>
 
@@ -343,7 +339,7 @@ export function SurgeriesEditor({ ctx }: { ctx: Ctx }) {
               ? "Not available while a surgery is expanded."
               : items.length > 0
                 ? "Remove your added surgeries first."
-                : "Select this if you haven't had any of these surgeries."
+                : "Select this if none apply."
           }
           checked={none}
           disabled={expandedKey !== null || editingIndex !== null || items.length > 0}
@@ -369,7 +365,6 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
   const none = state.familyNone;
 
   const [query, setQuery] = useState("");
-  const [showMore, setShowMore] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draftCondition, setDraftCondition] = useState("");
@@ -383,7 +378,6 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
   // Unlike medications/surgeries, the same condition can legitimately
   // recur for a different relative — the catalog never excludes
   // already-added conditions.
-  const commonVisible = showMore ? FAMILY_COND_CATALOG : FAMILY_COND_CATALOG.slice(0, CATALOG_VISIBLE);
   const searchMatches = searching ? FAMILY_COND_CATALOG.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
 
   const openPanel = (condition: string) => {
@@ -550,13 +544,14 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
             )}
           </>
         ) : (
-          <>
-            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
-            {FAMILY_COND_CATALOG.length > CATALOG_VISIBLE ? (
-              <ShowMoreLink count={FAMILY_COND_CATALOG.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
-            ) : null}
-          </>
+          <BrowseByCategory
+            categories={CONDITION_CATEGORIES.map((c) => ({ name: c.name, items: c.conditions }))}
+            selectedCount={(name) => {
+              const conds = CONDITION_CATEGORIES.find((c) => c.name === name)?.conditions ?? [];
+              return items.filter((entry) => conds.includes(parseFamilyEntry(entry).condition)).length;
+            }}
+            renderItem={renderChip}
+          />
         )}
       </div>
 
@@ -568,7 +563,7 @@ export function FamilyEditor({ ctx }: { ctx: Ctx }) {
               ? "Not available while a family history entry is expanded."
               : items.length > 0
                 ? "Remove your added family history first."
-                : "Select this if none of these conditions run in your family."
+                : "Select this if none apply."
           }
           checked={none}
           disabled={expandedKey !== null || editingIndex !== null || items.length > 0}
