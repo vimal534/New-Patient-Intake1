@@ -34,7 +34,7 @@ export function HealthScreen({ ctx }: { ctx: Ctx }) {
   }
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle className="font-semibold">Past Medical Conditions</ScreenTitle>
       <ScreenCopy className="mb-4">Which conditions have you been diagnosed with? Select any that apply, now or in the past.</ScreenCopy>
       <ConditionAddSection ctx={ctx} showNoneOption />
@@ -179,7 +179,7 @@ export function CategoryFocusPage({ ctx, category }: { ctx: Ctx; category: Healt
   const lower = CATEGORY_LOWER[category];
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle>Update {lower}</ScreenTitle>
       <ScreenCopy className="mb-6">Add, remove, or correct anything below.</ScreenCopy>
       {category === "conditions" ? <ConditionsEditor ctx={ctx} /> : null}

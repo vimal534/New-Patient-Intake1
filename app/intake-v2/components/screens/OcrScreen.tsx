@@ -5,7 +5,7 @@ import { Ctx } from "../../ctx";
 import { POLICYHOLDER_RELATIONSHIPS, POLICYHOLDER_SCENARIOS } from "../../constants";
 import { formatDob } from "../../format";
 import { InsuranceBrandIcon } from "../Icons";
-import { CheckIcon, InputField, OptionPill, ScreenCopy, ScreenTitle, SelectField } from "../ui";
+import { CheckIcon, FORM_LABEL, InputField, OptionPill, ScreenCopy, ScreenTitle, SelectField } from "../ui";
 
 // Apple-style wheel-picker feel via the app's own shared dropdown
 // trigger (SelectField) — three short lists (Month/Day/Year) instead
@@ -38,7 +38,7 @@ function PolicyholderDobFields({ value, onChange }: { value: string; onChange: (
 
   return (
     <div>
-      <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">Date of birth</div>
+      <div className={`mb-1.5 ${FORM_LABEL}`}>Date of birth</div>
       <div className="grid grid-cols-3 gap-2">
         <SelectField ariaLabel="Birth month" value={month} onChange={(v) => onChange(combine(v, day, yyyy))} options={DOB_MONTHS} placeholder="Month" />
         <SelectField ariaLabel="Birth day" value={day} onChange={(v) => onChange(combine(month, v, yyyy))} options={DOB_DAYS} placeholder="Day" />
@@ -104,7 +104,7 @@ export function OcrScreen({ ctx }: { ctx: Ctx }) {
   }, [manual, needsPolicyholder, readyForEligibility]);
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className={`px-6 pt-5 pb-6 ${manual ? "min-h-full bg-[var(--iv2-surface)]" : ""}`}>
       <ScreenTitle>{manual ? "Enter your insurance details" : "Insurance"}</ScreenTitle>
       <ScreenCopy className="mb-6">
         {manual
@@ -114,7 +114,7 @@ export function OcrScreen({ ctx }: { ctx: Ctx }) {
 
       {manual ? (
         <div>
-          <div className="flex flex-col gap-3.5 rounded-[20px] border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-6 transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex flex-col gap-8">
             <InputField label="Insurance carrier" value={state.carrier} placeholder="Blue Shield" onChange={(v) => update({ carrier: v })} />
             <InputField label="Member ID" value={state.memberId} placeholder="VZ48213" onChange={(v) => update({ memberId: v })} />
             <InputField label="Group number" value={state.groupValue} placeholder="00921" onChange={(v) => update({ groupValue: v })} />
@@ -227,8 +227,8 @@ function PolicyholderQuestion({ ctx }: { ctx: Ctx }) {
   const guardianName = state.guardian1.name.trim() || "your guardian";
 
   return (
-    <div className="mt-3 rounded-2xl border border-[var(--iv2-border)] bg-[var(--iv2-surface)] p-4 transition-shadow duration-150 hover:shadow-[0_6px_16px_rgba(27,38,36,0.10)]">
-      <div className="mb-2.5 text-base font-bold text-[var(--iv2-text-primary)]">Is {guardianName} the policyholder?</div>
+    <div className="mt-8">
+      <div className={`mb-3 ${FORM_LABEL}`}>Is {guardianName} the policyholder?</div>
       <div className="grid grid-cols-2 gap-2.5">
         <OptionPill
           label="Yes"
@@ -238,13 +238,13 @@ function PolicyholderQuestion({ ctx }: { ctx: Ctx }) {
         <OptionPill label="No" selected={state.policyholderIsGuardian === false} onClick={() => update({ policyholderIsGuardian: false })} />
       </div>
       {state.policyholderIsGuardian === false ? (
-        <div className="mt-4">
-          <div className="mb-3 text-sm font-bold text-[var(--iv2-text-primary)]">Policyholder information</div>
-          <div className="flex flex-col gap-3.5">
+        <div className="mt-8">
+          <div className="mb-4 text-[18px] font-bold text-[#1b2624]">Policyholder information</div>
+          <div className="flex flex-col gap-8">
             <InputField label="Full name" value={state.policyholderName} placeholder="Enter full name" onChange={(v) => update({ policyholderName: v })} />
             <PolicyholderDobFields value={state.policyholderDob} onChange={(v) => update({ policyholderDob: v })} />
             <div>
-              <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">Relationship</div>
+              <div className={`mb-3 ${FORM_LABEL}`}>Relationship</div>
               <div className="grid grid-cols-2 gap-2.5">
                 {POLICYHOLDER_RELATIONSHIPS.map((opt) => (
                   <OptionPill

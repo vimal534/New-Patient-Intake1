@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Ctx } from "../../ctx";
 import { FlowKey } from "../../types";
-import { CalendarIcon, ChevronRightIcon, LocationIcon, MailIcon, SendIcon, UserIcon } from "../Icons";
+import { ChevronRightIcon, MailIcon } from "../Icons";
 import { dur, prefersReducedMotion } from "../motion";
 import { CheckIcon } from "../ui";
 
@@ -26,15 +26,16 @@ const CHECKLIST: { label: string; detail: string; candidates: FlowKey[] }[] = [
   { label: "Payment", detail: "Payment method saved", candidates: ["payment"] },
 ];
 
-// Screen 15 — Success. No header. Restyled to a richer reference: a
-// two-layer hero (light-green halo behind a solid-green circle) with a
-// few decorative confetti flecks, an appointment card (provider avatar +
-// date/time/specialty, an "In-person visit" pill, and a location row
-// with its own "Get directions" pill), a bordered checklist card whose
-// rows jump back to that section and now carry a one-line status under
-// each label (this is what replaces the Final Review screen we
-// removed — a quick glance back, not a gate), and a "What happens
-// next?" info box.
+// Screen 15 — Success. No header. A two-layer hero (light-green halo
+// behind a solid-green circle) with a few decorative confetti flecks,
+// then straight into the checklist of what this visit's intake
+// actually covered — no appointment/provider/location recap here,
+// that's already been confirmed earlier in the flow and repeating it
+// on the last screen just delays the one thing this screen is for.
+// Each checklist row jumps back to that section (this is what
+// replaces the Final Review screen we removed — a quick glance back,
+// not a gate) and carries a one-line status under its label, and a
+// "What happens next?" info box closes things out.
 //
 // A tapped row doesn't just navigate there (page.tsx's `go`) — it opens
 // that section in review mode via `reviewSection` (straight into its
@@ -44,7 +45,7 @@ const CHECKLIST: { label: string; detail: string; candidates: FlowKey[] }[] = [
 // carrying on to whatever's next in the original flow order. See
 // IntakeState.reviewingFromSuccess and page.tsx's footerFor override.
 export function SuccessScreen({ ctx }: { ctx: Ctx }) {
-  const { state, update, reviewSection, flow } = ctx;
+  const { update, reviewSection, flow } = ctx;
   const checklist = CHECKLIST.map((item) => ({ ...item, target: item.candidates.find((c) => flow.includes(c)) })).filter(
     (item): item is (typeof CHECKLIST)[number] & { target: FlowKey } => item.target != null
   );
@@ -85,58 +86,7 @@ export function SuccessScreen({ ctx }: { ctx: Ctx }) {
       <div className="mb-2 text-[26px] leading-[1.2] font-bold text-[var(--iv2-text-primary)]">You&apos;re all set!</div>
       <div className="mb-7 text-base leading-[1.5] text-[var(--iv2-text-secondary)]">We&apos;ll see you soon.</div>
 
-      <div className="rounded-[24px] border border-[var(--iv2-border-subtle)] bg-[var(--iv2-surface)] p-4 text-left transition-shadow duration-150 hover:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--iv2-brand-tint)]">
-            <CalendarIcon size={18} color="var(--iv2-brand)" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Your appointment</div>
-            <div className="text-base leading-[1.3] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.dateLong}</div>
-            <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.startTime}</div>
-          </div>
-          <span className="mt-0.5 flex shrink-0 items-center gap-1 rounded-full bg-[var(--iv2-success-surface)] px-3 py-1 text-[13px] font-bold text-[var(--iv2-success)]">
-            Confirmed
-          </span>
-        </div>
-
-        <div className="my-4 h-px bg-[var(--iv2-border-subtle)]" />
-
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#F3E8FF" }}>
-            <UserIcon size={18} color="#7C3AED" />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[11px] font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Provider</div>
-            <div className="text-base leading-[1.3] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.providerName}</div>
-            <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.providerSpecialty}</div>
-          </div>
-        </div>
-
-        <div className="my-4 h-px bg-[var(--iv2-border-subtle)]" />
-
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#FFEDD5" }}>
-            <LocationIcon size={17} color="#F97316" />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[11px] font-bold tracking-[0.06em] text-[var(--iv2-text-muted)] uppercase">Location</div>
-            <div className="text-base leading-[1.3] font-bold text-[var(--iv2-text-primary)]">{state.scheduling.clinicName}</div>
-            <div className="text-[15px] text-[var(--iv2-text-secondary)]">{state.scheduling.clinicAddress}</div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[var(--iv2-brand-tint)] py-3.5 text-[15px] font-bold text-[var(--iv2-brand)]"
-        >
-          <SendIcon size={15} color="var(--iv2-brand)" />
-          Get directions
-          <ChevronRightIcon color="var(--iv2-brand)" />
-        </button>
-      </div>
-
-      <div className="mt-7 mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <div className="text-lg font-bold text-[var(--iv2-text-primary)]">What&apos;s complete</div>
         <div className="flex items-center gap-1 rounded-full bg-[var(--iv2-success-surface)] px-3 py-1 text-[13px] font-bold text-[var(--iv2-success)]">
           <CheckIcon size={11} color="var(--iv2-success)" strokeWidth={3} />

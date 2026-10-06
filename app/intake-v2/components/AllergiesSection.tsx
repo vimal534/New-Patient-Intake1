@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Ctx } from "../ctx";
-import { ALLERGY_CATALOG, ALLERGY_DETAILS, ALLERGY_REACTIONS } from "../constants";
+import { ALLERGY_CATALOG, ALLERGY_CATEGORIES, ALLERGY_DETAILS, ALLERGY_REACTIONS } from "../constants";
 import { CatalogItem } from "../types";
-import { BottomSheet, Button, CatalogChip, Checkbox22, CloseCircleButton, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectedListSection, SeverityBadge, ShowMoreLink } from "./ui";
+import { BottomSheet, Button, CatalogChip, Checkbox22, CloseCircleButton, NoneCheckRow, OptionRow, Reveal, SearchClearInput, SelectedListSection, SeverityBadge } from "./ui";
+import { BrowseByCategory } from "./CategoryBrowser";
 
-const CATALOG_VISIBLE = 4;
 const SEARCH_MIN_CHARS = 2;
 
 type Draft = { reaction: string; severity: string };
@@ -24,7 +24,6 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
   const none = state.allergiesNone;
 
   const [query, setQuery] = useState("");
-  const [showMore, setShowMore] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -37,7 +36,6 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
 
   const have = items.map((i) => i.name);
   const available = ALLERGY_CATALOG.filter((n) => !have.includes(n));
-  const commonVisible = showMore ? available : available.slice(0, CATALOG_VISIBLE);
 
   const searchMatches = searching ? available.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase())) : [];
   const customName = trimmedQuery;
@@ -225,14 +223,11 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
             )}
           </div>
         ) : (
-          <>
-            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="grid grid-cols-2 gap-2.5">{commonVisible.map(renderChip)}</div>
-
-            {available.length > CATALOG_VISIBLE ? (
-              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
-            ) : null}
-          </>
+          <BrowseByCategory
+            categories={ALLERGY_CATEGORIES.map((c) => ({ name: c.name, items: c.items.filter((n) => available.includes(n)) }))}
+            selectedCount={(name) => (ALLERGY_CATEGORIES.find((c) => c.name === name)?.items ?? []).filter((n) => have.includes(n)).length}
+            renderItem={renderChip}
+          />
         )}
       </div>
 
@@ -244,7 +239,7 @@ export function AllergiesSection({ ctx }: { ctx: Ctx }) {
               ? "Not available while an allergy is expanded."
               : items.length > 0
                 ? "Remove your added allergies first."
-                : "Select this if you don't have any known allergies."
+                : "Select this if none apply."
           }
           checked={none}
           disabled={expandedKey !== null || editingIndex !== null || items.length > 0}

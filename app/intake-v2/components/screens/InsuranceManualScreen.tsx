@@ -13,11 +13,11 @@ export function InsuranceManualScreen({ ctx }: { ctx: Ctx }) {
   const { state, update } = ctx;
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">Insurance for today&apos;s visit</ScreenTitle>
       <ScreenCopy className="mb-6">This visit needs its own coverage details on file.</ScreenCopy>
 
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-8">
         <InputField label="Insurance company name" value={state.carrier} placeholder="Blue Shield PPO" onChange={(v) => update({ carrier: v })} />
         <InputField label="Member ID#" value={state.memberId} placeholder="VZ48213" onChange={(v) => update({ memberId: v })} />
         <InputField label="Group ID#" value={state.groupValue} placeholder="00921" onChange={(v) => update({ groupValue: v })} />

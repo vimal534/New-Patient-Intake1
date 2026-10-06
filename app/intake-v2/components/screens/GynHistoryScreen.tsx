@@ -14,11 +14,11 @@ export function GynHistoryScreen({ ctx }: { ctx: Ctx }) {
   const gyn = state.gyn;
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">A few questions about your cycle</ScreenTitle>
       <ScreenCopy className="mb-6">Answered privately and used only to guide today&apos;s care.</ScreenCopy>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-8">
         <YesNoRow label="Have your periods started?" value={gyn.hasStartedPeriods} onChange={(v) => set({ hasStartedPeriods: v })} />
 
         {gyn.hasStartedPeriods === "Yes" ? (

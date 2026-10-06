@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button, BottomSheet } from "../ui";
 
 const ITEM_HEIGHT = 40;
@@ -155,9 +156,16 @@ export function DobWheelSheet({
   value: string;
   onConfirm: (v: string) => void;
 }) {
-  return (
+  const sheet = (
     <BottomSheet open={open} onClose={onClose} zIndex={80} maxHeight="none">
       {open ? <DobWheelPicker value={value} onClose={onClose} onConfirm={onConfirm} /> : null}
     </BottomSheet>
   );
+  // A screen that has the shared footer renders this inside its
+  // scrolling content pane, which would leave the sheet stopping above
+  // that footer (its "Looks right" button showing underneath). Mounting
+  // it on the phone frame itself lets it cover the whole screen, bottom
+  // edge included. Only touched while open, i.e. never during SSR.
+  const host = open && typeof document !== "undefined" ? document.querySelector(".iv2-root") : null;
+  return host ? createPortal(sheet, host) : sheet;
 }

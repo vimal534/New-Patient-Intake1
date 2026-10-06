@@ -3,7 +3,7 @@
 import { Ctx } from "../../ctx";
 import { SubstanceUse } from "../../types";
 import { formatDob } from "../../format";
-import { InputField, RadioRow, ScreenCopy, ScreenTitle, YesNoRow } from "../ui";
+import { FORM_LABEL, InputField, RadioRow, ScreenCopy, ScreenTitle, YesNoRow } from "../ui";
 
 const ALCOHOL_LEVELS = ["Never", "Rarely", "Occasionally", "Regularly", "Prefer not to answer"];
 
@@ -15,11 +15,11 @@ export function SubstanceUseScreen({ ctx }: { ctx: Ctx }) {
   const substance = state.substance;
 
   return (
-    <div className="px-6 pt-5 pb-6">
+    <div className="min-h-full bg-[var(--iv2-surface)] px-6 pt-5 pb-6">
       <ScreenTitle className="mb-2 leading-[1.28]">A few confidential questions</ScreenTitle>
       <ScreenCopy className="mb-6">Answered privately and used only to guide today&apos;s care.</ScreenCopy>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-8">
         <YesNoRow label="Do you use tobacco or vape?" value={substance.tobaccoUse} onChange={(v) => set({ tobaccoUse: v })} />
         <YesNoRow
           label="Any other tobacco or nicotine products?"
@@ -34,7 +34,7 @@ export function SubstanceUseScreen({ ctx }: { ctx: Ctx }) {
           onChange={(v) => set({ tobaccoScreeningDate: formatDob(v) })}
         />
         <div>
-          <div className="mb-3 text-[15px] font-semibold text-[var(--iv2-text-primary)]">Alcohol consumption</div>
+          <div className={`mb-3 ${FORM_LABEL}`}>Alcohol consumption</div>
           <div className="flex flex-col gap-2">
             {ALCOHOL_LEVELS.map((opt) => (
               <RadioRow key={opt} label={opt} selected={substance.alcoholLevel === opt} onClick={() => set({ alcoholLevel: opt })} />

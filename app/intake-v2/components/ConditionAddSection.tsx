@@ -2,59 +2,67 @@
 
 import { useState } from "react";
 import { Ctx } from "../ctx";
-import { COMMON_CONDS, MORE_CONDS } from "../constants";
-import { CatalogChip, CatalogCheckRow, NoneCheckRow, SearchClearInput, SelectedListSection, ShowMoreLink } from "./ui";
+import { CONDITION_CATEGORIES } from "../constants";
+import { XIcon } from "./Icons";
+import { BrowseByCategory } from "./CategoryBrowser";
+import { CatalogChip, NoneCheckRow, SearchClearInput } from "./ui";
 
-const CATALOG_VISIBLE = 5;
 const SEARCH_MIN_CHARS = 2;
-const ALL_CONDS = [...COMMON_CONDS, ...MORE_CONDS];
+const ALL_CONDS = CONDITION_CATEGORIES.flatMap((c) => c.conditions);
+const CATEGORIES = CONDITION_CATEGORIES.map((c) => ({ name: c.name, items: c.conditions }));
 
 // Shared conditions add flow — used by both the new-patient HealthScreen
 // (its own screen, with the exclusive "None" checkbox) and the
 // returning-patient HealthCategoryEditors (embedded in
-// CategoryFocusPage, no checkbox). Checkbox-driven throughout (no "+"
-// icon): checking a catalog/search row selects it immediately (a
-// condition has no follow-up details to fill in), landing at the top of
-// "Your conditions". Search filters live on every keystroke, no
-// debounce, with a Clear (×) button once there's a query and bold
-// highlighting on whichever substring matched.
+// CategoryFocusPage, no checkbox). A "Selected" strip of removable
+// chips on top, then Browse by category (tap-to-toggle chips inside
+// each). Search still filters across every category on each keystroke,
+// with a Clear (×) button once there's a query and bold highlighting on
+// the matched substring.
 export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx; showNoneOption?: boolean }) {
   const { state, update } = ctx;
   const have = state.onFileConds;
   const none = state.noneConds;
 
   const [query, setQuery] = useState("");
-  const [showMore, setShowMore] = useState(false);
 
   const q = query.trim().toLowerCase();
   const searching = q.length >= SEARCH_MIN_CHARS;
+  const searchMatches = searching ? ALL_CONDS.filter((c) => !have.includes(c) && c.toLowerCase().includes(q)) : [];
 
-  const available = ALL_CONDS.filter((c) => !have.includes(c));
-  const commonVisibleCount = showMore ? available.length : Math.min(CATALOG_VISIBLE, available.length);
-  const commonVisible = available.slice(0, commonVisibleCount);
-
-  const searchMatches = searching ? available.filter((c) => c.toLowerCase().includes(q)) : [];
-
-  // Selecting any item disables "None" (point 10); selecting "None"
-  // clears the list and disables the rest of the section (points 8-9).
+  // Selecting any item disables "None"; selecting "None" clears the
+  // list and disables the rest of the section.
   const addCond = (name: string) => {
     update((s) => ({ onFileConds: [name, ...s.onFileConds], noneConds: false }));
     setQuery("");
   };
   const removeCond = (name: string) => update((s) => ({ onFileConds: s.onFileConds.filter((c) => c !== name) }));
+  const toggleCond = (name: string) => (have.includes(name) ? removeCond(name) : addCond(name));
   const toggleNone = () => update((s) => ({ noneConds: !s.noneConds, onFileConds: s.noneConds ? s.onFileConds : [] }));
 
   return (
     <div>
       {have.length > 0 ? (
-        <SelectedListSection
-          label="Your conditions"
-          noun="conditions"
-          items={have.map((name) => ({
-            key: name,
-            node: <CatalogCheckRow label={name} checked onClick={() => removeCond(name)} />,
-          }))}
-        />
+        <div className="mb-5">
+          <div className="mb-2.5 flex items-center justify-between">
+            <div className="text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Selected</div>
+            <div className="text-sm font-semibold text-[var(--iv2-brand)]">{have.length} added</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {have.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => removeCond(name)}
+                aria-label={`Remove ${name}`}
+                className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--iv2-brand)] bg-[var(--iv2-brand-tint)] py-2 pr-3 pl-4 text-[15px] font-semibold text-[var(--iv2-brand)]"
+              >
+                {name}
+                <XIcon size={14} color="var(--iv2-brand)" />
+              </button>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       <div className={none ? "pointer-events-none opacity-40" : ""}>
@@ -81,17 +89,11 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
             )}
           </>
         ) : (
-          <>
-            <div className="mt-4 mb-2.5 text-[13px] font-semibold tracking-[0.04em] text-[var(--iv2-text-muted)] uppercase">Commonly used</div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {commonVisible.map((name) => (
-                <CatalogChip key={name} label={name} selected={false} onClick={() => addCond(name)} />
-              ))}
-            </div>
-            {available.length > CATALOG_VISIBLE ? (
-              <ShowMoreLink count={available.length - CATALOG_VISIBLE} expanded={showMore} onToggle={() => setShowMore(!showMore)} />
-            ) : null}
-          </>
+          <BrowseByCategory
+            categories={CATEGORIES}
+            selectedCount={(name) => (CATEGORIES.find((c) => c.name === name)?.items ?? []).filter((c) => have.includes(c)).length}
+            renderItem={(name) => <CatalogChip key={name} label={name} selected={have.includes(name)} onClick={() => toggleCond(name)} />}
+          />
         )}
       </div>
 
@@ -99,7 +101,7 @@ export function ConditionAddSection({ ctx, showNoneOption = false }: { ctx: Ctx;
         <div className="mt-6">
           <NoneCheckRow
             label="I don't have any of these"
-            hint="Select this if you haven't been diagnosed with any of these conditions."
+            hint="Select this if none apply."
             checked={none}
             disabled={have.length > 0}
             onClick={toggleNone}

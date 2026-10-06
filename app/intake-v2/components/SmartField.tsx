@@ -16,6 +16,7 @@ import {
   validateDob,
 } from "../format";
 import { ELEVATE_REST_SHADOW, FIELD_FOCUS_SHADOW, dur, focusNextIfEmpty } from "./motion";
+import { FORM_LABEL } from "./ui";
 
 // Color tokens mirrored 1:1 from app/globals.css's --iv2-* custom
 // properties. Duplicated here as literal hex rather than read via
@@ -54,7 +55,8 @@ type SmartFieldProps = {
   placeholder?: string;
   ariaLabel?: string;
   inputMode?: "text" | "numeric" | "tel" | "email";
-  boldLabel?: boolean;
+  // Replaces the label's default size/weight/color wholesale.
+  labelClassName?: string;
   required?: boolean;
   // Formatting applied at the onChange boundary, before the parent's
   // state is ever set — so `value` always arrives already valid-shape.
@@ -93,7 +95,7 @@ export function SmartTextField({
   placeholder,
   ariaLabel,
   inputMode,
-  boldLabel = false,
+  labelClassName,
   required,
   format,
   validate,
@@ -194,7 +196,7 @@ export function SmartTextField({
   return (
     <div>
       {label ? (
-        <div className={`mb-1.5 text-sm font-semibold ${boldLabel ? "text-[var(--iv2-text-primary)]" : "text-[var(--iv2-text-muted)]"}`}>
+        <div className={`mb-1.5 ${labelClassName ?? FORM_LABEL}`}>
           {label} {required ? <span className="text-[var(--iv2-danger)]">*</span> : null}
         </div>
       ) : null}
@@ -228,7 +230,7 @@ type PresetProps = {
   onChange: (v: string) => void;
   onBlur?: () => void;
   ariaLabel?: string;
-  boldLabel?: boolean;
+  labelClassName?: string;
   required?: boolean;
   nextRef?: RefObject<HTMLElement | null>;
   fieldRef?: RefObject<HTMLInputElement | null>;
@@ -430,7 +432,7 @@ export function SplitDobField({
   return (
     <div>
       {label ? (
-        <div className="mb-1.5 text-sm font-semibold text-[var(--iv2-text-muted)]">
+        <div className={`mb-1.5 ${FORM_LABEL}`}>
           {label} {required ? <span className="text-[var(--iv2-danger)]">*</span> : null}
         </div>
       ) : null}
